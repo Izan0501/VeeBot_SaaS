@@ -56,6 +56,13 @@ class UserProfileUpdate(BaseModel):
 class PasswordChange(BaseModel):
     current_password: str
     new_password: str
+    
+class EmailRequest(BaseModel):
+    email: EmailStr
+
+class DirectResetRequest(BaseModel):
+    email: EmailStr
+    new_password: str
 
 async def get_current_user(token: str = Depends(oauth2_scheme)):
     credentials_exception = HTTPException(
@@ -155,6 +162,38 @@ def change_password(data: PasswordChange, current_user: dict = Depends(get_curre
     )
     return {"message": "Contraseña actualizada exitosamente"}
 
+# Modelo para el cambio directo (Inseguro para prod, útil para demo)
+class DirectResetRequest(BaseModel):
+    email: EmailStr
+    new_password: str
+
+# 1. VERIFICAR SI EL EMAIL EXISTE (Paso 1 del Front)
+@app.post("/auth/verify-email")
+async def verify_email_exists(data: EmailRequest):
+    user = users_collection.find_one({"email": data.email})
+    if not user:
+        # Aquí sí avisamos que no existe para que la UI sepa qué hacer
+        raise HTTPException(status_code=404, detail="El correo no está registrado")
+    return {"message": "Usuario encontrado", "exists": True}
+
+# 2. CAMBIO DIRECTO (Paso 2 del Front)
+@app.post("/auth/reset-password-direct")
+async def reset_password_direct(data: DirectResetRequest):
+    # Buscamos usuario
+    user = users_collection.find_one({"email": data.email})
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    # Hash nueva password
+    new_hashed_pwd = get_password_hash(data.new_password)
+    
+    # Actualizar
+    users_collection.update_one(
+        {"email": data.email},
+        {"$set": {"password": new_hashed_pwd}}
+    )
+    
+    return {"message": "Contraseña actualizada. Ya puedes iniciar sesión."}
 # ==========================================
 # 2. RUTAS DE SUBIDA (CORE)
 # ==========================================

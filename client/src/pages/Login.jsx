@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BrainCircuit, Lock, Mail, ArrowRight } from 'lucide-react'; // Agregamos iconos extra
+import { BrainCircuit, Lock, Mail, ArrowRight, HelpCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const Login = ({ onLogin }) => {
@@ -36,6 +36,12 @@ const Login = ({ onLogin }) => {
         } finally {
             setLoading(false);
         }
+    };
+
+    // Función para ir a recuperar contraseña
+    const goToForgot = () => {
+        // Navegamos al registro pasando un estado para que sepa qué vista mostrar
+        navigate('/register', { state: { initialView: 'forgot_email' } });
     };
 
     return (
@@ -76,7 +82,6 @@ const Login = ({ onLogin }) => {
                         <div>
                             <div className="flex justify-between items-center mb-1.5">
                                 <label className="block text-sm font-semibold text-slate-700">Contraseña</label>
-                                <span className="text-xs text-indigo-600 hover:text-indigo-800 cursor-pointer font-medium">¿Olvidaste tu contraseña?</span>
                             </div>
                             <div className="relative">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -104,6 +109,16 @@ const Login = ({ onLogin }) => {
 
                     <div className="mt-8 pt-6 border-t border-slate-100 text-center text-sm text-slate-500">
                         ¿No tienes cuenta? <span onClick={() => navigate('/register')} className="text-indigo-600 font-bold cursor-pointer hover:text-indigo-800 transition-colors">Regístrate gratis</span>
+                        <button
+                            type="button"
+                            onClick={goToForgot}
+                            className="inline-flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-indigo-600 transition-all group mt-6"
+                        >
+                            <div className="p-1 rounded-full bg-slate-100 group-hover:bg-indigo-100 transition-colors">
+                                <HelpCircle size={14} />
+                            </div>
+                            <span>Recuperar mi contraseña</span>
+                        </button>
                     </div>
                 </div>
             </div>

@@ -100,7 +100,7 @@ function App() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={isAuthenticated ? <Navigate to="/dashboard" /> : <Login onLogin={() => setIsAuthenticated(true)} />} />
         <Route path="/register" element={isAuthenticated ? <Navigate to="/dashboard" /> : <Register />} />
-
+        
         {/* Rutas Privadas */}
         <Route path="/dashboard" element={<ProtectedLayout><Dashboard isModalOpen={isModalOpen} setIsModalOpen={setIsModalOpen} /></ProtectedLayout>} />
         <Route path="/analytics" element={<ProtectedLayout><Analytics /></ProtectedLayout>} />

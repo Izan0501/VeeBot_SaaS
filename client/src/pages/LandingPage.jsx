@@ -52,7 +52,7 @@ const LandingPage = () => {
               <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-indigo-600 transition-all duration-300 group-hover:w-full"></span>
             </a>
             <a href="#pricing" onClick={(e) => handleScroll(e, 'pricing')} className="text-sm font-medium text-slate-600 hover:text-indigo-600 transition-colors cursor-pointer relative group">
-              Precios
+              Planes
               <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-indigo-600 transition-all duration-300 group-hover:w-full"></span>
             </a>
             <button onClick={() => navigate('/login')} className="text-sm font-bold text-slate-900 hover:text-indigo-600 transition-colors">Login</button>
@@ -93,7 +93,7 @@ const LandingPage = () => {
               className={`text-lg font-medium text-slate-700 hover:text-indigo-600 py-2 border-b border-slate-100 transition-all duration-500 delay-200 ${isMobileMenuOpen ? 'translate-x-0 opacity-100' : '-translate-x-4 opacity-0'
                 }`}
             >
-              Precios
+              Planes
             </a>
 
             {/* Botones */}
