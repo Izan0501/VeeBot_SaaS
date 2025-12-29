@@ -1,0 +1,25 @@
+# --- BASURA DEL SISTEMA ---
+.DS_Store
+Thumbs.db
+
+# --- VARIABLES DE ENTORNO (CLAVES) ---
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# --- DEPENDENCIAS (LO QUE HACE PESADO EL REPO) ---
+node_modules/
+client/node_modules/
+server/venv/
+server/.venv/
+__pycache__/
+server/__pycache__/
+*.pyc
+
+# --- ARCHIVOS DE CONSTRUCCIÓN ---
+dist/
+build/
+client/dist/
+server/uploads/
