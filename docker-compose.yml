@@ -1,0 +1,18 @@
+services:
+  server:
+    build: ./server
+    # --- CAMBIO CRÍTICO: MODO HOST ---
+    # Esto conecta el contenedor directo a la tarjeta de red de tu PC.
+    # Elimina cualquier bloqueo de Docker.
+    network_mode: "host" 
+    
+    # IMPORTANTE: No uses 'ports' ni 'networks' ni 'dns' aquí.
+    # El puerto 8000 se abrirá automáticamente en tu localhost.
+    env_file:
+      - .env
+
+  client:
+    build: ./client
+    ports:
+      - "5173:5173"
+    # El cliente lo dejamos aislado normal, no necesita permisos especiales

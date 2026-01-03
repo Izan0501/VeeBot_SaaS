@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer
 from pydantic import BaseModel, EmailStr
 from jose import JWTError, jwt
-import shutil
+from pathlib import Path
 import os
 import asyncio 
 from datetime import datetime
@@ -16,7 +16,8 @@ from security import get_password_hash, verify_password, create_access_token, SE
 from services import extract_text_from_pdf, process_and_store_cv, analyze_candidate_with_groq, get_ai_score
 from database import insert_candidate, get_all_candidates_from_db, delete_candidate_by_id
 
-load_dotenv()
+env_path = Path(__file__).resolve().parent.parent / '.env'
+load_dotenv(dotenv_path=env_path)
 
 app = FastAPI(title="RecruitAI API")
 
