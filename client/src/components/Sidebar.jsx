@@ -2,14 +2,35 @@ import React, { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
     Users, UploadCloud, BarChart3, Settings, LogOut,
-    BrainCircuit, UserCircle, Menu, X, Sun, Moon
+    BrainCircuit, Menu, X, Sun, Moon, Crown, Zap, Sparkles
 } from 'lucide-react';
 
-const Sidebar = ({ onOpenModal, toggleTheme, currentTheme }) => {
+const Sidebar = ({ onOpenModal, toggleTheme, currentTheme, userRole }) => {
     const location = useLocation();
     const navigate = useNavigate();
     const [userEmail, setUserEmail] = useState("Usuario");
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+    // Helpers de Rol
+    const isPremium = userRole === 'Premium' || userRole === 'Admin' || userRole === 'Reclutador';
+
+    // Configuración visual del Plan (Adaptada al tema invertido)
+    const planConfig = isPremium ? {
+        label: "PRO MEMBER",
+        // Default (Sidebar Oscuro): Texto Amber | Dark (Sidebar Blanco): Texto Amber Oscuro
+        textStyle: "text-amber-300 dark:text-amber-600",
+        // Default (Sidebar Oscuro): Fondo Indigo Oscuro | Dark (Sidebar Blanco): Fondo Indigo Claro
+        bgStyle: "bg-indigo-950/50 border-indigo-500/30 dark:bg-indigo-50 dark:border-indigo-100",
+        icon: <Crown size={12} className="text-amber-400 fill-amber-400" />,
+        glow: "shadow-[0_0_15px_rgba(99,102,241,0.3)] dark:shadow-none"
+    } : {
+        label: "STARTER PLAN",
+        // Default (Sidebar Oscuro): Texto Slate | Dark (Sidebar Blanco): Texto Slate
+        textStyle: "text-slate-400 dark:text-slate-500",
+        bgStyle: "bg-slate-800/50 border-slate-700 dark:bg-slate-100 dark:border-slate-200",
+        icon: <Zap size={12} className="text-slate-400 dark:text-slate-500" />,
+        glow: ""
+    };
 
     const isActive = (path) => location.pathname === path;
 
@@ -33,116 +54,156 @@ const Sidebar = ({ onOpenModal, toggleTheme, currentTheme }) => {
 
     return (
         <>
-            {/* HEADER MÓVIL (Mantiene consistencia con el contenido, no invertido) */}
-            <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 z-30 flex items-center justify-between px-4 transition-colors duration-300">
+            {/* HEADER MÓVIL (Mantiene lógica normal para no chocar con el contenido) */}
+            <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 z-50 flex items-center justify-between px-4 transition-colors duration-300">
                 <div className="flex items-center gap-3">
                     <button onClick={() => setIsMobileMenuOpen(true)} className="p-2 -ml-2 text-slate-600 dark:text-slate-300 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
                         <Menu size={24} />
                     </button>
-                    <div className="flex items-center gap-2 opacity-90">
-                        <BrainCircuit className="text-indigo-600 dark:text-indigo-400" size={20} />
-                        <span className="text-lg font-bold tracking-tight text-slate-900 dark:text-white">VeeBot AI</span>
+                    <div className="flex items-center gap-2">
+                        <div className="bg-indigo-600 p-1 rounded text-white"><BrainCircuit size={18} /></div>
+                        <span className="text-lg font-bold tracking-tight text-slate-900 dark:text-white">VeeBot</span>
                     </div>
                 </div>
-                <button onClick={toggleTheme} className="p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors">
-                    {currentTheme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
-                </button>
             </div>
 
             {/* BACKDROP */}
             <div className={`fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-40 md:hidden transition-opacity duration-300 ${isMobileMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`} onClick={() => setIsMobileMenuOpen(false)} />
 
-            {/* --- SIDEBAR INVERTIDO --- */}
+            {/* --- SIDEBAR (COLORES INVERTIDOS) --- */}
+            {/* DEFAULT (Light Mode App): bg-slate-950 (Oscuro)
+               DARK (Dark Mode App): dark:bg-white (Blanco) 
+            */}
             <aside className={`
-                fixed md:sticky top-0 left-0 h-screen w-64 flex flex-col z-50
+                fixed md:sticky top-0 left-0 h-screen w-72 flex flex-col z-50
                 transition-all duration-300 ease-in-out shadow-2xl md:shadow-none
                 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 md:flex
                 
-                /* MODO CLARO (Default): Fondo Oscuro */
-                bg-slate-900 text-white border-r border-transparent
-
-                /* MODO OSCURO (Dark): Fondo Claro (Invertido) */
+                bg-slate-950 text-white border-r border-slate-800
                 dark:bg-white dark:text-slate-800 dark:border-slate-200
             `}>
 
                 {/* Header Sidebar */}
-                <div className="p-6 h-16 flex justify-between items-center
-                    border-b border-slate-800 dark:border-slate-100"
-                >
-                    <div className="flex items-center gap-2">
-                        <div className="bg-indigo-600 p-1.5 rounded-lg text-white">
-                            <BrainCircuit size={24} />
+                <div className="p-6 h-24 flex justify-between items-center relative">
+                    {/* Luz de fondo solo en modo oscuro del sidebar (App Light) */}
+                    <div className="absolute top-0 left-10 w-32 h-32 bg-indigo-500/10 blur-[50px] rounded-full pointer-events-none dark:hidden"></div>
+
+                    <div className="flex items-center gap-3 relative z-10">
+                        <div className="bg-gradient-to-br from-indigo-500 to-violet-600 p-2.5 rounded-2xl text-white shadow-lg shadow-indigo-500/20 ring-1 ring-white/10 dark:ring-black/5">
+                            <BrainCircuit size={26} />
                         </div>
-                        <span className="text-xl font-bold tracking-tight">VeeBot AI</span>
+                        <div>
+                            <h1 className="text-xl font-bold tracking-tight leading-none text-white dark:text-slate-900">VeeBot AI</h1>
+                            <span className="text-[10px] text-slate-400 dark:text-slate-500 font-bold tracking-widest uppercase opacity-70">Recruiter OS</span>
+                        </div>
                     </div>
-                    <button onClick={() => setIsMobileMenuOpen(false)} className="md:hidden text-slate-400 hover:text-white dark:hover:text-slate-900 transition-colors p-1"><X size={22} /></button>
+                    <button onClick={() => setIsMobileMenuOpen(false)} className="md:hidden text-slate-400 hover:text-white transition-colors p-1"><X size={22} /></button>
                 </div>
 
                 {/* Nav */}
-                <nav className="flex-1 p-4 space-y-2 overflow-y-auto custom-scrollbar">
-                    <NavItem to="/dashboard" icon={<Users size={20} />} text="Candidatos" active={isActive('/dashboard')} />
+                <nav className="flex-1 px-4 space-y-8 overflow-y-auto custom-scrollbar py-2">
+                    <div>
+                        <p className="px-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-3">Dashboard</p>
+                        <div className="space-y-1">
+                            <NavItem to="/dashboard" icon={<Users size={20} />} text="Candidatos" active={isActive('/dashboard')} />
+                            <NavItem to="/analytics" icon={<BarChart3 size={20} />} text="Analíticas" active={isActive('/analytics')} />
+                        </div>
+                    </div>
 
-                    {/* Botón Importar */}
-                    <button
-                        onClick={() => { onOpenModal(); setIsMobileMenuOpen(false); }}
-                        className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all text-left
-                        text-slate-400 hover:text-white hover:bg-slate-800
-                        dark:text-slate-500 dark:hover:text-indigo-700 dark:hover:bg-indigo-50"
-                    >
-                        <UploadCloud size={20} /> Importar CVs
-                    </button>
-
-                    <NavItem to="/analytics" icon={<BarChart3 size={20} />} text="Analíticas" active={isActive('/analytics')} />
-                    <NavItem to="/settings" icon={<Settings size={20} />} text="Configuración" active={isActive('/settings')} />
+                    <div>
+                        <p className="px-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-3">Herramientas</p>
+                        <div className="space-y-1">
+                            {/* Botón Importar - Estilos Invertidos */}
+                            <button
+                                onClick={() => { onOpenModal(); setIsMobileMenuOpen(false); }}
+                                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 text-left mb-1
+                                text-slate-400 hover:text-white hover:bg-slate-800/60
+                                dark:text-slate-600 dark:hover:text-indigo-700 dark:hover:bg-indigo-50 group relative overflow-hidden"
+                            >
+                                <span className="p-1.5 rounded-lg bg-slate-800/80 text-slate-400 group-hover:bg-indigo-500 group-hover:text-white transition-colors duration-300 dark:bg-slate-100 dark:text-slate-500 dark:group-hover:bg-indigo-100 dark:group-hover:text-indigo-600">
+                                    <UploadCloud size={18} />
+                                </span>
+                                <span className="relative z-10">Importar CVs</span>
+                            </button>
+                            <NavItem to="/settings" icon={<Settings size={20} />} text="Configuración" active={isActive('/settings')} />
+                        </div>
+                    </div>
                 </nav>
 
-                {/* Footer Sidebar */}
-                <div className="p-4 space-y-4 border-t border-slate-800 dark:border-slate-100">
+                {/* --- FOOTER: USER PROFILE INVERTIDO --- */}
+                <div className="p-4 mt-auto relative">
 
-                    {/* Botón Tema - Estilo Adaptativo Invertido */}
-                    <button
-                        onClick={toggleTheme}
-                        className="w-full flex items-center justify-between px-4 py-2.5 rounded-lg text-xs font-medium transition-colors border
-                        bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700
-                        dark:bg-slate-100 dark:hover:bg-slate-200 dark:text-slate-600 dark:border-slate-200"
+                    {/* Tarjeta de Perfil */}
+                    <div className={`relative rounded-2xl p-4 transition-all duration-300 border backdrop-blur-xl group
+                        ${isPremium
+                            ? 'bg-gradient-to-b from-slate-900 to-indigo-950/40 border-indigo-500/20 hover:border-indigo-500/40 dark:from-white dark:to-slate-50 dark:border-indigo-100'
+                            : 'bg-slate-900/60 border-slate-800 hover:border-slate-700 dark:bg-white dark:border-slate-200 dark:hover:border-slate-300'
+                        }`}
                     >
-                        <span>Modo: {currentTheme === 'dark' ? 'Oscuro' : 'Claro'}</span>
-                        {currentTheme === 'dark' ? <Sun size={16} className="text-orange-500" /> : <Moon size={16} />}
-                    </button>
+                        {/* Glow effect para Premium (Solo en sidebar oscuro) */}
+                        {isPremium && <div className="absolute -inset-0.5 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl opacity-10 group-hover:opacity-20 transition duration-500 blur dark:opacity-0"></div>}
 
-                    <div className="flex items-center gap-3 p-2 rounded-lg transition-colors group
-                        hover:bg-slate-800 dark:hover:bg-slate-100"
-                    >
-                        <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border
-                            bg-indigo-500/20 text-indigo-400 border-indigo-500/30
-                            dark:bg-indigo-100 dark:text-indigo-600 dark:border-indigo-200"
-                        >
-                            <UserCircle size={18} />
+                        <div className="relative z-10">
+                            {/* Fila Superior: Info Usuario */}
+                            <div className="flex items-center gap-3 mb-3">
+                                <div className={`relative w-10 h-10 rounded-full flex items-center justify-center text-sm font-extrabold flex-shrink-0 shadow-lg
+                                    ${isPremium
+                                        ? "bg-gradient-to-tr from-amber-300 via-orange-400 to-rose-500 text-white"
+                                        : "bg-slate-800 text-slate-300 dark:bg-slate-100 dark:text-slate-600"
+                                    }`}
+                                >
+                                    {userEmail.charAt(0).toUpperCase()}
+                                    {/* Indicador Online */}
+                                    <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-[2px] border-slate-900 dark:border-white rounded-full"></span>
+                                </div>
+
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-bold truncate text-white tracking-tight dark:text-slate-900">
+                                        {userEmail.split('@')[0]}
+                                    </p>
+                                    <p className="text-[10px] text-slate-400 truncate font-medium dark:text-slate-500">
+                                        {userEmail}
+                                    </p>
+                                </div>
+
+                                {/* Botón Toggle Theme Mini */}
+                                <button
+                                    onClick={toggleTheme}
+                                    className="p-1.5 rounded-lg bg-slate-800/50 text-slate-400 hover:bg-slate-700 hover:text-white transition-colors dark:bg-slate-100 dark:text-slate-500 dark:hover:bg-slate-200 dark:hover:text-indigo-600"
+                                    title="Cambiar Tema"
+                                >
+                                    {currentTheme === 'dark' ? <Moon size={14} /> : <Sun size={14} />}
+                                </button>
+                            </div>
+
+                            {/* Fila Inferior: Estatus y Logout */}
+                            <div className="flex items-center justify-between gap-2 mt-2 pt-3 border-t border-white/5 dark:border-slate-100">
+                                {/* Badge de Plan */}
+                                <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border ${planConfig.bgStyle} ${planConfig.border} ${planConfig.glow}`}>
+                                    {planConfig.icon}
+                                    <span className={`text-[10px] font-bold tracking-wider uppercase ${planConfig.textStyle}`}>
+                                        {planConfig.label}
+                                    </span>
+                                </div>
+
+                                <button
+                                    onClick={handleLogout}
+                                    className="text-xs font-medium text-slate-500 hover:text-red-400 transition-colors flex items-center gap-1 pl-2 dark:text-slate-400 dark:hover:text-red-500"
+                                >
+                                    <LogOut size={12} /> Salir
+                                </button>
+                            </div>
+
+                            {/* Botón Upgrade (Solo si es Free) */}
+                            {!isPremium && (
+                                <Link
+                                    to="/settings"
+                                    className="mt-3 flex items-center justify-center gap-2 w-full py-2 text-xs font-bold text-white bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 rounded-lg transition-all shadow-lg shadow-indigo-900/30 group-hover:scale-[1.02]"
+                                >
+                                    <Sparkles size={12} className="fill-white" /> Mejorar a Pro
+                                </Link>
+                            )}
                         </div>
-
-                        <div className="flex-1 overflow-hidden">
-                            <p className="text-sm font-medium truncate 
-                                group-hover:text-white dark:text-slate-700 dark:group-hover:text-indigo-700 transition-colors"
-                                title={userEmail}
-                            >
-                                {userEmail}
-                            </p>
-                            <p className="text-xs flex items-center gap-1
-                                text-slate-500 dark:text-slate-400"
-                            >
-                                <span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span> Online
-                            </p>
-                        </div>
-
-                        <button
-                            onClick={handleLogout}
-                            className="transition-colors p-1
-                            text-slate-500 hover:text-red-400
-                            dark:text-slate-400 dark:hover:text-red-600"
-                            title="Cerrar Sesión"
-                        >
-                            <LogOut size={18} />
-                        </button>
                     </div>
                 </div>
             </aside>
@@ -150,15 +211,36 @@ const Sidebar = ({ onOpenModal, toggleTheme, currentTheme }) => {
     );
 };
 
-// NavItem Invertido
+// NavItem Personalizado con estilos Invertidos
 const NavItem = ({ to, icon, text, active }) => (
-    <Link to={to} className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all 
+    <Link to={to} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group relative overflow-hidden
         ${active
-            ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-900/20 dark:shadow-indigo-200'
-            : 'text-slate-400 hover:text-white hover:bg-slate-800 dark:text-slate-500 dark:hover:text-indigo-700 dark:hover:bg-indigo-50'
+            ? 'text-white shadow-[0_0_20px_rgba(99,102,241,0.15)] dark:text-white dark:shadow-indigo-500/20'
+            : 'text-slate-400 hover:text-white dark:text-slate-500 dark:hover:text-indigo-700'
         }`}
     >
-        {icon}{text}
+        {/* Fondo animado para activo/hover */}
+        <div className={`absolute inset-0 transition-opacity duration-300 
+            ${active
+                ? 'opacity-100 bg-indigo-600'
+                : 'opacity-0 bg-slate-800/50 group-hover:opacity-100 dark:bg-indigo-50'
+            }`}>
+        </div>
+
+        {/* Icono */}
+        <span className={`relative z-10 transition-colors duration-200 
+            ${active
+                ? 'text-white'
+                : 'text-slate-500 group-hover:text-indigo-300 dark:text-slate-400 dark:group-hover:text-indigo-600'
+            }`}>
+            {icon}
+        </span>
+
+        {/* Texto */}
+        <span className="relative z-10">{text}</span>
+
+        {/* Indicador activo a la derecha */}
+        {active && <div className="absolute right-3 w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_10px_white]"></div>}
     </Link>
 );
 

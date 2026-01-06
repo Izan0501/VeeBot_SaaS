@@ -15,39 +15,37 @@ client = MongoClient(uri)
 db = client[os.getenv("DB_NAME", "recruit_db")]
 candidates_collection = db["candidates"]
 
-def insert_candidate(filename, name, text_preview, ai_data):
-    # Save metadata of a candidate into the database.
+def insert_candidate(filename, name, text_preview, ai_data, user_id):
+    """
+    Guarda un candidato vinculándolo al ID del usuario que lo subió.
+    """
     candidate_doc = {
+        "user_id": user_id,  # <--- CLAVE: El dueño del dato
         "filename": filename,
         "name": name,
-        # --- AQUÍ ESTABAN FALTANDO CAMPOS ---
         "role": ai_data.get("role", "Desconocido"),
         "score": ai_data.get("score", 0),
         "status": ai_data.get("status", "Pendiente"),
-        # Guardamos explícitamente summary y skills
         "summary": ai_data.get("summary", "Sin resumen generado."), 
         "skills": ai_data.get("skills", []), 
-        # ------------------------------------
         "text_preview": text_preview[:200], 
         "upload_date": datetime.now(),
-        # Opcional: Guardamos el objeto crudo completo por si acaso
         "ai_analysis_raw": ai_data 
     }
     
-    # Insert and return the inserted ID as string
     result = candidates_collection.insert_one(candidate_doc)
     return str(result.inserted_id)
 
-# get all candidates from db
-def get_all_candidates_from_db():
+def get_all_candidates_from_db(user_id):
+    """
+    Recupera SOLO los candidatos que pertenecen al usuario actual.
+    """
     candidates = []
-    cursor = candidates_collection.find().sort("upload_date", -1)
+    # FILTRO: Solo documentos donde user_id coincida
+    cursor = candidates_collection.find({"user_id": user_id}).sort("upload_date", -1)
     
     for doc in cursor:
-        # Recuperación robusta de skills
         skills = doc.get("skills", [])
-        
-        # Fallback para datos antiguos que quizás tenían estructura anidada
         if not skills and "ai_analysis" in doc:
              skills = doc["ai_analysis"].get("skills", [])
 
@@ -58,20 +56,21 @@ def get_all_candidates_from_db():
             "score": doc.get("score", 0),
             "status": doc.get("status", "Pendiente"),
             "date": doc.get("upload_date", datetime.now()).strftime("%d/%m %H:%M"),
-            "summary": doc.get("summary", "Sin información disponible"), # Ahora sí lo encontrará
-            "skills": skills # Ahora sí lo encontrará
+            "summary": doc.get("summary", "Sin información disponible"),
+            "skills": skills
         })
     
     return candidates
 
-# delete candidate by id
-def delete_candidate_by_id(candidate_id):
+def delete_candidate_by_id(candidate_id, user_id):
     """
-    Borra un candidato de la base de datos usando su ID único.
+    Borra un candidato, pero verifica que pertenezca al usuario (seguridad).
     """
     try:
-        # Convertimos el string a ObjectId de Mongo
-        result = candidates_collection.delete_one({"_id": ObjectId(candidate_id)})
+        result = candidates_collection.delete_one({
+            "_id": ObjectId(candidate_id),
+            "user_id": user_id # <--- Seguridad extra: solo borra si es tuyo
+        })
         return result.deleted_count > 0
     except Exception as e:
         print(f"Error borrando: {e}")

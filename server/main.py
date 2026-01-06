@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Depends, status
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Depends, status, Header, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer
 from pydantic import BaseModel, EmailStr
@@ -9,17 +9,26 @@ import asyncio
 from datetime import datetime
 from typing import List
 from pymongo import MongoClient
+import hmac
+import hashlib
+import requests
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from bson import ObjectId
 from dotenv import load_dotenv
 
-# --- IMPORTACIONES DE SERVICIOS PROPIOS ---
+# --- IMPORTACIONES DE TUS MÓDULOS ---
+# Asegúrate de que security.py, services.py y database.py estén en la misma carpeta
 from security import get_password_hash, verify_password, create_access_token, SECRET_KEY, ALGORITHM
 from services import extract_text_from_pdf, process_and_store_cv, analyze_candidate_with_groq, get_ai_score
 from database import insert_candidate, get_all_candidates_from_db, delete_candidate_by_id
 
+# --- CARGA DE ENTORNO ---
 env_path = Path(__file__).resolve().parent.parent / '.env'
 load_dotenv(dotenv_path=env_path)
 
-app = FastAPI(title="RecruitAI API")
+app = FastAPI(title="VeeBot API - AI Recruiter")
 
 # --- CONFIGURACIÓN MONGO DB ---
 mongo_uri = os.getenv("MONGO_URI", "mongodb://localhost:27017/")
@@ -27,11 +36,22 @@ mongo_client = MongoClient(mongo_uri)
 db_name = os.getenv("DB_NAME", "recruitai_db")
 db = mongo_client[db_name]
 users_collection = db["users"]
+candidates_collection = db["candidates"] # Referencia directa para limpieza
+
+# --- CONFIGURACIÓN SERVICIOS EXTERNOS ---
+LEMON_API_KEY = os.getenv("LEMON_API_KEY")
+LEMON_STORE_ID = os.getenv("LEMON_STORE_ID")
+LEMON_VARIANT_ID = os.getenv("LEMON_VARIANT_ID")
+LEMON_WEBHOOK_SECRET = os.getenv("LEMON_WEBHOOK_SECRET")
+LEMON_API_URL = os.getenv("LEMON_API_URL", "https://api.lemonsqueezy.com/v1")
+
+SMTP_EMAIL = os.getenv("SMTP_EMAIL")
+SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
 
 # --- CORS ---
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"], 
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:3000"], 
     allow_credentials=True,
     allow_methods=["*"], 
     allow_headers=["*"], 
@@ -40,6 +60,7 @@ app.add_middleware(
 # --- SEGURIDAD ---
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
+# --- MODELOS PYDANTIC ---
 class UserAuth(BaseModel):
     email: EmailStr
     password: str
@@ -65,6 +86,11 @@ class DirectResetRequest(BaseModel):
     email: EmailStr
     new_password: str
 
+class ReportRequest(BaseModel):
+    candidate_id: str
+    target_email: EmailStr
+
+# --- DEPENDENCIA DE USUARIO ACTUAL ---
 async def get_current_user(token: str = Depends(oauth2_scheme)):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -85,7 +111,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
     return user
 
 # ==========================================
-# 1. RUTAS DE AUTENTICACIÓN Y PERFIL
+# 1. RUTAS DE AUTENTICACIÓN
 # ==========================================
 
 @app.post("/auth/register", status_code=201)
@@ -98,7 +124,7 @@ async def register_user(user: UserAuth):
         "email": user.email,
         "password": hashed_pwd,
         "name": "Usuario",
-        "role": "Reclutador",
+        "role": "Free", # Por defecto Free
         "settings": {
             "min_score": 70,
             "auto_reject": False
@@ -126,7 +152,7 @@ def get_current_user_profile(current_user: dict = Depends(get_current_user)):
     return {
         "email": current_user.get("email"),
         "name": current_user.get("name", "Usuario"),
-        "role": current_user.get("role", "Reclutador"),
+        "role": current_user.get("role", "Free"),
         "min_score": settings.get("min_score", 70),
         "auto_reject": settings.get("auto_reject", False)
     }
@@ -138,13 +164,12 @@ def update_user_profile(data: UserProfileUpdate, current_user: dict = Depends(ge
         "auto_reject": data.auto_reject,
         "model": "llama-3.3-70b-versatile"
     }
-
     users_collection.update_one(
         {"email": current_user["email"]},
         {
             "$set": {
                 "name": data.name,
-                "role": data.role,
+                "role": data.role, # Nota: En prod, el rol no debería ser editable por el usuario
                 "settings": new_settings
             }
         }
@@ -163,40 +188,28 @@ def change_password(data: PasswordChange, current_user: dict = Depends(get_curre
     )
     return {"message": "Contraseña actualizada exitosamente"}
 
-# Modelo para el cambio directo (Inseguro para prod, útil para demo)
-class DirectResetRequest(BaseModel):
-    email: EmailStr
-    new_password: str
-
-# 1. VERIFICAR SI EL EMAIL EXISTE (Paso 1 del Front)
 @app.post("/auth/verify-email")
 async def verify_email_exists(data: EmailRequest):
     user = users_collection.find_one({"email": data.email})
     if not user:
-        # Aquí sí avisamos que no existe para que la UI sepa qué hacer
         raise HTTPException(status_code=404, detail="El correo no está registrado")
     return {"message": "Usuario encontrado", "exists": True}
 
-# 2. CAMBIO DIRECTO (Paso 2 del Front)
 @app.post("/auth/reset-password-direct")
 async def reset_password_direct(data: DirectResetRequest):
-    # Buscamos usuario
     user = users_collection.find_one({"email": data.email})
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     
-    # Hash nueva password
     new_hashed_pwd = get_password_hash(data.new_password)
-    
-    # Actualizar
     users_collection.update_one(
         {"email": data.email},
         {"$set": {"password": new_hashed_pwd}}
     )
-    
     return {"message": "Contraseña actualizada. Ya puedes iniciar sesión."}
+
 # ==========================================
-# 2. RUTAS DE SUBIDA (CORE)
+# 2. RUTAS DE UPLOAD Y ANÁLISIS
 # ==========================================
 
 @app.post("/upload")
@@ -204,21 +217,22 @@ async def upload_cvs(
     files: List[UploadFile] = File(...), 
     current_user: dict = Depends(get_current_user)
 ):
-    # Configuración del usuario
+    user_id = str(current_user["_id"]) # <--- OBTENEMOS ID DEL USUARIO
     user_settings = current_user.get("settings", {"min_score": 70, "auto_reject": False})
     threshold = user_settings.get("min_score", 70)
     auto_reject = user_settings.get("auto_reject", False)
-    selected_model = "llama-3.3-70b-versatile" # Modelo actualizado
+    selected_model = "llama-3.3-70b-versatile"
 
     os.makedirs("uploads", exist_ok=True)
-    
-    # SEMÁFORO: Controla la concurrencia (3 a la vez)
     sem = asyncio.Semaphore(3) 
 
     async def process_single_file(file):
         async with sem:
             try:
-                file_location = f"uploads/{file.filename}"
+                # Usamos user_id en el nombre del archivo para evitar colisiones entre usuarios
+                safe_filename = f"{user_id}_{file.filename}"
+                file_location = f"uploads/{safe_filename}"
+                
                 content = await file.read()
                 with open(file_location, "wb") as buffer:
                     buffer.write(content)
@@ -226,15 +240,14 @@ async def upload_cvs(
                 text = extract_text_from_pdf(file_location)
                 candidate_name = file.filename.replace(".pdf", "").replace("_", " ").title()
                 
-                # Pinecone
-                process_and_store_cv(text, file.filename, candidate_name)
+                # Pinecone: Pasamos user_id para filtrar vectores
+                process_and_store_cv(text, safe_filename, candidate_name, user_id)
 
-                print(f"🤖 Analizando: {candidate_name} (Umbral: {threshold})...")
+                print(f"🤖 Analizando para usuario {user_id}: {candidate_name}...")
                 
-                # Groq IA (en thread aparte para no bloquear)
+                # AI Analysis
                 ai_analysis = await asyncio.to_thread(get_ai_score, text, selected_model)
                 
-                # Lógica de Negocio
                 score_val = ai_analysis.get("score", 0)
                 status_final = "Bajo Potencial"
 
@@ -243,17 +256,15 @@ async def upload_cvs(
                 elif score_val >= (threshold - 20):
                     status_final = "Medio Potencial"
                 else:
-                    if auto_reject:
-                        status_final = "Rechazado Automático"
-                    else:
-                        status_final = "Bajo Potencial"
+                    status_final = "Rechazado Automático" if auto_reject else "Bajo Potencial"
 
-                # Guardar en DB con skills y summary
+                # DB: Guardamos con user_id
                 insert_candidate(
                     file.filename, 
                     candidate_name, 
                     text, 
-                    {**ai_analysis, "status": status_final}
+                    {**ai_analysis, "status": status_final},
+                    user_id # <--- SE AGREGA ESTO
                 ) 
                 return {"file": file.filename, "status": "success"}
 
@@ -261,7 +272,6 @@ async def upload_cvs(
                 print(f"❌ Error en {file.filename}: {e}")
                 return {"file": file.filename, "status": "error", "msg": str(e)}
 
-    # Lanzamiento Masivo
     print(f"🚀 Procesando {len(files)} archivos...")
     tasks = [process_single_file(file) for file in files]
     results = await asyncio.gather(*tasks)
@@ -279,24 +289,24 @@ async def upload_cvs(
     }
 
 # ==========================================
-# 3. RUTAS DE LECTURA Y CHAT (RAG)
+# 3. GESTIÓN DE CANDIDATOS Y CHAT
 # ==========================================
 
-# --- ¡ESTE ES EL ENDPOINT QUE TE FALTABA! ---
 @app.get("/candidates")
 def get_candidates(current_user: dict = Depends(get_current_user)):
     try:
-        # Recupera los datos de la base de datos para mostrarlos en el Dashboard
-        return get_all_candidates_from_db()
+        # Pasamos el ID del usuario para traer SOLO sus datos
+        return get_all_candidates_from_db(str(current_user["_id"]))
     except Exception as e:
         print(f"Error DB: {e}")
         raise HTTPException(status_code=500, detail="Error conectando a la base de datos")
 
 @app.delete("/candidates/{candidate_id}")
 def delete_candidate(candidate_id: str, current_user: dict = Depends(get_current_user)):
-    success = delete_candidate_by_id(candidate_id)
+    # Pasamos el ID para asegurar que borra algo suyo
+    success = delete_candidate_by_id(candidate_id, str(current_user["_id"]))
     if not success:
-        raise HTTPException(status_code=404, detail="Candidato no encontrado")
+        raise HTTPException(status_code=404, detail="Candidato no encontrado o no tienes permiso")
     return {"status": "success", "message": "Candidato eliminado correctamente"}
 
 @app.post("/analyze")
@@ -305,27 +315,19 @@ async def chat_with_recruiter(
     current_user: dict = Depends(get_current_user)
 ):
     try:
-        # 1. Recuperar contexto de la DB
-        candidates_list = get_all_candidates_from_db()
-        
-        # Log para verificar que hay datos
-        print(f"DEBUG CHAT: Encontrados {len(candidates_list)} candidatos en la DB.")
+        # Recuperamos SOLO los candidatos del usuario para el contexto del chat
+        candidates_list = get_all_candidates_from_db(str(current_user["_id"]))
+        print(f"DEBUG CHAT: Encontrados {len(candidates_list)} candidatos del usuario.")
 
         if not candidates_list:
-            context_text = "No hay candidatos cargados en la base de datos todavía."
+            context_text = "El usuario aún no ha cargado candidatos."
         else:
             context_text = ""
             for c in candidates_list:
-                # Recuperar skills de forma segura
                 skills = c.get("skills", [])
-                if isinstance(skills, list):
-                    skills_str = ", ".join(skills)
-                else:
-                    skills_str = str(skills)
-
+                skills_str = ", ".join(skills) if isinstance(skills, list) else str(skills)
                 summary = c.get("summary", "Sin detalles.")
                 
-                # Construimos el bloque de texto que leerá la IA
                 context_text += f"""
                 - Candidato: {c['name']}
                   Rol: {c['role']}
@@ -334,11 +336,260 @@ async def chat_with_recruiter(
                   Resumen: {summary}
                 -----------------------------------
                 """
-
-        # 2. Enviar a la IA con el contexto inyectado
+        
         response = analyze_candidate_with_groq(query, context_text)
         return {"response": response}
 
     except Exception as e:
         print(f"Error en chat: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+# ==========================================
+# 4. PAGOS (LEMON SQUEEZY)
+# ==========================================
+@app.post("/payments/create-checkout")
+async def create_checkout_session(current_user: dict = Depends(get_current_user)):
+    if not LEMON_API_KEY or not LEMON_VARIANT_ID:
+        raise HTTPException(status_code=500, detail="Configuración de pagos incompleta")
+
+    headers = {
+        "Authorization": f"Bearer {LEMON_API_KEY}",
+        "Accept": "application/vnd.api+json",
+        "Content-Type": "application/vnd.api+json"
+    }
+
+    # Enviamos datos del usuario para que el Webhook sepa a quién activar después
+    payload = {
+        "data": {
+            "type": "checkouts",
+            "attributes": {
+                "checkout_data": {
+                    "custom": {
+                        "user_email": current_user["email"],
+                        "user_id": str(current_user["_id"]) 
+                    }
+                }
+            },
+            "relationships": {
+                "store": {
+                    "data": {"type": "stores", "id": LEMON_STORE_ID}
+                },
+                "variant": {
+                    "data": {"type": "variants", "id": LEMON_VARIANT_ID}
+                }
+            }
+        }
+    }
+
+    try:
+        response = requests.post(f"{LEMON_API_URL}/checkouts", json=payload, headers=headers)
+        response.raise_for_status()
+        data = response.json()
+        return {"checkout_url": data['data']['attributes']['url']}
+    except Exception as e:
+        print(f"Error Checkout: {e}")
+        if 'response' in locals(): print(response.text)
+        raise HTTPException(status_code=500, detail="Error al conectar con la pasarela de pago")
+
+@app.post("/payments/webhook")
+async def lemon_webhook(request: Request, x_signature: str = Header(None)):
+    """
+    Maneja los webhooks de Lemon Squeezy buscando custom_data en todas las ubicaciones posibles.
+    """
+    if not x_signature:
+        raise HTTPException(status_code=401, detail="Firma no proporcionada")
+
+    # 1. Validación de Firma
+    raw_body = await request.body()
+    if not LEMON_WEBHOOK_SECRET:
+        print("❌ ERROR: LEMON_WEBHOOK_SECRET no configurado")
+        raise HTTPException(status_code=500, detail="Error servidor")
+
+    digest = hmac.new(LEMON_WEBHOOK_SECRET.encode(), raw_body, hashlib.sha256).hexdigest()
+    if not hmac.compare_digest(digest, x_signature):
+        print("❌ Firma inválida")
+        raise HTTPException(status_code=401, detail="Firma inválida")
+
+    # 2. Parsing del JSON
+    data = await request.json()
+    
+    # Obtenemos meta y attributes
+    meta = data.get('meta', {})
+    event_name = meta.get('event_name')
+    attributes = data.get('data', {}).get('attributes', {})
+    
+    print(f"🔔 Webhook recibido: {event_name}")
+
+    if event_name in ["order_created", "subscription_created", "subscription_payment_success", "subscription_updated"]:
+        
+        custom_data = None
+
+        # --- ESTRATEGIA DE BÚSQUEDA PROFUNDA ---
+        
+        # 1. Buscar en ROOT META (Aquí es donde estaba tu dato perdido)
+        if 'custom_data' in meta:
+            custom_data = meta.get('custom_data')
+            print("✅ Custom Data encontrado en 'meta' (Root)")
+
+        # 2. Buscar en ATTRIBUTES (Estándar para orders)
+        if not custom_data and 'custom_data' in attributes:
+            custom_data = attributes.get('custom_data')
+            print("✅ Custom Data encontrado en 'attributes'")
+
+        # 3. Buscar en CHECKOUT_DATA (A veces pasa en test mode)
+        if not custom_data:
+             checkout_data = attributes.get('checkout_data')
+             if checkout_data and 'custom' in checkout_data:
+                 custom_data = checkout_data.get('custom')
+                 print("✅ Custom Data encontrado en 'checkout_data'")
+
+        print(f"📦 Datos extraídos: {custom_data}")
+        
+        # --- PROCESAR USUARIO ---
+        user_email = None
+        customer_id = attributes.get('customer_id')
+        
+        # Prioridad A: Email desde Custom Data (El email de la cuenta registrada)
+        if custom_data and isinstance(custom_data, dict):
+            user_email = custom_data.get('user_email')
+        
+        # Prioridad B: Fallback (El email que escribió al pagar)
+        if not user_email:
+            user_email = attributes.get('user_email')
+            print(f"⚠️ Alerta: Usando email de facturación ({user_email}). Puede no coincidir con el usuario registrado.")
+
+        if user_email:
+            # Actualizamos a Premium
+            result = users_collection.update_one(
+                {"email": user_email},
+                {"$set": {
+                    "role": "Premium", 
+                    "updated_at": datetime.now(),
+                    "customer_id": customer_id
+                }}
+            )
+            
+            if result.modified_count > 0:
+                print(f"💰 PAGO EXITOSO: Usuario {user_email} actualizado a Premium.")
+            elif result.matched_count > 0:
+                print(f"ℹ️ El usuario {user_email} ya era Premium (o no se requirieron cambios).")
+            else:
+                print(f"❌ ERROR: Se recibió pago de {user_email} pero NO existe en la base de datos.")
+        else:
+            print("❌ FATAL: No se pudo identificar ningún email en el webhook.")
+        
+    return {"status": "processed"}
+
+@app.post("/payments/create-portal")
+async def create_portal_session(current_user: dict = Depends(get_current_user)):
+    """
+    Genera un link temporal para que el usuario gestione su suscripción en Lemon Squeezy.
+    """
+    customer_id = current_user.get("customer_id")
+    
+    if not customer_id:
+        # Fallback: Si es un usuario antiguo o manual sin ID, lo mandamos al link genérico
+        return {"portal_url": "https://app.lemonsqueezy.com/my-orders"}
+
+    headers = {
+        "Authorization": f"Bearer {LEMON_API_KEY}",
+        "Accept": "application/vnd.api+json",
+        "Content-Type": "application/vnd.api+json"
+    }
+
+    payload = {
+        "data": {
+            "type": "customer-portal-sessions",
+            "attributes": {
+                "customer_id": int(customer_id),
+                "return_url": "http://localhost:5173/settings" # A dónde vuelve al terminar
+            },
+            "relationships": {
+                "store": {
+                    "data": {
+                        "type": "stores",
+                        "id": LEMON_STORE_ID
+                    }
+                }
+            }
+        }
+    }
+
+    try:
+        response = requests.post(f"{LEMON_API_URL}/customer-portal-sessions", json=payload, headers=headers)
+        response.raise_for_status()
+        data = response.json()
+        return {"portal_url": data['data']['attributes']['url']}
+    except Exception as e:
+        print(f"Error Portal: {e}")
+        if 'response' in locals(): print(response.text)
+        # Fallback si falla la API
+        return {"portal_url": "https://app.lemonsqueezy.com/my-orders"}
+
+# ==========================================
+# 5. PREMIUM: ENVÍO DE EMAIL
+# ==========================================
+
+@app.post("/premium/send-report")
+async def send_premium_report(data: ReportRequest, current_user: dict = Depends(get_current_user)):
+    user_role = current_user.get("role", "Free")
+    
+    if user_role.lower() not in ["premium", "reclutador", "admin"]:
+        raise HTTPException(
+            status_code=403, 
+            detail="Función exclusiva para usuarios Premium (Plan $29/mes)."
+        )
+
+    try:
+        candidate = db["candidates"].find_one({"_id": ObjectId(data.candidate_id)})
+    except Exception:
+        raise HTTPException(status_code=400, detail="ID de candidato inválido")
+
+    if not candidate:
+        raise HTTPException(status_code=404, detail="Candidato no encontrado")
+
+    skills_list = candidate.get('skills', [])
+    skills_str = ", ".join(skills_list) if isinstance(skills_list, list) else str(skills_list)
+    score = candidate.get('score', 0)
+    summary = candidate.get('summary', 'Sin resumen.')
+
+    subject = f"Reporte VeeBot: {candidate['name']} ({score}/100)"
+    html_content = f"""
+    <html>
+      <body style="font-family: Arial, sans-serif; color: #333;">
+        <div style="max-width: 600px; margin: 0 auto; border: 1px solid #ddd; padding: 20px; border-radius: 8px;">
+          <h2 style="color: #4f46e5;">Reporte de Talento VeeBot</h2>
+          <hr style="border: 0; border-top: 1px solid #eee;">
+          <h3>👤 {candidate['name']}</h3>
+          <p><strong>Rol:</strong> {candidate.get('role', 'N/A')}</p>
+          <p><strong>Score:</strong> <b style="color: {'#16a34a' if score > 70 else '#dc2626'};">{score}/100</b></p>
+          <div style="background:#f8fafc; padding:15px; border-radius:6px; margin:20px 0;">
+            <p><strong>Skills:</strong> {skills_str}</p>
+          </div>
+          <h4>📝 Resumen:</h4>
+          <p>{summary}</p>
+          <p style="font-size:0.8em; color:#666; margin-top:30px;">Generado por VeeBot AI.</p>
+        </div>
+      </body>
+    </html>
+    """
+
+    try:
+        msg = MIMEMultipart()
+        msg['From'] = f"VeeBot AI <{SMTP_EMAIL}>"
+        msg['To'] = data.target_email
+        msg['Subject'] = subject
+        msg.attach(MIMEText(html_content, 'html'))
+
+        server = smtplib.SMTP('smtp.gmail.com', 587)
+        server.starttls()
+        server.login(SMTP_EMAIL, SMTP_PASSWORD)
+        server.send_message(msg)
+        server.quit()
+
+        print(f"✅ Email enviado a {data.target_email}")
+        return {"message": "Reporte enviado exitosamente"}
+
+    except Exception as e:
+        print(f"❌ Error SMTP: {e}")
+        raise HTTPException(status_code=500, detail="Error enviando email")

@@ -16,6 +16,7 @@ import Register from './pages/Register';
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [userRole, setUserRole] = useState("Free");
   const [isLoading, setIsLoading] = useState(true);
 
   // --- LÓGICA DARK MODE ---
@@ -45,14 +46,41 @@ function App() {
 
   // Lógica de Auth Original
   useEffect(() => {
-    const checkAuth = () => {
+    const checkAuth = async () => { // <--- Hacemos esto async
       const token = localStorage.getItem('token');
-      if (token) setIsAuthenticated(true);
-      else setIsAuthenticated(false);
+      if (token) {
+        setIsAuthenticated(true);
+        // FETCH AL PERFIL PARA SACAR EL ROL REAL
+        try {
+          const res = await fetch('http://127.0.0.1:8000/auth/me', {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (res.ok) {
+            const data = await res.json();
+            setUserRole(data.role); // Guardamos "Premium" o "Free"
+          }
+        } catch (e) {
+          console.error("Error fetching role", e);
+        }
+      } else {
+        setIsAuthenticated(false);
+      }
       setIsLoading(false);
     };
     checkAuth();
   }, []);
+
+  // Componente para proteger rutas PREMIUM
+  const PremiumRoute = ({ children }) => {
+    if (!isAuthenticated) return <Navigate to="/login" replace />;
+
+    // Si no es Premium ni Admin, lo mandamos al dashboard con una alerta (o a settings para pagar)
+    if (userRole !== 'Premium' && userRole !== 'Admin' && userRole !== 'Reclutador') {
+      // Opción A: Redirigir a Settings para que pague
+      return <Navigate to="/settings" replace />;
+    }
+    return children;
+  };
 
   // Layout Protegido (Ahora pasa props de tema al Sidebar)
   const ProtectedLayout = ({ children }) => {
@@ -60,18 +88,15 @@ function App() {
 
     return (
       <div className="flex h-screen bg-slate-50 dark:bg-slate-950 font-sans text-slate-900 dark:text-slate-100 transition-colors duration-300">
-
-        {/* Pasamos la función toggleTheme al Sidebar */}
         <Sidebar
           onOpenModal={() => setIsModalOpen(true)}
           toggleTheme={toggleTheme}
           currentTheme={theme}
+          userRole={userRole} // <--- Pasamos el rol al Sidebar
         />
-
         <main className="flex-1 overflow-auto bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
           {children}
         </main>
-
         <UploadModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
       </div>
     );
@@ -98,12 +123,35 @@ function App() {
 
       <Routes>
         <Route path="/" element={<LandingPage />} />
-        <Route path="/login" element={isAuthenticated ? <Navigate to="/dashboard" /> : <Login onLogin={() => setIsAuthenticated(true)} />} />
+        <Route path="/login" element={isAuthenticated ? <Navigate to="/dashboard" /> : <Login onLogin={() => window.location.reload()} />} /> {/* Reload para forzar fetch de rol */}
         <Route path="/register" element={isAuthenticated ? <Navigate to="/dashboard" /> : <Register />} />
-        
+
         {/* Rutas Privadas */}
-        <Route path="/dashboard" element={<ProtectedLayout><Dashboard isModalOpen={isModalOpen} setIsModalOpen={setIsModalOpen} /></ProtectedLayout>} />
-        <Route path="/analytics" element={<ProtectedLayout><Analytics /></ProtectedLayout>} />
+        <Route path="/dashboard" element={
+          <ProtectedLayout>
+            {/* Pasamos el userRole al Dashboard para bloquear el Chat */}
+            <Dashboard isModalOpen={isModalOpen} setIsModalOpen={setIsModalOpen} userRole={userRole} />
+          </ProtectedLayout>
+        } />
+
+        {/* RUTA ANALYTICS: SOLO PREMIUM */}
+        <Route path="/analytics" element={
+          <ProtectedLayout>
+            {/* Si intentan entrar aquí siendo Free, los rebota */}
+            {userRole === 'Premium' || userRole === 'Admin' || userRole === 'Reclutador'
+              ? <Analytics />
+              : <div className="h-full flex flex-col items-center justify-center p-6 text-center">
+                <div className="bg-white dark:bg-slate-900 p-8 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xl max-w-md">
+                  <span className="text-4xl">🔒</span>
+                  <h2 className="text-2xl font-bold mt-4 mb-2 text-slate-900 dark:text-white">Función Premium</h2>
+                  <p className="text-slate-500 mb-6">El panel de analíticas avanzadas está reservado para miembros Pro.</p>
+                  <a href="/settings" className="block w-full py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700">Mejorar Plan ($29)</a>
+                </div>
+              </div>
+            }
+          </ProtectedLayout>
+        } />
+
         <Route path="/settings" element={<ProtectedLayout><Settings /></ProtectedLayout>} />
 
         <Route path="*" element={<Navigate to="/" replace />} />
