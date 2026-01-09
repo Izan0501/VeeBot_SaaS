@@ -12,6 +12,9 @@ import Settings from './pages/Settings';
 import LandingPage from './pages/LandingPage';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import Privacy from './pages/Privacy';
+import Terms from './pages/Terms';
+import Contact from './pages/Contact';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -125,7 +128,10 @@ function App() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={isAuthenticated ? <Navigate to="/dashboard" /> : <Login onLogin={() => window.location.reload()} />} /> {/* Reload para forzar fetch de rol */}
         <Route path="/register" element={isAuthenticated ? <Navigate to="/dashboard" /> : <Register />} />
-
+        <Route path="/contact" element={<Contact />} />
+        <Route path="/terms" element={<Terms />} />
+        <Route path="/privacy" element={<Privacy />} />
+        
         {/* Rutas Privadas */}
         <Route path="/dashboard" element={
           <ProtectedLayout>

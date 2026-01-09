@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
     Users, UploadCloud, BarChart3, Settings, LogOut,
-    BrainCircuit, Menu, X, Sun, Moon, Crown, Zap, Sparkles
+    BrainCircuit, Menu, X, Sun, Moon, Crown, Zap, Sparkles,
+    FileText, ShieldCheck, HelpCircle // <--- Nuevos iconos importados
 } from 'lucide-react';
 
 const Sidebar = ({ onOpenModal, toggleTheme, currentTheme, userRole }) => {
@@ -17,15 +18,12 @@ const Sidebar = ({ onOpenModal, toggleTheme, currentTheme, userRole }) => {
     // Configuración visual del Plan (Adaptada al tema invertido)
     const planConfig = isPremium ? {
         label: "PRO MEMBER",
-        // Default (Sidebar Oscuro): Texto Amber | Dark (Sidebar Blanco): Texto Amber Oscuro
         textStyle: "text-amber-300 dark:text-amber-600",
-        // Default (Sidebar Oscuro): Fondo Indigo Oscuro | Dark (Sidebar Blanco): Fondo Indigo Claro
         bgStyle: "bg-indigo-950/50 border-indigo-500/30 dark:bg-indigo-50 dark:border-indigo-100",
         icon: <Crown size={12} className="text-amber-400 fill-amber-400" />,
         glow: "shadow-[0_0_15px_rgba(99,102,241,0.3)] dark:shadow-none"
     } : {
         label: "STARTER PLAN",
-        // Default (Sidebar Oscuro): Texto Slate | Dark (Sidebar Blanco): Texto Slate
         textStyle: "text-slate-400 dark:text-slate-500",
         bgStyle: "bg-slate-800/50 border-slate-700 dark:bg-slate-100 dark:border-slate-200",
         icon: <Zap size={12} className="text-slate-400 dark:text-slate-500" />,
@@ -54,7 +52,7 @@ const Sidebar = ({ onOpenModal, toggleTheme, currentTheme, userRole }) => {
 
     return (
         <>
-            {/* HEADER MÓVIL (Mantiene lógica normal para no chocar con el contenido) */}
+            {/* HEADER MÓVIL */}
             <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 z-50 flex items-center justify-between px-4 transition-colors duration-300">
                 <div className="flex items-center gap-3">
                     <button onClick={() => setIsMobileMenuOpen(true)} className="p-2 -ml-2 text-slate-600 dark:text-slate-300 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
@@ -71,9 +69,6 @@ const Sidebar = ({ onOpenModal, toggleTheme, currentTheme, userRole }) => {
             <div className={`fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-40 md:hidden transition-opacity duration-300 ${isMobileMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`} onClick={() => setIsMobileMenuOpen(false)} />
 
             {/* --- SIDEBAR (COLORES INVERTIDOS) --- */}
-            {/* DEFAULT (Light Mode App): bg-slate-950 (Oscuro)
-               DARK (Dark Mode App): dark:bg-white (Blanco) 
-            */}
             <aside className={`
                 fixed md:sticky top-0 left-0 h-screen w-72 flex flex-col z-50
                 transition-all duration-300 ease-in-out shadow-2xl md:shadow-none
@@ -85,7 +80,6 @@ const Sidebar = ({ onOpenModal, toggleTheme, currentTheme, userRole }) => {
 
                 {/* Header Sidebar */}
                 <div className="p-6 h-24 flex justify-between items-center relative">
-                    {/* Luz de fondo solo en modo oscuro del sidebar (App Light) */}
                     <div className="absolute top-0 left-10 w-32 h-32 bg-indigo-500/10 blur-[50px] rounded-full pointer-events-none dark:hidden"></div>
 
                     <div className="flex items-center gap-3 relative z-10">
@@ -102,6 +96,8 @@ const Sidebar = ({ onOpenModal, toggleTheme, currentTheme, userRole }) => {
 
                 {/* Nav */}
                 <nav className="flex-1 px-4 space-y-8 overflow-y-auto custom-scrollbar py-2">
+
+                    {/* SECCIÓN 1: DASHBOARD */}
                     <div>
                         <p className="px-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-3">Dashboard</p>
                         <div className="space-y-1">
@@ -110,10 +106,10 @@ const Sidebar = ({ onOpenModal, toggleTheme, currentTheme, userRole }) => {
                         </div>
                     </div>
 
+                    {/* SECCIÓN 2: HERRAMIENTAS */}
                     <div>
                         <p className="px-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-3">Herramientas</p>
                         <div className="space-y-1">
-                            {/* Botón Importar - Estilos Invertidos */}
                             <button
                                 onClick={() => { onOpenModal(); setIsMobileMenuOpen(false); }}
                                 className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 text-left mb-1
@@ -128,23 +124,31 @@ const Sidebar = ({ onOpenModal, toggleTheme, currentTheme, userRole }) => {
                             <NavItem to="/settings" icon={<Settings size={20} />} text="Configuración" active={isActive('/settings')} />
                         </div>
                     </div>
+
+                    {/* SECCIÓN 3: LEGAL & SOPORTE (NUEVA) */}
+                    <div>
+                        <p className="px-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-3">Soporte</p>
+                        <div className="space-y-1">
+                            <NavItem to="/contact" icon={<HelpCircle size={20} />} text="Ayuda & Contacto" active={isActive('/contact')} />
+                            <NavItem to="/terms" icon={<FileText size={20} />} text="Términos" active={isActive('/terms')} />
+                            <NavItem to="/privacy" icon={<ShieldCheck size={20} />} text="Privacidad" active={isActive('/privacy')} />
+                        </div>
+                    </div>
+
                 </nav>
 
                 {/* --- FOOTER: USER PROFILE INVERTIDO --- */}
                 <div className="p-4 mt-auto relative">
 
-                    {/* Tarjeta de Perfil */}
                     <div className={`relative rounded-2xl p-4 transition-all duration-300 border backdrop-blur-xl group
                         ${isPremium
                             ? 'bg-gradient-to-b from-slate-900 to-indigo-950/40 border-indigo-500/20 hover:border-indigo-500/40 dark:from-white dark:to-slate-50 dark:border-indigo-100'
                             : 'bg-slate-900/60 border-slate-800 hover:border-slate-700 dark:bg-white dark:border-slate-200 dark:hover:border-slate-300'
                         }`}
                     >
-                        {/* Glow effect para Premium (Solo en sidebar oscuro) */}
                         {isPremium && <div className="absolute -inset-0.5 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl opacity-10 group-hover:opacity-20 transition duration-500 blur dark:opacity-0"></div>}
 
                         <div className="relative z-10">
-                            {/* Fila Superior: Info Usuario */}
                             <div className="flex items-center gap-3 mb-3">
                                 <div className={`relative w-10 h-10 rounded-full flex items-center justify-center text-sm font-extrabold flex-shrink-0 shadow-lg
                                     ${isPremium
@@ -153,7 +157,6 @@ const Sidebar = ({ onOpenModal, toggleTheme, currentTheme, userRole }) => {
                                     }`}
                                 >
                                     {userEmail.charAt(0).toUpperCase()}
-                                    {/* Indicador Online */}
                                     <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-[2px] border-slate-900 dark:border-white rounded-full"></span>
                                 </div>
 
@@ -166,7 +169,6 @@ const Sidebar = ({ onOpenModal, toggleTheme, currentTheme, userRole }) => {
                                     </p>
                                 </div>
 
-                                {/* Botón Toggle Theme Mini */}
                                 <button
                                     onClick={toggleTheme}
                                     className="p-1.5 rounded-lg bg-slate-800/50 text-slate-400 hover:bg-slate-700 hover:text-white transition-colors dark:bg-slate-100 dark:text-slate-500 dark:hover:bg-slate-200 dark:hover:text-indigo-600"
@@ -176,9 +178,7 @@ const Sidebar = ({ onOpenModal, toggleTheme, currentTheme, userRole }) => {
                                 </button>
                             </div>
 
-                            {/* Fila Inferior: Estatus y Logout */}
                             <div className="flex items-center justify-between gap-2 mt-2 pt-3 border-t border-white/5 dark:border-slate-100">
-                                {/* Badge de Plan */}
                                 <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border ${planConfig.bgStyle} ${planConfig.border} ${planConfig.glow}`}>
                                     {planConfig.icon}
                                     <span className={`text-[10px] font-bold tracking-wider uppercase ${planConfig.textStyle}`}>
@@ -194,7 +194,6 @@ const Sidebar = ({ onOpenModal, toggleTheme, currentTheme, userRole }) => {
                                 </button>
                             </div>
 
-                            {/* Botón Upgrade (Solo si es Free) */}
                             {!isPremium && (
                                 <Link
                                     to="/settings"
@@ -219,7 +218,6 @@ const NavItem = ({ to, icon, text, active }) => (
             : 'text-slate-400 hover:text-white dark:text-slate-500 dark:hover:text-indigo-700'
         }`}
     >
-        {/* Fondo animado para activo/hover */}
         <div className={`absolute inset-0 transition-opacity duration-300 
             ${active
                 ? 'opacity-100 bg-indigo-600'
@@ -227,7 +225,6 @@ const NavItem = ({ to, icon, text, active }) => (
             }`}>
         </div>
 
-        {/* Icono */}
         <span className={`relative z-10 transition-colors duration-200 
             ${active
                 ? 'text-white'
@@ -236,10 +233,8 @@ const NavItem = ({ to, icon, text, active }) => (
             {icon}
         </span>
 
-        {/* Texto */}
         <span className="relative z-10">{text}</span>
 
-        {/* Indicador activo a la derecha */}
         {active && <div className="absolute right-3 w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_10px_white]"></div>}
     </Link>
 );
