@@ -16,6 +16,8 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from bson import ObjectId
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from services import cleanup_expired_candidates
 from dotenv import load_dotenv
 
 # --- IMPORTACIONES DE TUS MÓDULOS ---
@@ -29,6 +31,23 @@ env_path = Path(__file__).resolve().parent.parent / '.env'
 load_dotenv(dotenv_path=env_path)
 
 app = FastAPI(title="VeeBot API - AI Recruiter")
+
+# --- SCHEDULER DE LIMPIEZA AUTOMÁTICA ---
+scheduler = AsyncIOScheduler()
+
+@app.on_event("startup")
+async def start_scheduler():
+    # Ejecuta la limpieza una vez al día (cada 24 horas)
+    scheduler.add_job(cleanup_expired_candidates, "interval", hours=24)
+    scheduler.start()
+    print("⏰ Scheduler de limpieza automática activado (Ciclo: 24h)")
+    
+    # Opcional: Ejecutar una limpieza al arrancar por si estuvo apagado
+    cleanup_expired_candidates() 
+
+@app.on_event("shutdown")
+async def stop_scheduler():
+    scheduler.shutdown()
 
 # --- CONFIGURACIÓN MONGO DB ---
 mongo_uri = os.getenv("MONGO_URI", "mongodb://localhost:27017/")
@@ -208,6 +227,33 @@ async def reset_password_direct(data: DirectResetRequest):
     )
     return {"message": "Contraseña actualizada. Ya puedes iniciar sesión."}
 
+@app.delete("/auth/me")
+async def delete_account(current_user: dict = Depends(get_current_user)):
+    user_id = str(current_user["_id"])
+    role = current_user.get("role", "Free")
+
+    # 1. VALIDACIÓN DE SEGURIDAD (Backend enforcement)
+    # Si es Premium, NO dejamos borrar. Debe cancelar en Lemon Squeezy primero.
+    if role in ["Premium", "Agency Pro"]:
+        raise HTTPException(
+            status_code=403, 
+            detail="Debes cancelar tu suscripción Premium antes de eliminar tu cuenta para evitar cobros futuros."
+        )
+
+    # 2. Borrar Vectores (Pinecone)
+    # Importa esta función de services.py
+    from services import delete_user_vectors 
+    delete_user_vectors(user_id)
+
+    # 3. Borrar Datos (Mongo)
+    # Importa esta función de database.py
+    from database import delete_full_user_data
+    success = delete_full_user_data(user_id, users_collection, candidates_collection)
+
+    if not success:
+        raise HTTPException(status_code=500, detail="Error al eliminar los datos del usuario")
+
+    return {"message": "Cuenta eliminada permanentemente. Hasta la vista."}
 # ==========================================
 # 2. RUTAS DE UPLOAD Y ANÁLISIS
 # ==========================================
@@ -217,40 +263,46 @@ async def upload_cvs(
     files: List[UploadFile] = File(...), 
     current_user: dict = Depends(get_current_user)
 ):
-    user_id = str(current_user["_id"]) # <--- OBTENEMOS ID DEL USUARIO
+    user_id = str(current_user["_id"])
     user_settings = current_user.get("settings", {"min_score": 70, "auto_reject": False})
     threshold = user_settings.get("min_score", 70)
     auto_reject = user_settings.get("auto_reject", False)
     selected_model = "llama-3.3-70b-versatile"
 
     os.makedirs("uploads", exist_ok=True)
-    sem = asyncio.Semaphore(3) 
+    
+    # CAMBIO 1: CONCURRENCIA A 10
+    # Esto permite procesar más rápido sin saturar la API de Groq
+    sem = asyncio.Semaphore(10) 
 
     async def process_single_file(file):
         async with sem:
             try:
-                # Usamos user_id en el nombre del archivo para evitar colisiones entre usuarios
                 safe_filename = f"{user_id}_{file.filename}"
                 file_location = f"uploads/{safe_filename}"
                 
                 content = await file.read()
+                # Escritura en disco es I/O, no bloquea tanto
                 with open(file_location, "wb") as buffer:
                     buffer.write(content)
                 
-                text = extract_text_from_pdf(file_location)
+                # CAMBIO 2: EXTRAER TEXTO EN UN HILO SEPARADO (NO BLOQUEANTE)
+                # Esto evita que el servidor se congele mientras lee un PDF pesado
+                text = await asyncio.to_thread(extract_text_from_pdf, file_location)
+                
                 candidate_name = file.filename.replace(".pdf", "").replace("_", " ").title()
                 
-                # Pinecone: Pasamos user_id para filtrar vectores
+                # Pinecone upsert
                 process_and_store_cv(text, safe_filename, candidate_name, user_id)
 
-                print(f"🤖 Analizando para usuario {user_id}: {candidate_name}...")
+                print(f"🤖 Analizando: {candidate_name}...")
                 
-                # AI Analysis
+                # AI Analysis (Ya estaba en hilo, perfecto)
                 ai_analysis = await asyncio.to_thread(get_ai_score, text, selected_model)
                 
+                # ... (Lógica de score y status igual que antes) ...
                 score_val = ai_analysis.get("score", 0)
                 status_final = "Bajo Potencial"
-
                 if score_val >= threshold:
                     status_final = "Alto Potencial"
                 elif score_val >= (threshold - 20):
@@ -258,13 +310,12 @@ async def upload_cvs(
                 else:
                     status_final = "Rechazado Automático" if auto_reject else "Bajo Potencial"
 
-                # DB: Guardamos con user_id
                 insert_candidate(
                     file.filename, 
                     candidate_name, 
                     text, 
                     {**ai_analysis, "status": status_final},
-                    user_id # <--- SE AGREGA ESTO
+                    user_id
                 ) 
                 return {"file": file.filename, "status": "success"}
 
@@ -272,10 +323,12 @@ async def upload_cvs(
                 print(f"❌ Error en {file.filename}: {e}")
                 return {"file": file.filename, "status": "error", "msg": str(e)}
 
+    # ... (Resto de la función igual) ...
     print(f"🚀 Procesando {len(files)} archivos...")
     tasks = [process_single_file(file) for file in files]
     results = await asyncio.gather(*tasks)
     
+    # ... (Retorno igual) ...
     success_count = sum(1 for r in results if r["status"] == "success")
     errors = [r["file"] for r in results if r["status"] == "error"]
 

@@ -6,6 +6,9 @@ from pinecone import Pinecone
 from dotenv import load_dotenv
 import pdfplumber
 from pathlib import Path
+from datetime import datetime, timedelta
+from database import candidates_collection
+import time
 
 env_path = Path(__file__).resolve().parent.parent / '.env'
 load_dotenv(dotenv_path=env_path)
@@ -47,27 +50,39 @@ def raw_groq_request(messages, model="llama-3.3-70b-versatile", json_mode=False)
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
     }
 
     payload = {
         "model": model,
         "messages": messages,
-        "temperature": 0.1 # Bajamos temperatura para ser más fríos y analíticos
+        "temperature": 0.1
     }
-    
-    if json_mode:
-        payload["response_format"] = {"type": "json_object"}
+    if json_mode: payload["response_format"] = {"type": "json_object"}
 
-    try:
-        response = requests.post(url, headers=headers, json=payload, timeout=30)
-        if response.status_code == 200:
-            return response.json()["choices"][0]["message"]["content"]
-        else:
-            raise Exception(f"Error Groq {response.status_code}: {response.text}")
-    except Exception as e:
-        print(f"Error en request raw: {e}")
-        raise e
+    # CAMBIO: INTENTAR HASTA 3 VECES
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            response = requests.post(url, headers=headers, json=payload, timeout=30)
+            
+            if response.status_code == 200:
+                return response.json()["choices"][0]["message"]["content"]
+            
+            elif response.status_code == 429:
+                # Si Groq dice "Too Many Requests", esperamos un poco
+                wait_time = 2 * (attempt + 1)
+                print(f"⚠️ Rate Limit de Groq. Reintentando en {wait_time}s...")
+                time.sleep(wait_time)
+                continue # Vuelve a intentar
+            
+            else:
+                raise Exception(f"Error Groq {response.status_code}: {response.text}")
+                
+        except Exception as e:
+            if attempt == max_retries - 1: # Si fue el último intento
+                print(f"Error final en request: {e}")
+                raise e
+            time.sleep(1)
 
 def get_ai_score(text, model_name="llama-3.3-70b-versatile"): 
     # --- PROMPT: MODO "AUDITOR CÍNICO" ---
@@ -161,3 +176,69 @@ def analyze_candidate_with_groq(query, candidates_context):
         )
     except Exception as e:
         return f"Error consultando a la IA: {str(e)}"
+    
+    
+# Elimina todos los vectores asociados a un usuario específico en Pinecone.    
+def delete_user_vectors(user_id):
+    try:
+        # Borramos usando el filtro de metadata que agregamos al subir
+        index.delete(filter={"user_id": user_id})
+        return True
+    except Exception as e:
+        print(f"Error borrando vectores Pinecone: {e}")
+        return False
+
+def cleanup_expired_candidates():
+    """
+    Busca y elimina candidatos con más de 25 días de antigüedad.
+    Limpia tanto MongoDB como Pinecone.
+    """
+    days_limit = 25
+    expiration_date = datetime.now() - timedelta(days=days_limit)
+    
+    print(f"🧹 [AUTO-CLEANUP] Iniciando limpieza de archivos anteriores a {expiration_date}...")
+
+    try:
+        # 1. Buscar candidatos expirados en Mongo
+        expired_cursor = candidates_collection.find({"upload_date": {"$lt": expiration_date}})
+        
+        expired_candidates = list(expired_cursor)
+        
+        if not expired_candidates:
+            print("✅ [AUTO-CLEANUP] No se encontraron candidatos expirados.")
+            return
+
+        print(f"⚠️ [AUTO-CLEANUP] Encontrados {len(expired_candidates)} candidatos para eliminar.")
+
+        pinecone_ids_to_delete = []
+        mongo_ids_to_delete = []
+
+        for candidate in expired_candidates:
+            # Recolectar IDs para borrar en lote
+            # Nota: 'filename' es el ID que usamos en Pinecone (ver process_and_store_cv)
+            if "filename" in candidate:
+                pinecone_ids_to_delete.append(candidate["filename"])
+            
+            mongo_ids_to_delete.append(candidate["_id"])
+
+        # 2. Borrar de Pinecone (Vectores)
+        if pinecone_ids_to_delete:
+            try:
+                # Borramos en lotes de 100 para no saturar
+                batch_size = 100
+                for i in range(0, len(pinecone_ids_to_delete), batch_size):
+                    batch = pinecone_ids_to_delete[i:i + batch_size]
+                    index.delete(ids=batch)
+                print(f"🗑️ [PINECONE] {len(pinecone_ids_to_delete)} vectores eliminados.")
+            except Exception as e:
+                print(f"❌ [PINECONE ERROR] {e}")
+
+        # 3. Borrar de MongoDB (Datos)
+        if mongo_ids_to_delete:
+            result = candidates_collection.delete_many({"_id": {"$in": mongo_ids_to_delete}})
+            print(f"🗑️ [MONGO] {result.deleted_count} documentos eliminados.")
+
+        print("✨ [AUTO-CLEANUP] Limpieza finalizada correctamente.")
+
+    except Exception as e:
+        print(f"❌ [AUTO-CLEANUP ERROR] Fallo crítico: {e}")

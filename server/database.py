@@ -20,7 +20,7 @@ def insert_candidate(filename, name, text_preview, ai_data, user_id):
     Guarda un candidato vinculándolo al ID del usuario que lo subió.
     """
     candidate_doc = {
-        "user_id": user_id,  # <--- CLAVE: El dueño del dato
+        "user_id": user_id, 
         "filename": filename,
         "name": name,
         "role": ai_data.get("role", "Desconocido"),
@@ -74,4 +74,20 @@ def delete_candidate_by_id(candidate_id, user_id):
         return result.deleted_count > 0
     except Exception as e:
         print(f"Error borrando: {e}")
+        return False
+    
+def delete_full_user_data(user_id, users_col, candidates_col):
+    """
+    Borra el usuario y todos sus candidatos asociados.
+    """
+    try:
+        # 1. Borrar Candidatos
+        candidates_col.delete_many({"user_id": user_id})
+        
+        # 2. Borrar Usuario
+        result = users_col.delete_one({"_id": ObjectId(user_id)})
+        
+        return result.deleted_count > 0
+    except Exception as e:
+        print(f"Error borrando datos Mongo: {e}")
         return False
