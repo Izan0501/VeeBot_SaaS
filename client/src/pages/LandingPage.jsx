@@ -291,7 +291,9 @@ const LandingPage = () => {
                 {/* Glow detrás de la card */}
                 <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-[2rem] blur opacity-20 group-hover:opacity-40 transition duration-1000 group-hover:duration-200"></div>
 
-                <div className="absolute top-0 right-0 bg-indigo-600 text-white text-sm font-bold px-4 py-1.5 rounded-bl-2xl rounded-tr-2xl relative z-20">ACCESO INMEDIATO</div>
+                <div className="absolute top-0 right-0 bg-indigo-600 text-white text-sm font-bold px-4 py-1.5 rounded-bl-2xl rounded-tr-2xl z-20">
+                  ACCESO INMEDIATO
+                </div>
 
                 <div className="relative z-20 text-center mb-8">
                   <h3 className="text-2xl font-bold text-slate-900 mb-2">VeeBot Agency</h3>
