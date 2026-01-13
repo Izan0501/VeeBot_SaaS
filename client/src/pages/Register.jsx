@@ -8,9 +8,10 @@ import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const Register = () => {
-    // --- ESTADOS Y LÓGICA (INTACTOS) ---
+    // --- ESTADOS Y LÓGICA ---
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState(''); // <--- NUEVO ESTADO
     const [loading, setLoading] = useState(false);
 
     const navigate = useNavigate();
@@ -30,8 +31,16 @@ const Register = () => {
 
     const handleRegister = async (e) => {
         e.preventDefault();
+
+        // 1. Validar complejidad
         const errorMsg = validatePassword(password);
         if (errorMsg) return toast.error(errorMsg);
+
+        // 2. Validar coincidencia (NUEVO)
+        if (password !== confirmPassword) {
+            return toast.error("Las contraseñas no coinciden.");
+        }
+
         setLoading(true);
         try {
             const res = await fetch('http://127.0.0.1:8000/auth/register', {
@@ -107,7 +116,6 @@ const Register = () => {
             {/* --- FONDO ANIMADO MÓVIL (Solo visible en lg:hidden) --- */}
             <div className="lg:hidden absolute inset-0 overflow-hidden pointer-events-none z-0">
                 <div className="absolute inset-0 bg-slate-900"></div>
-                {/* Orbes Móviles */}
                 <motion.div
                     animate={{ scale: [1, 1.2, 1], opacity: [0.4, 0.6, 0.4] }}
                     transition={{ duration: 8, repeat: Infinity }}
@@ -120,32 +128,30 @@ const Register = () => {
                 ></motion.div>
             </div>
 
-            {/* --- LADO IZQUIERDO: ARTE DESKTOP (ANILLOS CON PULSO DE "PARLANTE") --- */}
+            {/* --- LADO IZQUIERDO: ARTE DESKTOP (ANILLOS CON PULSO) --- */}
             <motion.div
                 initial={{ x: '-100%' }}
                 animate={{ x: 0 }}
                 transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
                 className="hidden lg:flex w-1/2 bg-slate-950 relative flex-col justify-between p-16 overflow-hidden"
             >
-                {/* FONDO ANIMADO DESKTOP: ANILLOS RETUMBANDO */}
-
-                {/* Anillo Exterior - Pulso fuerte */}
+                {/* Anillo Exterior */}
                 <motion.div
                     initial={{ x: "-50%", y: "-50%", scale: 1, opacity: 0.1 }}
                     animate={{
                         x: "-50%", y: "-50%",
-                        scale: [1, 1.15, 1], // Escala agresiva para el "golpe"
-                        opacity: [0.1, 0.3, 0.1] // Brillo al golpear
+                        scale: [1, 1.15, 1],
+                        opacity: [0.1, 0.3, 0.1]
                     }}
                     transition={{
                         duration: 1.5,
                         repeat: Infinity,
-                        ease: [0.4, 0, 0.2, 1] // Easing tipo "punch"
+                        ease: [0.4, 0, 0.2, 1]
                     }}
                     className="absolute top-1/2 left-1/2 w-[700px] h-[700px] border-2 border-white/10 rounded-full pointer-events-none"
                 />
 
-                {/* Anillo Interior - Pulso secundario desfasado */}
+                {/* Anillo Interior */}
                 <motion.div
                     initial={{ x: "-50%", y: "-50%", scale: 1, opacity: 0.2 }}
                     animate={{
@@ -155,14 +161,13 @@ const Register = () => {
                     }}
                     transition={{
                         duration: 1.5,
-                        delay: 0.1, // Pequeño desfase para efecto eco
+                        delay: 0.1,
                         repeat: Infinity,
                         ease: [0.4, 0, 0.2, 1]
                     }}
                     className="absolute top-1/2 left-1/2 w-[550px] h-[550px] border-[3px] border-indigo-500/30 rounded-full pointer-events-none shadow-[0_0_30px_rgba(99,102,241,0.3)]"
                 />
 
-                {/* Luz ambiental central que también pulsa */}
                 <motion.div
                     animate={{
                         scale: [1, 1.2, 1],
@@ -172,7 +177,7 @@ const Register = () => {
                     className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-indigo-600/30 blur-[120px] rounded-full pointer-events-none"
                 ></motion.div>
 
-                {/* Contenido Texto Desktop */}
+                {/* Contenido Texto */}
                 <div className="relative z-10 mt-10">
                     <motion.div variants={slideUp} initial="hidden" animate="visible" className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs font-bold uppercase tracking-wider mb-6">
                         <Star size={12} className="fill-indigo-300" /> Únete a los líderes
@@ -218,11 +223,9 @@ const Register = () => {
                 <div className="w-full max-w-md space-y-8 relative">
 
                     <motion.div initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.2 }} className="text-center lg:text-left">
-                        {/* Logo Mobile (Flotante) */}
                         <div className="inline-flex lg:hidden items-center justify-center p-4 bg-white/10 backdrop-blur-xl rounded-2xl mb-8 shadow-2xl border border-white/20 ring-1 ring-white/10">
                             <BrainCircuit className="text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]" size={32} />
                         </div>
-
                         <h2 className="text-3xl font-black text-white lg:text-slate-900 tracking-tight mb-2 drop-shadow-lg lg:drop-shadow-none">
                             {view === 'register' ? 'Crear cuenta gratis' : 'Recuperar acceso'}
                         </h2>
@@ -233,7 +236,7 @@ const Register = () => {
                         </p>
                     </motion.div>
 
-                    {/* CARD DEL FORMULARIO CON GLASS SUTIL (MOBILE & DESKTOP UNIFICADO VISUALMENTE) */}
+                    {/* CARD DEL FORMULARIO CON GLASS SUTIL */}
                     <div className="
                         bg-white/10 lg:bg-white 
                         backdrop-blur-xl lg:backdrop-blur-none
@@ -247,7 +250,7 @@ const Register = () => {
 
                         <AnimatePresence mode='wait'>
 
-                            {/* VISTA 1: REGISTRO */}
+                            {/* VISTA 1: REGISTRO (CON CAMPO CONFIRMAR) */}
                             {view === 'register' && (
                                 <motion.form
                                     key="register"
@@ -257,17 +260,28 @@ const Register = () => {
                                     exit="exit"
                                     transition={{ duration: 0.3 }}
                                     onSubmit={handleRegister}
-                                    className="space-y-5 relative z-10"
+                                    className="space-y-4 relative z-10"
                                 >
                                     <InputGroup label="Email Corporativo" icon={<Mail />} type="email" value={email} onChange={setEmail} placeholder="nombre@empresa.com" isMobileDark={true} />
+
                                     <PasswordInput value={password} onChange={setPassword} showValidation={true} isMobileDark={true} />
+
+                                    {/* CAMPO DE CONFIRMACIÓN NUEVO */}
+                                    <PasswordInput
+                                        label="Confirmar Contraseña"
+                                        value={confirmPassword}
+                                        onChange={setConfirmPassword}
+                                        showValidation={false}
+                                        isMobileDark={true}
+                                        placeholder="Repite tu contraseña"
+                                    />
 
                                     <motion.button
                                         whileHover={{ scale: 1.02 }}
                                         whileTap={{ scale: 0.98 }}
                                         type="submit"
                                         disabled={loading}
-                                        className="w-full py-4 bg-indigo-600 lg:bg-slate-900 hover:bg-indigo-500 lg:hover:bg-indigo-600 text-white font-bold rounded-xl shadow-lg shadow-indigo-600/30 lg:shadow-indigo-500/20 transition-all flex items-center justify-center gap-2 group mt-2"
+                                        className="w-full py-4 bg-indigo-600 lg:bg-slate-900 hover:bg-indigo-500 lg:hover:bg-indigo-600 text-white font-bold rounded-xl shadow-lg shadow-indigo-600/30 lg:shadow-indigo-500/20 transition-all flex items-center justify-center gap-2 group mt-4"
                                     >
                                         {loading ? "Creando..." : <><UserPlus size={20} /> Crear Cuenta</>}
                                     </motion.button>
@@ -370,7 +384,7 @@ const InputGroup = ({ label, icon, type, value, onChange, placeholder, isMobileD
     </div>
 );
 
-const PasswordInput = ({ value, onChange, showValidation, label = "Contraseña", isMobileDark }) => (
+const PasswordInput = ({ value, onChange, showValidation, label = "Contraseña", isMobileDark, placeholder = "••••••••" }) => (
     <div>
         <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ml-1 ${isMobileDark ? 'text-slate-300 lg:text-slate-500' : 'text-slate-500'}`}>{label}</label>
         <div className="relative group">
@@ -386,7 +400,7 @@ const PasswordInput = ({ value, onChange, showValidation, label = "Contraseña",
                         ? 'bg-slate-900/50 lg:bg-slate-50 border-slate-700 lg:border-slate-200 text-white lg:text-slate-900 focus:ring-indigo-500/50 lg:focus:ring-indigo-500/20 focus:border-indigo-400 lg:focus:border-indigo-500 focus:bg-slate-800 lg:focus:bg-white'
                         : 'bg-slate-50 border-slate-200'
                     }`}
-                placeholder="••••••••"
+                placeholder={placeholder}
                 required
             />
         </div>

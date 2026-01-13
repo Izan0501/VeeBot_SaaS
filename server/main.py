@@ -1,12 +1,15 @@
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Depends, status, Header, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, EmailStr
 from jose import JWTError, jwt
 from pathlib import Path
 import os
+import csv
+import io
 import asyncio 
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import List
 from pymongo import MongoClient
 import hmac
@@ -19,9 +22,6 @@ from bson import ObjectId
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from services import cleanup_expired_candidates
 from dotenv import load_dotenv
-
-# --- IMPORTACIONES DE TUS MÓDULOS ---
-# Asegúrate de que security.py, services.py y database.py estén en la misma carpeta
 from security import get_password_hash, verify_password, create_access_token, SECRET_KEY, ALGORITHM
 from services import extract_text_from_pdf, process_and_store_cv, analyze_candidate_with_groq, get_ai_score
 from database import insert_candidate, get_all_candidates_from_db, delete_candidate_by_id
@@ -132,7 +132,6 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
 # ==========================================
 # 1. RUTAS DE AUTENTICACIÓN
 # ==========================================
-
 @app.post("/auth/register", status_code=201)
 async def register_user(user: UserAuth):
     if users_collection.find_one({"email": user.email}):
@@ -254,10 +253,10 @@ async def delete_account(current_user: dict = Depends(get_current_user)):
         raise HTTPException(status_code=500, detail="Error al eliminar los datos del usuario")
 
     return {"message": "Cuenta eliminada permanentemente. Hasta la vista."}
+
 # ==========================================
 # 2. RUTAS DE UPLOAD Y ANÁLISIS
 # ==========================================
-
 @app.post("/upload")
 async def upload_cvs(
     files: List[UploadFile] = File(...), 
@@ -344,7 +343,6 @@ async def upload_cvs(
 # ==========================================
 # 3. GESTIÓN DE CANDIDATOS Y CHAT
 # ==========================================
-
 @app.get("/candidates")
 def get_candidates(current_user: dict = Depends(get_current_user)):
     try:
@@ -396,6 +394,155 @@ async def chat_with_recruiter(
     except Exception as e:
         print(f"Error en chat: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+# ==========================================
+# 3.1 EXPORTAR CANDIDATOS A CSV
+# =========================================
+@app.get("/export-csv")
+async def export_candidates_csv(current_user: dict = Depends(get_current_user)):
+    # 1. Obtener candidatos del usuario
+    user_id = str(current_user["_id"])
+    candidates = get_all_candidates_from_db(user_id)
+
+    if not candidates:
+        raise HTTPException(status_code=404, detail="No hay datos para exportar")
+
+    # 2. Crear el archivo CSV en memoria (Buffer)
+    output = io.StringIO()
+    writer = csv.writer(output)
+
+    # 3. Escribir Encabezados
+    writer.writerow(["ID", "Nombre", "Rol Detectado", "Puntaje (0-100)", "Estado", "Fecha Subida", "Skills"])
+
+    # 4. Escribir Filas
+    for c in candidates:
+        # Formatear skills como string separado por comas
+        skills_str = ", ".join(c.get("skills", []))
+        
+        writer.writerow([
+            c.get("id"),
+            c.get("name"),
+            c.get("role"),
+            c.get("score"),
+            c.get("status"),
+            c.get("date"),
+            skills_str
+        ])
+
+    # 5. Preparar la descarga
+    output.seek(0)
+    
+    # Convertimos a Bytes para StreamingResponse
+    mem = io.BytesIO()
+    mem.write(output.getvalue().encode('utf-8-sig')) # utf-8-sig para que Excel abra bien los acentos
+    mem.seek(0)
+    output.close()
+
+    filename = f"veebot_candidates_{datetime.now().strftime('%Y%m%d')}.csv"
+    
+    return StreamingResponse(
+        mem, 
+        media_type="text/csv", 
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
+# ==========================================
+# 3.5. DEMO DATA (SEED) - LÓGICA DINÁMICA
+# ==========================================
+
+@app.post("/seed")
+async def seed_demo_data(current_user: dict = Depends(get_current_user)):
+    user_id = str(current_user["_id"])
+    
+    # 1. OBTENER TUS REGLAS DE RECLUTAMIENTO ACTUALES
+    settings = current_user.get("settings", {})
+    threshold = settings.get("min_score", 70)
+    auto_reject_enabled = settings.get("auto_reject", False)
+
+    # 2. DEFINIR DATOS BASE (Scores variados)
+    raw_candidates = [
+        {
+            "name": "Sofía Rodriguez",
+            "role": "Frontend Developer",
+            "score": 92,
+            "summary": "Candidata excepcional con 6 años en React y Next.js. Ha liderado equipos y tiene experiencia en arquitecturas escalables.",
+            "skills": ["React", "TypeScript", "Tailwind", "Figma", "Redux"],
+            "text_preview": "Experiencia demostrable en startups unicornio...",
+            "days_ago": 0
+        },
+        {
+            "name": "Marcos Pérez",
+            "role": "Backend Developer",
+            "score": 85,
+            "summary": "Sólido perfil Python/Django. Buena base de algoritmos, aunque le falta un poco de experiencia en microservicios.",
+            "skills": ["Python", "Django", "PostgreSQL", "Docker", "AWS"],
+            "text_preview": "Desarrollador Backend enfocado en APIs REST...",
+            "days_ago": 2
+        },
+        {
+            "name": "Lucía Mendez",
+            "role": "Data Scientist",
+            "score": 74, 
+            "summary": "Perfil académico fuerte (PhD), pero poca experiencia en producción real. Ideal para roles de investigación.",
+            "skills": ["Python", "Pandas", "Scikit-Learn", "R", "SQL"],
+            "text_preview": "Analista de datos con background matemático...",
+            "days_ago": 5
+        },
+        {
+            "name": "Juan Lopez",
+            "role": "Full Stack Dev",
+            "score": 45, 
+            "summary": "Recién graduado de Bootcamp. Tiene los conceptos básicos pero el CV es muy genérico y carece de proyectos complejos.",
+            "skills": ["HTML", "CSS", "Javascript", "Git"],
+            "text_preview": "Entusiasta de la programación buscando primera oportunidad...",
+            "days_ago": 1
+        },
+        {
+            "name": "Carlos Ruiz",
+            "role": "DevOps",
+            "score": 88, 
+            "summary": "Experto en Kubernetes y CI/CD. Perfil muy técnico y directo al grano. Muy valioso para infraestructura.",
+            "skills": ["Kubernetes", "Terraform", "Jenkins", "Azure", "Linux"],
+            "text_preview": "Ingeniero de confiabilidad del sitio (SRE)...",
+            "days_ago": 3
+        }
+    ]
+
+    processed_candidates = []
+
+    # 3. APLICAR TU LÓGICA DE NEGOCIO A LOS DATOS FALSOS
+    for c in raw_candidates:
+        score = c["score"]
+        status = "Bajo Potencial"
+
+        # Misma lógica que en /upload
+        if score >= threshold:
+            status = "Alto Potencial"
+        elif score >= (threshold - 20):
+            status = "Medio Potencial"
+        else:
+            # Aquí es donde aplica tu configuración de Auto-Reject
+            status = "Rechazado Automático" if auto_reject_enabled else "Bajo Potencial"
+
+        processed_candidates.append({
+            "user_id": user_id,
+            "filename": f"demo_{c['name'].lower().replace(' ', '_')}.pdf",
+            "name": c["name"],
+            "role": c["role"],
+            "score": score,
+            "status": status, # <--- Estado calculado dinámicamente
+            "summary": c["summary"],
+            "skills": c["skills"],
+            "text_preview": c["text_preview"],
+            "upload_date": datetime.now() - timedelta(days=c["days_ago"])
+        })
+
+    try:
+        candidates_collection.insert_many(processed_candidates)
+        return {"message": "Datos de demostración cargados aplicando tus reglas."}
+    except Exception as e:
+        print(f"Error seeding: {e}")
+        raise HTTPException(status_code=500, detail="Error al generar datos de prueba")
 
 # ==========================================
 # 4. PAGOS (LEMON SQUEEZY)
@@ -536,53 +683,52 @@ async def lemon_webhook(request: Request, x_signature: str = Header(None)):
 @app.post("/payments/create-portal")
 async def create_portal_session(current_user: dict = Depends(get_current_user)):
     """
-    Genera un link temporal para que el usuario gestione su suscripción en Lemon Squeezy.
+    Recupera el link del Customer Portal consultando el objeto Customer directamente.
     """
     customer_id = current_user.get("customer_id")
     
-    if not customer_id:
-        # Fallback: Si es un usuario antiguo o manual sin ID, lo mandamos al link genérico
-        return {"portal_url": "https://app.lemonsqueezy.com/my-orders"}
+    # URL genérica de fallback por si falla todo
+    fallback_url = "https://app.lemonsqueezy.com/my-orders"
 
+    if not customer_id:
+        return {"portal_url": fallback_url}
+
+    # Aseguramos que la URL base no tenga barra final extra
+    base_url = LEMON_API_URL.rstrip("/") 
+    
     headers = {
         "Authorization": f"Bearer {LEMON_API_KEY}",
         "Accept": "application/vnd.api+json",
         "Content-Type": "application/vnd.api+json"
     }
 
-    payload = {
-        "data": {
-            "type": "customer-portal-sessions",
-            "attributes": {
-                "customer_id": int(customer_id),
-                "return_url": "http://localhost:5173/settings" # A dónde vuelve al terminar
-            },
-            "relationships": {
-                "store": {
-                    "data": {
-                        "type": "stores",
-                        "id": LEMON_STORE_ID
-                    }
-                }
-            }
-        }
-    }
-
     try:
-        response = requests.post(f"{LEMON_API_URL}/customer-portal-sessions", json=payload, headers=headers)
+        # CAMBIO CLAVE: Usamos GET /customers/{id} en lugar de POST /sessions
+        # El objeto Customer ya contiene la URL mágica del portal en sus atributos.
+        response = requests.get(
+            f"{base_url}/customers/{customer_id}", 
+            headers=headers
+        )
+        
         response.raise_for_status()
         data = response.json()
-        return {"portal_url": data['data']['attributes']['url']}
+        
+        # Extraemos la URL específica del portal
+        portal_url = data['data']['attributes']['urls']['customer_portal']
+        
+        return {"portal_url": portal_url}
+
     except Exception as e:
-        print(f"Error Portal: {e}")
-        if 'response' in locals(): print(response.text)
-        # Fallback si falla la API
-        return {"portal_url": "https://app.lemonsqueezy.com/my-orders"}
+        print(f"❌ Error obteniendo Portal URL: {e}")
+        if 'response' in locals(): 
+            print(f"Respuesta API: {response.text}")
+            
+        # Si falla (ej: el customer_id no existe en LS), devolvemos el link genérico
+        return {"portal_url": fallback_url}
 
 # ==========================================
 # 5. PREMIUM: ENVÍO DE EMAIL
 # ==========================================
-
 @app.post("/premium/send-report")
 async def send_premium_report(data: ReportRequest, current_user: dict = Depends(get_current_user)):
     user_role = current_user.get("role", "Free")

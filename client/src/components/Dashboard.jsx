@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
-    BarChart3, Trash2, Send, Loader2, Bot, User, UploadCloud, Filter, ChevronDown, Search, X, Lock, Crown, Sparkles, ArrowUpRight
+    BarChart3, Trash2, Send, Loader2, Bot, User, UploadCloud, Filter, ChevronDown, Search, X, Lock, Crown, Sparkles, ArrowUpRight, AlertOctagon
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ReactMarkdown from 'react-markdown';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const Dashboard = ({ isModalOpen, setIsModalOpen, userRole }) => {
     // --- ESTADOS ---
@@ -13,6 +13,9 @@ const Dashboard = ({ isModalOpen, setIsModalOpen, userRole }) => {
     const [selectedLetter, setSelectedLetter] = useState("Todos");
     const [searchTerm, setSearchTerm] = useState("");
     const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
+    const [showClearModal, setShowClearModal] = useState(false); // <--- NUEVO
+    const [clearing, setClearing] = useState(false); // <--- NUEVO
+
     const navigate = useNavigate();
 
     const isPremium = userRole === 'Premium' || userRole === 'Admin' || userRole === 'Reclutador';
@@ -146,6 +149,36 @@ const Dashboard = ({ isModalOpen, setIsModalOpen, userRole }) => {
         ));
     };
 
+    // --- NUEVO: FUNCIÓN PARA VACIAR TODO ---
+    const handleClearAll = async () => {
+        setClearing(true);
+        const toastId = toast.loading("Vaciando base de datos...");
+        try {
+            const token = localStorage.getItem('token');
+
+            // Opción A: Si tienes un endpoint de borrado masivo (Recomendado)
+            // await fetch('http://127.0.0.1:8000/candidates/all', { method: 'DELETE', ... });
+
+            // Opción B (Fallback): Borrado en bucle (funciona con tu backend actual)
+            const deletePromises = candidates.map(c =>
+                fetch(`http://127.0.0.1:8000/candidates/${c.id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                })
+            );
+
+            await Promise.all(deletePromises);
+
+            setCandidates([]);
+            toast.success("Tabla vaciada correctamente", { id: toastId });
+            setShowClearModal(false);
+        } catch (error) {
+            toast.error("Error al vaciar tabla", { id: toastId });
+        } finally {
+            setClearing(false);
+        }
+    };
+
     const handleAskAI = async (e) => {
         e.preventDefault();
         if (!isPremium) {
@@ -200,10 +233,69 @@ const Dashboard = ({ isModalOpen, setIsModalOpen, userRole }) => {
     return (
         <div className="flex-1 flex flex-col h-full overflow-hidden bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
 
+            {/* --- MODAL CONFIRMACIÓN VACIAR TABLA --- */}
+            <AnimatePresence>
+                {showClearModal && (
+                    <motion.div
+                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4"
+                        onClick={() => setShowClearModal(false)}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
+                            onClick={(e) => e.stopPropagation()}
+                            className="bg-white dark:bg-slate-900 p-8 rounded-3xl shadow-2xl border border-red-100 dark:border-red-900/50 max-w-sm w-full relative overflow-hidden"
+                        >
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
+
+                            <div className="w-14 h-14 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mb-6 text-red-600 dark:text-red-500 mx-auto border-4 border-white dark:border-slate-800 shadow-xl">
+                                <AlertOctagon size={28} />
+                            </div>
+
+                            <div className="text-center mb-8">
+                                <h3 className="text-2xl font-black text-slate-900 dark:text-white mb-2 tracking-tight">¿Estás seguro?</h3>
+                                <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed">
+                                    Esta acción eliminará <strong>{candidates.length} candidatos</strong> de forma permanente. No podrás deshacerlo.
+                                </p>
+                            </div>
+
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => setShowClearModal(false)}
+                                    className="flex-1 py-3 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-bold text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    onClick={handleClearAll}
+                                    disabled={clearing}
+                                    className="flex-1 py-3 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-bold text-sm shadow-lg shadow-red-500/30 transition-all flex items-center justify-center gap-2"
+                                >
+                                    {clearing ? <Loader2 className="animate-spin" size={16} /> : <Trash2 size={16} />}
+                                    {clearing ? "Borrando..." : "Vaciar Todo"}
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
             {/* HEADER */}
             <header className="h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-4 md:px-8 sticky top-0 z-20 shadow-sm transition-colors">
                 <h2 className="text-lg font-bold text-slate-800 dark:text-white tracking-tight">Dashboard de Talento</h2>
                 <div className="flex items-center gap-3">
+
+                    {/* BOTÓN VACIAR TABLA (NUEVO) */}
+                    {candidates.length > 0 && (
+                        <button
+                            onClick={() => setShowClearModal(true)}
+                            className="p-2 rounded-xl text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 transition-all border border-transparent hover:border-red-100 dark:hover:border-red-900/30"
+                            title="Vaciar tabla"
+                        >
+                            <Trash2 size={18} />
+                        </button>
+                    )}
+
                     {!isPremium && (
                         <button
                             onClick={() => navigate('/settings')}

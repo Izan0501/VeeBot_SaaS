@@ -1,79 +1,88 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, FileText, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, FileText } from 'lucide-react';
+import { motion, useScroll, useSpring } from 'framer-motion';
 
 const Terms = () => {
     const navigate = useNavigate();
+    const { scrollYProgress } = useScroll();
+    const scaleX = useSpring(scrollYProgress, { stiffness: 100, damping: 30, restDelta: 0.001 });
+
+    const handleBack = () => {
+        const token = localStorage.getItem('token');
+        if (token) navigate('/dashboard'); else navigate('/');
+    };
+
+    // Animación de secciones
+    const sectionVariant = {
+        hidden: { opacity: 0, y: 20 },
+        visible: { opacity: 1, y: 0, transition: { duration: 0.6 } }
+    };
 
     return (
-        <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-300">
+        <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-300 font-sans selection:bg-indigo-500 selection:text-white">
 
-            {/* Navbar Simple */}
+            {/* BARRA DE PROGRESO DE LECTURA */}
+            <motion.div style={{ scaleX }} className="fixed top-0 left-0 right-0 h-1.5 bg-indigo-600 origin-left z-[60]" />
+
+            {/* Navbar */}
             <nav className="sticky top-0 z-50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-6 h-16 flex items-center justify-between">
-                <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/')}>
-                    <div className="bg-indigo-600 p-1.5 rounded-lg text-white"><FileText size={18} /></div>
-                    <span className="font-bold text-lg">VeeBot Legal</span>
+                <div className="flex items-center gap-2 cursor-pointer group" onClick={handleBack}>
+                    <div className="bg-indigo-600 p-1.5 rounded-lg text-white group-hover:scale-110 transition-transform"><FileText size={18} /></div>
+                    <span className="font-bold text-lg tracking-tight">VeeBot Legal</span>
                 </div>
-                <button onClick={() => navigate('/')} className="text-sm font-medium text-slate-500 hover:text-indigo-600 flex items-center gap-1">
-                    <ArrowLeft size={16} /> Volver al Inicio
+                <button onClick={handleBack} className="text-sm font-bold text-slate-500 hover:text-indigo-600 flex items-center gap-1 transition-colors">
+                    <ArrowLeft size={16} /> Volver
                 </button>
             </nav>
 
-            <div className="max-w-3xl mx-auto px-6 py-20">
+            <div className="max-w-3xl mx-auto px-6 py-20 relative">
 
-                {/* Header Documento */}
-                <div className="mb-16 text-center">
-                    <span className="text-indigo-600 dark:text-indigo-400 font-bold tracking-widest text-xs uppercase mb-2 block">Última actualización: Enero 2026</span>
-                    <h1 className="text-4xl md:text-5xl font-black mb-6">Términos de Servicio</h1>
-                    <p className="text-lg text-slate-500 dark:text-slate-400">
+                {/* Fondo Decorativo Fijo */}
+                <div className="fixed inset-0 pointer-events-none z-[-1] overflow-hidden">
+                    <div className="absolute top-[10%] left-[-10%] w-[500px] h-[500px] bg-indigo-500/5 rounded-full blur-[100px]"></div>
+                    <div className="absolute bottom-[10%] right-[-10%] w-[500px] h-[500px] bg-purple-500/5 rounded-full blur-[100px]"></div>
+                </div>
+
+                {/* Header */}
+                <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.8 }} className="mb-16 text-center">
+                    <span className="text-indigo-600 dark:text-indigo-400 font-bold tracking-widest text-xs uppercase mb-3 block">Última actualización: Enero 2026</span>
+                    <h1 className="text-4xl md:text-6xl font-black mb-6 tracking-tight text-slate-900 dark:text-white">Términos de Servicio</h1>
+                    <p className="text-lg text-slate-500 dark:text-slate-400 max-w-xl mx-auto leading-relaxed">
                         Por favor lee estos términos cuidadosamente antes de usar nuestra plataforma de reclutamiento IA.
                     </p>
-                </div>
+                </motion.div>
 
-                {/* Contenido Legal */}
-                <div className="prose prose-slate dark:prose-invert max-w-none space-y-12">
+                {/* Contenido (Staggered Animation) */}
+                <motion.div
+                    initial="hidden"
+                    whileInView="visible"
+                    viewport={{ once: true, margin: "-100px" }}
+                    variants={{ visible: { transition: { staggerChildren: 0.1 } } }}
+                    className="prose prose-slate dark:prose-invert max-w-none space-y-12"
+                >
+                    {[
+                        { title: "1. Aceptación", content: "Al acceder y utilizar VeeBot ('el Servicio'), aceptas estar sujeto a estos Términos de Servicio. Si no estás de acuerdo, no podrás acceder." },
+                        { title: "2. Inteligencia Artificial", content: "VeeBot utiliza LLMs avanzados (Llama 3.3). La IA puede cometer errores. La decisión final de contratación es 100% humana." },
+                        { title: "3. Suscripciones", content: "El servicio se ofrece bajo suscripción mensual. Pagos seguros vía Lemon Squeezy. Cancela cuando quieras desde tu panel." },
+                        { title: "4. Tus Datos", content: "Tú conservas todos los derechos sobre tus CVs. No vendemos ni compartimos tus datos con terceros." }
+                    ].map((section, i) => (
+                        <motion.section key={i} variants={sectionVariant} className="group hover:pl-4 transition-all duration-300 border-l-2 border-transparent hover:border-indigo-500">
+                            <h3 className="text-2xl font-bold mb-3 text-slate-900 dark:text-white flex items-center gap-2">
+                                <span className="text-indigo-600/50 group-hover:text-indigo-600 transition-colors">#</span> {section.title}
+                            </h3>
+                            <p className="text-slate-600 dark:text-slate-300 leading-relaxed text-lg">{section.content}</p>
+                        </motion.section>
+                    ))}
 
-                    <section>
-                        <h3 className="text-2xl font-bold mb-4 flex items-center gap-2"><span className="text-indigo-600">1.</span> Aceptación de los Términos</h3>
-                        <p className="text-slate-600 dark:text-slate-300 leading-relaxed">
-                            Al acceder y utilizar VeeBot ("el Servicio"), aceptas estar sujeto a estos Términos de Servicio. Si no estás de acuerdo con alguna parte de los términos, no podrás acceder al servicio. Nos reservamos el derecho de modificar estos términos en cualquier momento.
+                    <motion.section variants={sectionVariant} className="p-8 bg-slate-100 dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 relative overflow-hidden">
+                        <div className="absolute top-0 right-0 p-4 opacity-10"><FileText size={100} /></div>
+                        <h4 className="font-bold text-xl mb-2 relative z-10">Contacto Legal</h4>
+                        <p className="text-slate-500 dark:text-slate-400 relative z-10">
+                            Para consultas legales o reportar violaciones, contáctanos en <a href="mailto:legal@veebot.ai" className="text-indigo-600 hover:underline font-bold">legal@veebot.ai</a>.
                         </p>
-                    </section>
-
-                    <section>
-                        <h3 className="text-2xl font-bold mb-4 flex items-center gap-2"><span className="text-indigo-600">2.</span> Uso de la Inteligencia Artificial</h3>
-                        <p className="text-slate-600 dark:text-slate-300 leading-relaxed mb-4">
-                            VeeBot utiliza modelos de lenguaje avanzados (LLMs) como Llama 3.3 para analizar documentos. Aunque nos esforzamos por la precisión:
-                        </p>
-                        <ul className="list-disc pl-6 space-y-2 text-slate-600 dark:text-slate-300 marker:text-indigo-500">
-                            <li>La IA puede cometer errores o alucinaciones en el análisis.</li>
-                            <li>La decisión final de contratación es responsabilidad exclusiva del usuario humano.</li>
-                            <li>VeeBot no garantiza la contratación de ningún candidato.</li>
-                        </ul>
-                    </section>
-
-                    <section>
-                        <h3 className="text-2xl font-bold mb-4 flex items-center gap-2"><span className="text-indigo-600">3.</span> Suscripciones y Pagos</h3>
-                        <p className="text-slate-600 dark:text-slate-300 leading-relaxed">
-                            El servicio se ofrece bajo un modelo de suscripción mensual o anual. Los pagos son procesados de forma segura a través de <strong>Lemon Squeezy</strong>. Puedes cancelar tu suscripción en cualquier momento desde el panel de configuración, manteniendo el acceso hasta el final del ciclo de facturación actual.
-                        </p>
-                    </section>
-
-                    <section>
-                        <h3 className="text-2xl font-bold mb-4 flex items-center gap-2"><span className="text-indigo-600">4.</span> Propiedad de Datos</h3>
-                        <p className="text-slate-600 dark:text-slate-300 leading-relaxed">
-                            Tú conservas todos los derechos sobre los CVs y datos que subes a la plataforma. VeeBot no vende ni comparte tus datos con terceros. Los datos se utilizan únicamente para proporcionarte el servicio de análisis y se almacenan de forma encriptada.
-                        </p>
-                    </section>
-
-                    <section className="p-6 bg-slate-100 dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800">
-                        <h4 className="font-bold text-lg mb-2">Contacto Legal</h4>
-                        <p className="text-sm text-slate-500 dark:text-slate-400">
-                            Para consultas legales o reportar violaciones, contáctanos en <a href="mailto:legal@veebot.ai" className="text-indigo-600 hover:underline">legal@veebot.ai</a>.
-                        </p>
-                    </section>
-
-                </div>
+                    </motion.section>
+                </motion.div>
             </div>
         </div>
     );

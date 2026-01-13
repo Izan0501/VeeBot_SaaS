@@ -3,8 +3,9 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
     Users, UploadCloud, BarChart3, Settings, LogOut,
     BrainCircuit, Menu, X, Sun, Moon, Crown, Zap, Sparkles,
-    FileText, ShieldCheck, HelpCircle // <--- Nuevos iconos importados
+    FileText, ShieldCheck, HelpCircle, AlertTriangle
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const Sidebar = ({ onOpenModal, toggleTheme, currentTheme, userRole }) => {
     const location = useLocation();
@@ -12,10 +13,13 @@ const Sidebar = ({ onOpenModal, toggleTheme, currentTheme, userRole }) => {
     const [userEmail, setUserEmail] = useState("Usuario");
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
+    // Estado para el modal de Logout
+    const [showLogoutModal, setShowLogoutModal] = useState(false);
+
     // Helpers de Rol
     const isPremium = userRole === 'Premium' || userRole === 'Admin' || userRole === 'Reclutador';
 
-    // Configuración visual del Plan (Adaptada al tema invertido)
+    // Configuración visual del Plan
     const planConfig = isPremium ? {
         label: "PRO MEMBER",
         textStyle: "text-amber-300 dark:text-amber-600",
@@ -44,7 +48,13 @@ const Sidebar = ({ onOpenModal, toggleTheme, currentTheme, userRole }) => {
 
     useEffect(() => { setIsMobileMenuOpen(false); }, [location.pathname]);
 
-    const handleLogout = () => {
+    // 1. Abre el modal
+    const handleLogoutClick = () => {
+        setShowLogoutModal(true);
+    };
+
+    // 2. Ejecuta la salida
+    const confirmLogout = () => {
         localStorage.removeItem('token');
         navigate('/');
         window.location.reload();
@@ -52,6 +62,55 @@ const Sidebar = ({ onOpenModal, toggleTheme, currentTheme, userRole }) => {
 
     return (
         <>
+            {/* --- MODAL DE CONFIRMACIÓN DE LOGOUT --- */}
+            <AnimatePresence>
+                {showLogoutModal && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4"
+                        onClick={() => setShowLogoutModal(false)} // Cerrar al hacer click afuera
+                    >
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.95, opacity: 0 }}
+                            onClick={(e) => e.stopPropagation()} // Evitar cierre al hacer click adentro
+                            className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-700 max-w-sm w-full relative overflow-hidden"
+                        >
+                            {/* Decoración de fondo */}
+                            <div className="absolute top-0 right-0 w-24 h-24 bg-red-500/10 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none"></div>
+
+                            <div className="flex flex-col items-center text-center">
+                                <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mb-4 text-red-600 dark:text-red-500">
+                                    <LogOut size={24} className="ml-1" />
+                                </div>
+                                <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">¿Cerrar Sesión?</h3>
+                                <p className="text-slate-500 dark:text-slate-400 text-sm mb-6">
+                                    Tendrás que volver a ingresar tus credenciales para acceder al dashboard.
+                                </p>
+
+                                <div className="flex gap-3 w-full">
+                                    <button
+                                        onClick={() => setShowLogoutModal(false)}
+                                        className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-bold text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                                    >
+                                        Cancelar
+                                    </button>
+                                    <button
+                                        onClick={confirmLogout}
+                                        className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-sm shadow-lg shadow-red-200/50 dark:shadow-none transition-colors"
+                                    >
+                                        Sí, salir
+                                    </button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
             {/* HEADER MÓVIL */}
             <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 z-50 flex items-center justify-between px-4 transition-colors duration-300">
                 <div className="flex items-center gap-3">
@@ -65,10 +124,10 @@ const Sidebar = ({ onOpenModal, toggleTheme, currentTheme, userRole }) => {
                 </div>
             </div>
 
-            {/* BACKDROP */}
+            {/* BACKDROP MOBILE */}
             <div className={`fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-40 md:hidden transition-opacity duration-300 ${isMobileMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`} onClick={() => setIsMobileMenuOpen(false)} />
 
-            {/* --- SIDEBAR (COLORES INVERTIDOS) --- */}
+            {/* --- SIDEBAR --- */}
             <aside className={`
                 fixed md:sticky top-0 left-0 h-screen w-72 flex flex-col z-50
                 transition-all duration-300 ease-in-out shadow-2xl md:shadow-none
@@ -125,7 +184,7 @@ const Sidebar = ({ onOpenModal, toggleTheme, currentTheme, userRole }) => {
                         </div>
                     </div>
 
-                    {/* SECCIÓN 3: LEGAL & SOPORTE (NUEVA) */}
+                    {/* SECCIÓN 3: LEGAL & SOPORTE */}
                     <div>
                         <p className="px-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-3">Soporte</p>
                         <div className="space-y-1">
@@ -137,7 +196,7 @@ const Sidebar = ({ onOpenModal, toggleTheme, currentTheme, userRole }) => {
 
                 </nav>
 
-                {/* --- FOOTER: USER PROFILE INVERTIDO --- */}
+                {/* --- FOOTER USER PROFILE --- */}
                 <div className="p-4 mt-auto relative">
 
                     <div className={`relative rounded-2xl p-4 transition-all duration-300 border backdrop-blur-xl group
@@ -186,8 +245,9 @@ const Sidebar = ({ onOpenModal, toggleTheme, currentTheme, userRole }) => {
                                     </span>
                                 </div>
 
+                                {/* BOTÓN DE LOGOUT ACTUALIZADO */}
                                 <button
-                                    onClick={handleLogout}
+                                    onClick={handleLogoutClick}
                                     className="text-xs font-medium text-slate-500 hover:text-red-400 transition-colors flex items-center gap-1 pl-2 dark:text-slate-400 dark:hover:text-red-500"
                                 >
                                     <LogOut size={12} /> Salir
@@ -210,7 +270,7 @@ const Sidebar = ({ onOpenModal, toggleTheme, currentTheme, userRole }) => {
     );
 };
 
-// NavItem Personalizado con estilos Invertidos
+// NavItem Personalizado
 const NavItem = ({ to, icon, text, active }) => (
     <Link to={to} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group relative overflow-hidden
         ${active
