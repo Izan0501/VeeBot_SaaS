@@ -28,6 +28,7 @@ def insert_candidate(filename, name, text_preview, ai_data, user_id):
         "status": ai_data.get("status", "Pendiente"),
         "summary": ai_data.get("summary", "Sin resumen generado."), 
         "skills": ai_data.get("skills", []), 
+        "email": ai_data.get("email"),
         "text_preview": text_preview[:200], 
         "upload_date": datetime.now(),
         "ai_analysis_raw": ai_data 

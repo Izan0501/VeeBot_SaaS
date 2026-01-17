@@ -15,6 +15,9 @@ import Register from './pages/Register';
 import Privacy from './pages/Privacy';
 import Terms from './pages/Terms';
 import Contact from './pages/Contact';
+import Integrations from './pages/Integrations';
+import ImportData from './pages/ImportData';
+import EmailTemplates from './pages/EmailTemplates';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -131,12 +134,17 @@ function App() {
         <Route path="/contact" element={<Contact />} />
         <Route path="/terms" element={<Terms />} />
         <Route path="/privacy" element={<Privacy />} />
-        
-        {/* Rutas Privadas */}
+
         <Route path="/dashboard" element={
           <ProtectedLayout>
             {/* Pasamos el userRole al Dashboard para bloquear el Chat */}
             <Dashboard isModalOpen={isModalOpen} setIsModalOpen={setIsModalOpen} userRole={userRole} />
+          </ProtectedLayout>
+        } />
+
+        <Route path="/import" element={
+          <ProtectedLayout>
+            <ImportData />
           </ProtectedLayout>
         } />
 
@@ -155,6 +163,33 @@ function App() {
                 </div>
               </div>
             }
+          </ProtectedLayout>
+        } />
+
+        {/* RUTA EMAILS: SOLO PREMIUM */}
+        <Route path="/emails" element={
+          <ProtectedLayout>
+            {userRole === 'Premium' || userRole === 'Admin' || userRole === 'Reclutador'
+              ? <EmailTemplates />
+              : <div className="h-full flex flex-col items-center justify-center p-6 text-center">
+                <div className="bg-white dark:bg-slate-900 p-8 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xl max-w-md">
+                  <span className="text-4xl">✉️🔒</span>
+                  <h2 className="text-2xl font-bold mt-4 mb-2 text-slate-900 dark:text-white">Automatización de Correos</h2>
+                  <p className="text-slate-500 mb-6">
+                    Crea plantillas personalizadas y contacta candidatos con un clic. Exclusivo para miembros Pro.
+                  </p>
+                  <a href="/settings" className="block w-full py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-colors">
+                    Desbloquear Editor ($29)
+                  </a>
+                </div>
+              </div>
+            }
+          </ProtectedLayout>
+        } />
+
+        <Route path="/integrations" element={
+          <ProtectedLayout>
+            <Integrations />
           </ProtectedLayout>
         } />
 

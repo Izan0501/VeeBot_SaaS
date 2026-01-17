@@ -8,10 +8,12 @@ from pathlib import Path
 import os
 import csv
 import io
+import re
 import asyncio 
 from datetime import datetime, timedelta
 from typing import List
 from pymongo import MongoClient
+from pypdf import PdfReader
 import hmac
 import hashlib
 import requests
@@ -108,6 +110,19 @@ class DirectResetRequest(BaseModel):
 class ReportRequest(BaseModel):
     candidate_id: str
     target_email: EmailStr
+
+class EmailTemplateUpdate(BaseModel):
+    templates: dict 
+
+class SendTemplateRequest(BaseModel):
+    candidate_id: str
+    template_type: str
+
+class ContactFormRequest(BaseModel):
+    firstName: str
+    lastName: str
+    email: str
+    message: str
 
 # --- DEPENDENCIA DE USUARIO ACTUAL ---
 async def get_current_user(token: str = Depends(oauth2_scheme)):
@@ -270,8 +285,7 @@ async def upload_cvs(
 
     os.makedirs("uploads", exist_ok=True)
     
-    # CAMBIO 1: CONCURRENCIA A 10
-    # Esto permite procesar más rápido sin saturar la API de Groq
+    # SEMÁFORO DE CONCURRENCIA
     sem = asyncio.Semaphore(10) 
 
     async def process_single_file(file):
@@ -281,13 +295,52 @@ async def upload_cvs(
                 file_location = f"uploads/{safe_filename}"
                 
                 content = await file.read()
-                # Escritura en disco es I/O, no bloquea tanto
+                # Escritura en disco
                 with open(file_location, "wb") as buffer:
                     buffer.write(content)
                 
-                # CAMBIO 2: EXTRAER TEXTO EN UN HILO SEPARADO (NO BLOQUEANTE)
-                # Esto evita que el servidor se congele mientras lee un PDF pesado
-                text = await asyncio.to_thread(extract_text_from_pdf, file_location)
+                # ==============================================================================
+                # 1. EXTRACCIÓN ROBUSTA (PARA 2 COLUMNAS) 🧠
+                # ==============================================================================
+                # En lugar de usar la función externa, lo hacemos aquí para controlar el modo "layout"
+                # que ayuda a que el texto de las columnas no se mezcle.
+                def robust_extract(pdf_bytes):
+                    try:
+                        reader = PdfReader(io.BytesIO(pdf_bytes))
+                        full_text = []
+                        for page in reader.pages:
+                            # 'extraction_mode="layout"' preserva espacios visuales (clave para 2 columnas)
+                            # Si falla (versiones viejas de pypdf), usa el estándar
+                            try:
+                                txt = page.extract_text(extraction_mode="layout")
+                            except:
+                                txt = page.extract_text()
+                            if txt:
+                                full_text.append(txt)
+                        return "\n".join(full_text)
+                    except Exception as e:
+                        print(f"Error lectura PDF: {e}")
+                        return ""
+
+                # Ejecutamos la extracción en un hilo para no bloquear
+                text = await asyncio.to_thread(robust_extract, content)
+                
+                # ==============================================================================
+                # 2. CAZADOR DE EMAILS (REGEX V2 - "EL SABUESO") 🐶
+                # ==============================================================================
+                # Esta regex es más agresiva. Encuentra emails incluso si están pegados a texto
+                # Ej: "Contacto:juan@mail.com" -> detecta "juan@mail.com"
+                email_pattern = r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}'
+                
+                # Buscamos TODOS los emails y tomamos el primero
+                found_emails = re.findall(email_pattern, text)
+                extracted_email = found_emails[0] if found_emails else None
+                
+                if extracted_email:
+                    print(f"✅ Email detectado en {file.filename}: {extracted_email}")
+                else:
+                    print(f"⚠️ No se encontró email en {file.filename}")
+                # ==============================================================================
                 
                 candidate_name = file.filename.replace(".pdf", "").replace("_", " ").title()
                 
@@ -296,10 +349,10 @@ async def upload_cvs(
 
                 print(f"🤖 Analizando: {candidate_name}...")
                 
-                # AI Analysis (Ya estaba en hilo, perfecto)
+                # AI Analysis
                 ai_analysis = await asyncio.to_thread(get_ai_score, text, selected_model)
                 
-                # ... (Lógica de score y status igual que antes) ...
+                # Lógica de Score y Status
                 score_val = ai_analysis.get("score", 0)
                 status_final = "Bajo Potencial"
                 if score_val >= threshold:
@@ -309,11 +362,16 @@ async def upload_cvs(
                 else:
                     status_final = "Rechazado Automático" if auto_reject else "Bajo Potencial"
 
+                # 4. GUARDAR EN DB (Con el email extraído)
                 insert_candidate(
                     file.filename, 
                     candidate_name, 
                     text, 
-                    {**ai_analysis, "status": status_final},
+                    {
+                        **ai_analysis, 
+                        "status": status_final,
+                        "email": extracted_email # <--- ¡AQUÍ SE GUARDA!
+                    },
                     user_id
                 ) 
                 return {"file": file.filename, "status": "success"}
@@ -322,12 +380,10 @@ async def upload_cvs(
                 print(f"❌ Error en {file.filename}: {e}")
                 return {"file": file.filename, "status": "error", "msg": str(e)}
 
-    # ... (Resto de la función igual) ...
     print(f"🚀 Procesando {len(files)} archivos...")
     tasks = [process_single_file(file) for file in files]
     results = await asyncio.gather(*tasks)
     
-    # ... (Retorno igual) ...
     success_count = sum(1 for r in results if r["status"] == "success")
     errors = [r["file"] for r in results if r["status"] == "error"]
 
@@ -447,7 +503,7 @@ async def export_candidates_csv(current_user: dict = Depends(get_current_user)):
     )
 
 # ==========================================
-# 3.5. DEMO DATA (SEED) - LÓGICA DINÁMICA
+# 3.2 DEMO DATA (SEED) - LÓGICA DINÁMICA
 # ==========================================
 
 @app.post("/seed")
@@ -792,3 +848,170 @@ async def send_premium_report(data: ReportRequest, current_user: dict = Depends(
     except Exception as e:
         print(f"❌ Error SMTP: {e}")
         raise HTTPException(status_code=500, detail="Error enviando email")
+    
+# ==========================================
+# 6. GESTIÓN DE PLANTILLAS DE EMAIL
+# ==========================================
+@app.get("/settings/templates")
+async def get_email_templates(current_user: dict = Depends(get_current_user)):
+    # Plantillas por defecto si el usuario no las ha configurado
+    default_templates = {
+        "rejection": {
+            "subject": "Actualización sobre tu postulación - {company}",
+            "body": "Hola {name},\n\nGracias por tu interés. Hemos revisado tu perfil de {role} y, aunque tu experiencia es impresionante, hemos decidido avanzar con otros candidatos.\n\nMantendremos tu CV en nuestra base de datos.\n\nSaludos,\nEl equipo de RRHH."
+        },
+        "interview": {
+            "subject": "¡Buenas noticias! Entrevista para {role}",
+            "body": "Hola {name},\n\nNos impresionó tu perfil y tu score de {score}/100. Nos gustaría invitarte a una primera entrevista.\n\nPor favor, responde a este correo con tu disponibilidad.\n\nSaludos,\n{company}"
+        }
+    }
+    
+    # Recuperar las guardadas o usar default
+    user_templates = current_user.get("email_templates", default_templates)
+    return user_templates
+
+@app.post("/settings/templates")
+async def save_email_templates(data: EmailTemplateUpdate, current_user: dict = Depends(get_current_user)):
+    try:
+        users_collection.update_one(
+            {"_id": current_user["_id"]},
+            {"$set": {"email_templates": data.templates}}
+        )
+        return {"message": "Plantillas guardadas correctamente"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/email/send-candidate")
+async def send_candidate_email(data: SendTemplateRequest, current_user: dict = Depends(get_current_user)):
+    # 1. Verificar Rol
+    user_role = current_user.get("role", "Free")
+    if user_role not in ["Premium", "Admin", "Reclutador"]:
+        raise HTTPException(status_code=403, detail="Función Premium.")
+
+    # 2. Obtener Candidato
+    try:
+        candidate = db["candidates"].find_one({"_id": ObjectId(data.candidate_id)})
+    except:
+        raise HTTPException(status_code=404, detail="ID inválido")
+
+    if not candidate:
+        raise HTTPException(status_code=404, detail="Candidato no encontrado")
+
+    # 3. Obtener Plantilla
+    templates = await get_email_templates(current_user)
+    template = templates.get(data.template_type)
+    if not template:
+        raise HTTPException(status_code=400, detail="Plantilla no encontrada")
+
+    # 4. DETERMINAR DESTINATARIO REAL 🎯
+    candidate_email = candidate.get("email")
+    recruiter_email = current_user.get("email")
+    
+    # Lógica: Si hay email de candidato, úsalo. Si no, usa el del reclutador (Fallback)
+    if candidate_email and "@" in candidate_email:
+        target_email = candidate_email
+        print(f"📧 Enviando a candidato real: {target_email}")
+    else:
+        target_email = recruiter_email
+        print(f"⚠️ Candidato sin email detectado. Enviando copia a reclutador: {target_email}")
+
+    # 5. Reemplazar Variables
+    replacements = {
+        "{name}": candidate.get("name", "Candidato"),
+        "{role}": candidate.get("role", "Postulante"),
+        "{score}": str(candidate.get("score", 0)),
+        "{company}": "VeeBot Corp" # O current_user.get("company", "Tu Empresa")
+    }
+
+    subject = template["subject"]
+    body = template["body"]
+
+    for key, value in replacements.items():
+        subject = subject.replace(key, value)
+        body = body.replace(key, value)
+
+    body_html = body.replace("\n", "<br>")
+    
+    # Footer profesional
+    html_content = f"""
+    <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">
+        <p>{body_html}</p>
+        <hr style="border: 0; border-top: 1px solid #eee; margin: 30px 0;">
+        <p style="font-size: 12px; color: #888;">
+            Este mensaje fue enviado automáticamente a través de la plataforma de reclutamiento VeeBot AI.<br>
+            Si crees que esto es un error, por favor ignora este mensaje.
+        </p>
+    </div>
+    """
+
+    # 6. Enviar SMTP
+    try:
+        msg = MIMEMultipart()
+        msg['From'] = f"VeeBot Recruiting <{SMTP_EMAIL}>"
+        msg['To'] = target_email
+        msg['Subject'] = subject
+        msg.attach(MIMEText(html_content, 'html'))
+
+        server = smtplib.SMTP('smtp.gmail.com', 587)
+        server.starttls()
+        server.login(SMTP_EMAIL, SMTP_PASSWORD)
+        server.send_message(msg)
+        server.quit()
+
+        return {"message": f"Correo enviado correctamente a {target_email}"}
+
+    except Exception as e:
+        print(f"❌ Error SMTP: {e}")
+        raise HTTPException(status_code=500, detail="Error de conexión con el servidor de correo")
+
+# ==========================================
+# 7. ENDPOINT PÚBLICO DE CONTACTO
+# ==========================================
+@app.post("/contact")
+async def contact_support(data: ContactFormRequest):
+    """
+    Recibe un mensaje del formulario web y lo envía al correo del administrador (SMTP_EMAIL).
+    """
+    try:
+        # Asunto del correo que recibirá el administrador
+        subject = f"🔔 Nuevo Mensaje de Contacto: {data.firstName} {data.lastName}"
+        
+        # Cuerpo del correo
+        html_content = f"""
+        <div style="font-family: Arial, sans-serif; color: #333; max-width: 600px; border: 1px solid #eee; padding: 20px; border-radius: 8px;">
+            <h2 style="color: #4f46e5;">Tienes un nuevo contacto</h2>
+            <p>Un usuario ha enviado un mensaje a través del formulario de VeeBot.</p>
+            
+            <hr style="border:0; border-top:1px solid #eee; margin:20px 0;">
+            
+            <p><strong>👤 Nombre:</strong> {data.firstName} {data.lastName}</p>
+            <p><strong>📧 Email del Usuario:</strong> {data.email}</p>
+            
+            <div style="background-color: #f9fafb; padding: 15px; border-radius: 5px; margin-top: 10px;">
+                <strong>💬 Mensaje:</strong><br>
+                {data.message}
+            </div>
+            
+            <hr style="border:0; border-top:1px solid #eee; margin:20px 0;">
+            <p style="font-size:12px; color:#888;">Este correo fue generado automáticamente por tu sistema VeeBot.</p>
+        </div>
+        """
+
+        msg = MIMEMultipart()
+        msg['From'] = f"VeeBot Contact Form <{SMTP_EMAIL}>"
+        msg['To'] = SMTP_EMAIL  # <--- SE ENVÍA A TI MISMO (AL DUEÑO)
+        msg['Subject'] = subject
+        msg.attach(MIMEText(html_content, 'html'))
+
+        # Envío SMTP
+        server = smtplib.SMTP('smtp.gmail.com', 587)
+        server.starttls()
+        server.login(SMTP_EMAIL, SMTP_PASSWORD)
+        server.send_message(msg)
+        server.quit()
+
+        return {"message": "Mensaje enviado al soporte"}
+
+    except Exception as e:
+        print(f"❌ Error en formulario de contacto: {e}")
+        raise HTTPException(status_code=500, detail="Error interno al enviar mensaje")

@@ -1,9 +1,9 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import {
-    PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area
+    PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, Brush
 } from 'recharts';
 import {
-    TrendingUp, Users, Target, Award, Download, ArrowUpRight, BrainCircuit, Activity, Zap
+    TrendingUp, Users, Target, Award, Download, ArrowUpRight, BrainCircuit, Activity, Zap, Sparkles, Fingerprint, Lightbulb
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
@@ -29,7 +29,6 @@ const normalizeRole = (role) => {
 const parseDate = (dateStr) => {
     if (!dateStr) return new Date();
     try {
-        // Formato esperado: "25/01 14:30"
         const [datePart] = dateStr.split(' ');
         const [day, month] = datePart.split('/');
         const currentYear = new Date().getFullYear();
@@ -42,8 +41,8 @@ const parseDate = (dateStr) => {
 const Analytics = () => {
     const [candidates, setCandidates] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [timeRange, setTimeRange] = useState('30d'); // 7d, 30d, All
-    const [userThreshold, setUserThreshold] = useState(70); // NUEVO: Estado para el umbral
+    const [timeRange, setTimeRange] = useState('30d');
+    const [userThreshold, setUserThreshold] = useState(70);
 
     // --- 1. FETCH DATOS Y CONFIGURACIÓN ---
     useEffect(() => {
@@ -57,7 +56,7 @@ const Analytics = () => {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
 
-                // 2. Traer Configuración de Usuario (Para saber el min_score real)
+                // 2. Traer Configuración de Usuario
                 const resUser = await fetch('http://127.0.0.1:8000/auth/me', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
@@ -67,7 +66,7 @@ const Analytics = () => {
                     const dataUser = await resUser.json();
 
                     setCandidates(dataCandidates);
-                    setUserThreshold(dataUser.min_score || 70); // Actualizamos el umbral
+                    setUserThreshold(dataUser.min_score || 70);
                 }
             } catch (error) {
                 console.error("Error fetching analytics:", error);
@@ -92,26 +91,21 @@ const Analytics = () => {
         });
     }, [candidates, timeRange]);
 
-    // --- 3. PROCESAMIENTO DE ESTADÍSTICAS (DINÁMICO) ---
+    // --- 3. PROCESAMIENTO DE ESTADÍSTICAS ---
     const stats = useMemo(() => {
         if (filteredCandidates.length === 0) return { avgScore: 0, topCandidates: 0, total: 0, efficiency: 0 };
 
         const total = filteredCandidates.length;
         const sumScore = filteredCandidates.reduce((acc, curr) => acc + (curr.score || 0), 0);
         const avgScore = Math.round(sumScore / total);
-
-        // CAMBIO: Usamos userThreshold en lugar de 80 fijo
         const topCandidates = filteredCandidates.filter(c => c.score >= userThreshold).length;
-
-        // Eficiencia simulada + un poco de aleatoriedad basada en la data
         const efficiency = Math.min(99, Math.round((topCandidates / (total || 1)) * 100) + 30);
 
         return { total, avgScore, topCandidates, efficiency };
     }, [filteredCandidates, userThreshold]);
 
-    // Datos para Gráfico de Barras (DINÁMICO)
+    // Datos para Gráfico de Barras
     const distributionData = useMemo(() => {
-        // Definimos los rangos basándonos en la configuración del usuario
         const highLimit = userThreshold;
         const midLimit = userThreshold - 20;
 
@@ -122,7 +116,6 @@ const Analytics = () => {
         ];
 
         filteredCandidates.forEach(c => {
-            // Usamos las variables dinámicas
             if (c.score >= highLimit) ranges[2].count++;
             else if (c.score >= midLimit) ranges[1].count++;
             else ranges[0].count++;
@@ -144,21 +137,44 @@ const Analytics = () => {
             .slice(0, 5);
     }, [filteredCandidates]);
 
-    // Datos para Gráfico de Área (Simulamos orden cronológico)
+    // --- DATOS COMPLETOS PARA TREND CHART (Ordenados cronológicamente) ---
     const trendData = useMemo(() => {
-        // Tomamos los últimos 10 para que el gráfico no se sature
-        const dataToPlot = filteredCandidates.slice(0, 10).reverse();
-        return dataToPlot.map((c, i) => ({
-            day: c.name.split(' ')[0], // Usamos el nombre como eje X para variar
-            score: c.score
+        // Ordenar por fecha real para que el gráfico fluya de izquierda a derecha correctamente
+        const sorted = [...filteredCandidates].sort((a, b) => {
+            const dateA = parseDate(a.date);
+            const dateB = parseDate(b.date);
+            return dateA - dateB;
+        });
+
+        return sorted.map((c) => ({
+            day: c.name.split(' ')[0], // Nombre corto
+            score: c.score,
+            fullDate: c.date
         }));
+    }, [filteredCandidates]);
+
+    // --- DATOS SKILLS ---
+    const topSkillsData = useMemo(() => {
+        const skillCounts = {};
+        filteredCandidates.forEach(c => {
+            if (c.skills && Array.isArray(c.skills)) {
+                c.skills.forEach(skill => {
+                    const s = skill.trim();
+                    if (s) skillCounts[s] = (skillCounts[s] || 0) + 1;
+                });
+            }
+        });
+        return Object.entries(skillCounts)
+            .map(([name, count]) => ({ name, count }))
+            .sort((a, b) => b.count - a.count)
+            .slice(0, 5);
     }, [filteredCandidates]);
 
     const COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#f43f5e', '#10b981'];
 
-    // --- FUNCIÓN DE EXPORTACIÓN CLIENT-SIDE ---
+    // --- FUNCIÓN DE EXPORTACIÓN ---
     const handleExportReport = () => {
-        if (filteredCandidates.length === 0) return toast.error("No hay datos para exportar en este rango.");
+        if (filteredCandidates.length === 0) return toast.error("No hay datos para exportar.");
 
         const separator = ";";
         const headers = ["ID", "Nombre", "Rol Detectado", "Score", "Estado", "Fecha", "Skills"];
@@ -168,18 +184,10 @@ const Analytics = () => {
             const cleanName = c.name ? c.name.replace(/;/g, ",") : "";
             const cleanRole = c.role ? c.role.replace(/;/g, ",") : "";
             const cleanSkills = c.skills ? c.skills.join(" | ") : "";
-
-            // --- FIX FECHA ---
             const cleanDate = c.date ? `"${c.date}"` : "";
 
             return [
-                c.id,
-                cleanName,
-                cleanRole,
-                c.score,
-                c.status,
-                cleanDate,
-                cleanSkills
+                c.id, cleanName, cleanRole, c.score, c.status, cleanDate, cleanSkills
             ].join(separator);
         });
 
@@ -301,10 +309,42 @@ const Analytics = () => {
                     />
                 </div>
 
+                {/* --- SECCIÓN NUEVA: AI EXECUTIVE SUMMARY (CON BOTÓN FUNCIONAL) --- */}
+                <motion.div
+                    initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.15 }}
+                    className="mb-10 bg-gradient-to-r from-indigo-900 to-violet-900 rounded-3xl p-1 shadow-xl shadow-indigo-900/20"
+                >
+                    <div className="bg-slate-900/50 backdrop-blur-sm rounded-[22px] p-6 md:p-8 flex flex-col md:flex-row items-center gap-6 border border-white/10">
+                        <div className="p-4 bg-white/10 rounded-full relative">
+                            <div className="absolute inset-0 bg-indigo-500 rounded-full animate-ping opacity-20"></div>
+                            <BrainCircuit size={32} className="text-indigo-300 relative z-10" />
+                        </div>
+                        <div className="flex-1 text-center md:text-left">
+                            <h3 className="text-white font-bold text-lg mb-2 flex items-center justify-center md:justify-start gap-2">
+                                <Sparkles size={16} className="text-yellow-400" /> Executive AI Summary
+                            </h3>
+                            <p className="text-indigo-100/80 text-sm leading-relaxed max-w-2xl">
+                                {stats.total > 0
+                                    ? `Analizando ${stats.total} perfiles. La calidad promedio es del ${stats.avgScore}%. Se han detectado ${stats.topCandidates} candidatos de alto impacto listos para entrevista. El rol predominante es ${roleData[0]?.name || 'N/A'}.`
+                                    : "Esperando datos para generar insights inteligentes. Sube CVs para comenzar."}
+                            </p>
+                        </div>
+                        <div className="hidden md:block">
+                            {/* BOTÓN AHORA FUNCIONAL */}
+                            <button
+                                onClick={handleExportReport}
+                                className="px-5 py-2 bg-white/10 hover:bg-white/20 text-white text-xs font-bold rounded-full transition-colors border border-white/10 flex items-center gap-2"
+                            >
+                                <Download size={14} /> Ver Reporte Completo
+                            </button>
+                        </div>
+                    </div>
+                </motion.div>
+
                 {/* --- SECCIÓN DE GRÁFICOS --- */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-10">
 
-                    {/* 1. GRÁFICO PRINCIPAL (AREAS) */}
+                    {/* 1. GRÁFICO PRINCIPAL (AREAS) MEJORADO CON BRUSH STYLING */}
                     <motion.div
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
@@ -322,7 +362,7 @@ const Analytics = () => {
                         <div className="h-80 w-full">
                             {stats.total > 0 ? (
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <AreaChart data={trendData}>
+                                    <AreaChart data={trendData} margin={{ top: 10, right: 30, left: 0, bottom: 20 }}>
                                         <defs>
                                             <linearGradient id="colorScore" x1="0" y1="0" x2="0" y2="1">
                                                 <stop offset="5%" stopColor="#6366f1" stopOpacity={0.4} />
@@ -333,7 +373,19 @@ const Analytics = () => {
                                         <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} dy={10} />
                                         <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} />
                                         <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#6366f1', strokeWidth: 1 }} />
-                                        <Area type="monotone" dataKey="score" stroke="#6366f1" strokeWidth={4} fillOpacity={1} fill="url(#colorScore)" />
+                                        <Area type="monotone" dataKey="score" stroke="#6366f1" strokeWidth={3} fillOpacity={1} fill="url(#colorScore)" />
+
+                                        {/* --- MEJORA: BRUSH ESTILIZADO Y LIMPIO --- */}
+                                        <Brush
+                                            dataKey="day"
+                                            height={20}
+                                            stroke="#818cf8"
+                                            fill="transparent"
+                                            tickFormatter={() => ""}
+                                            alwaysShowText={false}
+                                            travellerWidth={10}
+                                            startIndex={Math.max(0, trendData.length - 15)} // Zoom inicial en los ultimos 15
+                                        />
                                     </AreaChart>
                                 </ResponsiveContainer>
                             ) : (
@@ -400,45 +452,87 @@ const Analytics = () => {
                     </motion.div>
                 </div>
 
-                {/* --- 3. BARRAS DE DISTRIBUCIÓN (DINÁMICAS) --- */}
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: 0.4 }}
-                    className="bg-white dark:bg-slate-900 p-6 md:p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm"
-                >
-                    <div className="flex justify-between items-end mb-8">
-                        <div>
-                            <h3 className="text-lg font-bold text-slate-900 dark:text-white">Calidad del Pipeline</h3>
-                            <p className="text-sm text-slate-500">
-                                Clasificación basada en tu umbral de <strong>{userThreshold}%</strong>.
-                            </p>
-                        </div>
-                        <div className="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-3 py-1 rounded-full text-xs font-bold">
-                            {stats.topCandidates} Candidatos Top
-                        </div>
-                    </div>
+                {/* --- 3. SECCIÓN INFERIOR: CALIDAD + SKILLS (GRID 2 COLUMNAS) --- */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
 
-                    <div className="h-64 w-full">
-                        {stats.total > 0 ? (
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={distributionData} barSize={60}>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" strokeOpacity={0.3} />
-                                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12, fontWeight: 600 }} dy={10} />
-                                    <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} />
-                                    <Tooltip content={<CustomTooltip />} cursor={{ fill: 'transparent' }} />
-                                    <Bar dataKey="count" radius={[8, 8, 0, 0]}>
-                                        {distributionData.map((entry, index) => (
-                                            <Cell key={`cell-${index}`} fill={entry.color} />
-                                        ))}
-                                    </Bar>
-                                </BarChart>
-                            </ResponsiveContainer>
-                        ) : (
-                            <div className="h-full flex items-center justify-center text-slate-400">Sin datos para graficar.</div>
-                        )}
-                    </div>
-                </motion.div>
+                    {/* BARRAS DE DISTRIBUCIÓN */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5, delay: 0.4 }}
+                        className="bg-white dark:bg-slate-900 p-6 md:p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm"
+                    >
+                        <div className="flex justify-between items-end mb-8">
+                            <div>
+                                <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                    <Lightbulb size={20} className="text-amber-500" /> Calidad del Pipeline
+                                </h3>
+                                <p className="text-sm text-slate-500">
+                                    Clasificación basada en tu umbral de <strong>{userThreshold}%</strong>.
+                                </p>
+                            </div>
+                            <div className="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-3 py-1 rounded-full text-xs font-bold">
+                                {stats.topCandidates} Top
+                            </div>
+                        </div>
+
+                        <div className="h-64 w-full">
+                            {stats.total > 0 ? (
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={distributionData} barSize={60}>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" strokeOpacity={0.3} />
+                                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12, fontWeight: 600 }} dy={10} />
+                                        <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} />
+                                        <Tooltip content={<CustomTooltip />} cursor={{ fill: 'transparent' }} />
+                                        <Bar dataKey="count" radius={[8, 8, 0, 0]}>
+                                            {distributionData.map((entry, index) => (
+                                                <Cell key={`cell-${index}`} fill={entry.color} />
+                                            ))}
+                                        </Bar>
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            ) : (
+                                <div className="h-full flex items-center justify-center text-slate-400">Sin datos para graficar.</div>
+                            )}
+                        </div>
+                    </motion.div>
+
+                    {/* --- TOP SKILLS DEMAND --- */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5, delay: 0.5 }}
+                        className="bg-white dark:bg-slate-900 p-6 md:p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm"
+                    >
+                        <div className="flex justify-between items-end mb-8">
+                            <div>
+                                <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                    <Fingerprint size={20} className="text-cyan-500" /> Habilidades Top
+                                </h3>
+                                <p className="text-sm text-slate-500">Tecnologías más demandadas en tu base.</p>
+                            </div>
+                        </div>
+                        <div className="space-y-4">
+                            {topSkillsData.length > 0 ? topSkillsData.map((item, index) => (
+                                <div key={index} className="group">
+                                    <div className="flex justify-between text-sm mb-1">
+                                        <span className="font-semibold text-slate-700 dark:text-slate-300">{item.name}</span>
+                                        <span className="text-slate-400 text-xs">{item.count}</span>
+                                    </div>
+                                    <div className="h-2.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                                        <motion.div
+                                            initial={{ width: 0 }}
+                                            animate={{ width: `${(item.count / (stats.total || 1)) * 100}%` }}
+                                            transition={{ duration: 1, delay: 0.5 + (index * 0.1) }}
+                                            className={`h-full rounded-full bg-gradient-to-r ${index === 0 ? 'from-cyan-500 to-blue-500' : index === 1 ? 'from-blue-500 to-indigo-500' : 'from-indigo-400 to-violet-400'}`}
+                                        />
+                                    </div>
+                                </div>
+                            )) : <div className="h-40 flex items-center justify-center text-slate-400 italic">Insuficientes datos de skills.</div>}
+                        </div>
+                    </motion.div>
+
+                </div>
 
             </div>
         </div>

@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
     Users, UploadCloud, BarChart3, Settings, LogOut,
     BrainCircuit, Menu, X, Sun, Moon, Crown, Zap, Sparkles,
-    FileText, ShieldCheck, HelpCircle, AlertTriangle
+    FileText, ShieldCheck, HelpCircle, Layers, Mail
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -161,6 +161,12 @@ const Sidebar = ({ onOpenModal, toggleTheme, currentTheme, userRole }) => {
                         <p className="px-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-3">Dashboard</p>
                         <div className="space-y-1">
                             <NavItem to="/dashboard" icon={<Users size={20} />} text="Candidatos" active={isActive('/dashboard')} />
+                            <NavItem
+                                to="/import"
+                                icon={<UploadCloud size={20} />}
+                                text="Importar CVs"
+                                active={location.pathname === '/import'}
+                            />
                             <NavItem to="/analytics" icon={<BarChart3 size={20} />} text="Analíticas" active={isActive('/analytics')} />
                         </div>
                     </div>
@@ -169,18 +175,9 @@ const Sidebar = ({ onOpenModal, toggleTheme, currentTheme, userRole }) => {
                     <div>
                         <p className="px-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-3">Herramientas</p>
                         <div className="space-y-1">
-                            <button
-                                onClick={() => { onOpenModal(); setIsMobileMenuOpen(false); }}
-                                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 text-left mb-1
-                                text-slate-400 hover:text-white hover:bg-slate-800/60
-                                dark:text-slate-600 dark:hover:text-indigo-700 dark:hover:bg-indigo-50 group relative overflow-hidden"
-                            >
-                                <span className="p-1.5 rounded-lg bg-slate-800/80 text-slate-400 group-hover:bg-indigo-500 group-hover:text-white transition-colors duration-300 dark:bg-slate-100 dark:text-slate-500 dark:group-hover:bg-indigo-100 dark:group-hover:text-indigo-600">
-                                    <UploadCloud size={18} />
-                                </span>
-                                <span className="relative z-10">Importar CVs</span>
-                            </button>
-                            <NavItem to="/settings" icon={<Settings size={20} />} text="Configuración" active={isActive('/settings')} />
+                            <NavItem to="/integrations" icon={<Layers size={20} />} text="Integraciones" active={location.pathname === '/integrations'} />
+                            <NavItem to="/settings" icon={<Settings size={20} />} text="Configuración" active={location.pathname === '/settings'} />
+                            <NavItem to="/emails" icon={<Mail size={20} />} text="Plantillas Email" active={isActive('/emails')} />
                         </div>
                     </div>
 
