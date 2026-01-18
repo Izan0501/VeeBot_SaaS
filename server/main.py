@@ -5,11 +5,13 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, EmailStr
 from jose import JWTError, jwt
 from pathlib import Path
+import json
 import os
 import csv
 import io
 import re
 import asyncio 
+from groq import Groq
 from datetime import datetime, timedelta
 from typing import List
 from pymongo import MongoClient
@@ -78,6 +80,13 @@ app.add_middleware(
     allow_headers=["*"], 
 )
 
+# --- CONFIGURACIÓN GROQ ---
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+if not GROQ_API_KEY:
+    print("⚠️ ADVERTENCIA: No se encontró GROQ_API_KEY en el archivo .env")
+    
+client = Groq(api_key=GROQ_API_KEY)
+
 # --- SEGURIDAD ---
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
@@ -123,6 +132,10 @@ class ContactFormRequest(BaseModel):
     lastName: str
     email: str
     message: str
+
+class CompareRequest(BaseModel):
+    candidate_id_a: str
+    candidate_id_b: str
 
 # --- DEPENDENCIA DE USUARIO ACTUAL ---
 async def get_current_user(token: str = Depends(oauth2_scheme)):
@@ -1015,3 +1028,59 @@ async def contact_support(data: ContactFormRequest):
     except Exception as e:
         print(f"❌ Error en formulario de contacto: {e}")
         raise HTTPException(status_code=500, detail="Error interno al enviar mensaje")
+
+# ==========================================
+# 8. COMPARADOR DE CANDIDATOS (VERSUS)
+# ==========================================
+@app.post("/analyze/compare")
+async def compare_candidates(data: CompareRequest, current_user: dict = Depends(get_current_user)):
+    # Validar Rol
+    if current_user.get("role") not in ["Premium", "Admin", "Reclutador"]:
+        raise HTTPException(status_code=403, detail="Función exclusiva Premium.")
+
+    try:
+        # 1. Buscar Candidatos
+        cand_a = db["candidates"].find_one({"_id": ObjectId(data.candidate_id_a)})
+        cand_b = db["candidates"].find_one({"_id": ObjectId(data.candidate_id_b)})
+
+        if not cand_a or not cand_b:
+            raise HTTPException(status_code=404, detail="Uno de los candidatos no existe")
+
+        # 2. Preparar el Prompt para Llama 3
+        # Usamos el resumen o el texto recortado para no saturar tokens, pero suficiente para comparar.
+        text_a = cand_a.get('text_preview', '')[:2000] 
+        text_b = cand_b.get('text_preview', '')[:2000]
+        
+        prompt = f"""
+        Actúa como un experto en Recursos Humanos Senior. Compara estos dos candidatos para un rol técnico genérico.
+        
+        CANDIDATO A ({cand_a.get('name')}):
+        {text_a}
+        
+        CANDIDATO B ({cand_b.get('name')}):
+        {text_b}
+        
+        Genera una respuesta en formato JSON PURO con esta estructura exacta (sin markdown):
+        {{
+            "winner": "A" o "B" (quien sea mejor técnicamente),
+            "reason": "Frase corta y contundente de por qué ganó (máx 15 palabras).",
+            "advantage_a": ["Ventaja 1", "Ventaja 2", "Ventaja 3"],
+            "advantage_b": ["Ventaja 1", "Ventaja 2", "Ventaja 3"],
+            "verdict": "Un párrafo de 2 líneas explicando la decisión final comparativa."
+        }}
+        """
+
+        # 3. Llamar a Groq
+        chat_completion = client.chat.completions.create(
+            messages=[{"role": "user", "content": prompt}],
+            model="llama-3.3-70b-versatile",
+            temperature=0.5,
+            response_format={"type": "json_object"} # Forzar JSON
+        )
+
+        response_content = chat_completion.choices[0].message.content
+        return json.loads(response_content)
+
+    except Exception as e:
+        print(f"Error comparando: {e}")
+        raise HTTPException(status_code=500, detail="Error en el análisis comparativo")

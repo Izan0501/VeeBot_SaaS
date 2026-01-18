@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { Loader2 } from 'lucide-react';
 
-// Componentes
+// ... (componentes) ...
 import Sidebar from './components/Sidebar';
-import Dashboard from './components/Dashboard';
+import ScrollToTop from './components/ScrollToTop'; // <--- IMPORTANTE
+import Dashboard from './pages/Dashboard';
 import UploadModal from './components/UploadModal';
 import Analytics from './pages/Analytics';
 import Settings from './pages/Settings';
@@ -15,9 +16,37 @@ import Register from './pages/Register';
 import Privacy from './pages/Privacy';
 import Terms from './pages/Terms';
 import Contact from './pages/Contact';
-import Integrations from './pages/Integrations';
 import ImportData from './pages/ImportData';
 import EmailTemplates from './pages/EmailTemplates';
+import Comparator from './pages/Comparator';
+import Faq from './pages/Faq';
+import PremiumLock from './components/PremiumLock';
+
+// --- COMPONENTE MÁGICO: CONTROLADOR DE TEMAS ---
+const ThemeController = ({ userTheme }) => {
+  const location = useLocation();
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const path = location.pathname;
+
+    // 1. ZONA PRIVADA
+    if (path.startsWith('/dashboard') || path.startsWith('/settings') || path.startsWith('/analytics') || path.startsWith('/emails') || path.startsWith('/comparator') || path.startsWith('/import')) {
+      if (userTheme === 'dark') root.classList.add('dark');
+      else root.classList.remove('dark');
+    }
+    // 2. EXCEPCIÓN: FAQ
+    else if (path === '/faq') {
+      root.classList.remove('dark');
+    }
+    // 3. ZONA PÚBLICA
+    else {
+      root.classList.add('dark');
+    }
+  }, [location, userTheme]);
+
+  return null;
+};
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -25,49 +54,33 @@ function App() {
   const [userRole, setUserRole] = useState("Free");
   const [isLoading, setIsLoading] = useState(true);
 
-  // --- LÓGICA DARK MODE ---
-  // 1. Inicializar estado leyendo localStorage o preferencia del sistema
+  // Estado del tema
   const [theme, setTheme] = useState(() => {
-    if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      return localStorage.getItem('theme') || 'dark';
-    }
+    if (window.matchMedia('(prefers-color-scheme: dark)').matches) return localStorage.getItem('theme') || 'dark';
     return localStorage.getItem('theme') || 'light';
   });
 
-  // 2. Aplicar clase 'dark' al HTML cuando cambia el estado
   useEffect(() => {
-    if (theme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
     localStorage.setItem('theme', theme);
   }, [theme]);
 
-  // 3. Función para alternar
   const toggleTheme = () => {
     setTheme(prev => prev === 'light' ? 'dark' : 'light');
   };
-  // ------------------------
 
-  // Lógica de Auth Original
+  // Auth Check
   useEffect(() => {
-    const checkAuth = async () => { // <--- Hacemos esto async
+    const checkAuth = async () => {
       const token = localStorage.getItem('token');
       if (token) {
         setIsAuthenticated(true);
-        // FETCH AL PERFIL PARA SACAR EL ROL REAL
         try {
-          const res = await fetch('http://127.0.0.1:8000/auth/me', {
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
+          const res = await fetch('http://127.0.0.1:8000/auth/me', { headers: { 'Authorization': `Bearer ${token}` } });
           if (res.ok) {
             const data = await res.json();
-            setUserRole(data.role); // Guardamos "Premium" o "Free"
+            setUserRole(data.role);
           }
-        } catch (e) {
-          console.error("Error fetching role", e);
-        }
+        } catch (e) { console.error(e); }
       } else {
         setIsAuthenticated(false);
       }
@@ -76,122 +89,72 @@ function App() {
     checkAuth();
   }, []);
 
-  // Componente para proteger rutas PREMIUM
-  const PremiumRoute = ({ children }) => {
-    if (!isAuthenticated) return <Navigate to="/login" replace />;
-
-    // Si no es Premium ni Admin, lo mandamos al dashboard con una alerta (o a settings para pagar)
-    if (userRole !== 'Premium' && userRole !== 'Admin' && userRole !== 'Reclutador') {
-      // Opción A: Redirigir a Settings para que pague
-      return <Navigate to="/settings" replace />;
-    }
-    return children;
-  };
-
-  // Layout Protegido (Ahora pasa props de tema al Sidebar)
+  // --- LAYOUT PROTEGIDO CON SCROLL RESET ---
   const ProtectedLayout = ({ children }) => {
+    const mainContentRef = useRef(null); // Referencia al contenedor principal
+    const location = useLocation();      // Hook para detectar cambio de ruta
+
     if (!isAuthenticated) return <Navigate to="/login" replace />;
+
+    // Efecto para subir el scroll del dashboard al cambiar de página
+    useEffect(() => {
+      if (mainContentRef.current) {
+        mainContentRef.current.scrollTo(0, 0);
+      }
+    }, [location.pathname]);
 
     return (
       <div className="flex h-screen bg-slate-50 dark:bg-slate-950 font-sans text-slate-900 dark:text-slate-100 transition-colors duration-300">
-        <Sidebar
-          onOpenModal={() => setIsModalOpen(true)}
-          toggleTheme={toggleTheme}
-          currentTheme={theme}
-          userRole={userRole} // <--- Pasamos el rol al Sidebar
-        />
-        <main className="flex-1 overflow-auto bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
+        <Sidebar onOpenModal={() => setIsModalOpen(true)} toggleTheme={toggleTheme} currentTheme={theme} userRole={userRole} />
+
+        {/* Agregamos la ref aquí para controlar el scroll interno */}
+        <main ref={mainContentRef} className="flex-1 overflow-auto bg-slate-50 dark:bg-slate-950 transition-colors duration-300 relative">
           {children}
         </main>
+
         <UploadModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
       </div>
     );
   };
 
-  if (isLoading) {
-    return (
-      <div className="h-screen w-full flex items-center justify-center bg-slate-50 dark:bg-slate-950">
-        <div className="flex flex-col items-center gap-3">
-          <Loader2 className="animate-spin text-indigo-600" size={40} />
-          <p className="text-slate-500 dark:text-slate-400 font-medium">Cargando VeeBot...</p>
-        </div>
-      </div>
-    );
-  }
+  if (isLoading) return <div className="h-screen w-full flex items-center justify-center bg-slate-950 text-white"><Loader2 className="animate-spin" size={40} /></div>;
 
   return (
     <Router>
-      <Toaster position="top-center" toastOptions={{
-        className: 'dark:bg-slate-800 dark:text-white dark:border-slate-700',
-        style: { border: '1px solid #E2E8F0', padding: '16px', borderRadius: '10px' },
-        success: { iconTheme: { primary: '#4F46E5', secondary: '#FFFAEE' } }
-      }} />
+      {/* 1. SCROLL TO TOP GLOBAL (Para Landing y páginas públicas) */}
+      <ScrollToTop />
+
+      {/* 2. THEME CONTROLLER */}
+      <ThemeController userTheme={theme} />
+
+      <Toaster position="top-center" toastOptions={{ className: 'dark:bg-slate-800 dark:text-white', style: { borderRadius: '10px' } }} />
 
       <Routes>
+        {/* Rutas Públicas */}
         <Route path="/" element={<LandingPage />} />
-        <Route path="/login" element={isAuthenticated ? <Navigate to="/dashboard" /> : <Login onLogin={() => window.location.reload()} />} /> {/* Reload para forzar fetch de rol */}
+        <Route path="/login" element={isAuthenticated ? <Navigate to="/dashboard" /> : <Login onLogin={() => window.location.reload()} />} />
         <Route path="/register" element={isAuthenticated ? <Navigate to="/dashboard" /> : <Register />} />
-        <Route path="/contact" element={<Contact />} />
-        <Route path="/terms" element={<Terms />} />
-        <Route path="/privacy" element={<Privacy />} />
+        <Route path="/contact" element={<Contact isPublic={true} />} />
+        <Route path="/terms" element={<Terms isPublic={true} />} />
+        <Route path="/privacy" element={<Privacy isPublic={true} />} />
+        <Route path="/faq" element={<Faq isPublic={true} />} />
 
-        <Route path="/dashboard" element={
-          <ProtectedLayout>
-            {/* Pasamos el userRole al Dashboard para bloquear el Chat */}
-            <Dashboard isModalOpen={isModalOpen} setIsModalOpen={setIsModalOpen} userRole={userRole} />
-          </ProtectedLayout>
-        } />
+        {/* Rutas Privadas */}
+        <Route path="/dashboard" element={<ProtectedLayout><Dashboard isModalOpen={isModalOpen} setIsModalOpen={setIsModalOpen} userRole={userRole} /></ProtectedLayout>} />
 
-        <Route path="/import" element={
-          <ProtectedLayout>
-            <ImportData />
-          </ProtectedLayout>
-        } />
+        <Route path="/import" element={<ProtectedLayout><ImportData /></ProtectedLayout>} />
 
-        {/* RUTA ANALYTICS: SOLO PREMIUM */}
-        <Route path="/analytics" element={
-          <ProtectedLayout>
-            {/* Si intentan entrar aquí siendo Free, los rebota */}
-            {userRole === 'Premium' || userRole === 'Admin' || userRole === 'Reclutador'
-              ? <Analytics />
-              : <div className="h-full flex flex-col items-center justify-center p-6 text-center">
-                <div className="bg-white dark:bg-slate-900 p-8 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xl max-w-md">
-                  <span className="text-4xl">🔒</span>
-                  <h2 className="text-2xl font-bold mt-4 mb-2 text-slate-900 dark:text-white">Función Premium</h2>
-                  <p className="text-slate-500 mb-6">El panel de analíticas avanzadas está reservado para miembros Pro.</p>
-                  <a href="/settings" className="block w-full py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700">Mejorar Plan ($29)</a>
-                </div>
-              </div>
-            }
-          </ProtectedLayout>
-        } />
+        <Route path="/analytics" element={<ProtectedLayout>{userRole === 'Premium' || userRole === 'Admin' || userRole === 'Reclutador' ? <Analytics /> : <PremiumLock icon="📊" title="Analíticas Avanzadas" description="Visualiza métricas clave..." />}</ProtectedLayout>} />
 
-        {/* RUTA EMAILS: SOLO PREMIUM */}
-        <Route path="/emails" element={
-          <ProtectedLayout>
-            {userRole === 'Premium' || userRole === 'Admin' || userRole === 'Reclutador'
-              ? <EmailTemplates />
-              : <div className="h-full flex flex-col items-center justify-center p-6 text-center">
-                <div className="bg-white dark:bg-slate-900 p-8 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xl max-w-md">
-                  <span className="text-4xl">✉️🔒</span>
-                  <h2 className="text-2xl font-bold mt-4 mb-2 text-slate-900 dark:text-white">Automatización de Correos</h2>
-                  <p className="text-slate-500 mb-6">
-                    Crea plantillas personalizadas y contacta candidatos con un clic. Exclusivo para miembros Pro.
-                  </p>
-                  <a href="/settings" className="block w-full py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-colors">
-                    Desbloquear Editor ($29)
-                  </a>
-                </div>
-              </div>
-            }
-          </ProtectedLayout>
-        } />
+        <Route path="/emails" element={<ProtectedLayout>{userRole === 'Premium' || userRole === 'Admin' || userRole === 'Reclutador' ? <EmailTemplates /> : <PremiumLock icon="✉️" title="Email Automation" description="Contacta candidatos..." />}</ProtectedLayout>} />
 
-        <Route path="/integrations" element={
-          <ProtectedLayout>
-            <Integrations />
-          </ProtectedLayout>
-        } />
+        <Route path="/comparator" element={<ProtectedLayout>{userRole === 'Premium' || userRole === 'Admin' || userRole === 'Reclutador' ? <Comparator /> : <PremiumLock icon="⚔️" title="Versus AI" description="Comparación técnica..." />}</ProtectedLayout>} />
+
+        {/* Rutas Internas de Soporte (Mapeadas al Sidebar) */}
+        <Route path="/dashboard/faq" element={<ProtectedLayout><Faq isPublic={false} /></ProtectedLayout>} />
+        <Route path="/dashboard/contact" element={<ProtectedLayout><Contact isPublic={false} /></ProtectedLayout>} />
+        <Route path="/dashboard/terms" element={<ProtectedLayout><Terms isPublic={false} /></ProtectedLayout>} />
+        <Route path="/dashboard/privacy" element={<ProtectedLayout><Privacy isPublic={false} /></ProtectedLayout>} />
 
         <Route path="/settings" element={<ProtectedLayout><Settings /></ProtectedLayout>} />
 

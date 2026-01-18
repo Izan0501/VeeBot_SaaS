@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
-  CheckCircle, ArrowRight, UploadCloud, BrainCircuit, ShieldCheck,
-  Zap, Layout, Code, Menu, X, Database, Cpu, Share2, FileCode,
-  Clock, Search, ChevronDown, Lock, FileSpreadsheet, Table, Container
+  CheckCircle, ArrowRight, BrainCircuit,
+  Zap, Code, Menu, X, Database, Cpu, Share2, FileCode, ChevronDown, Lock, FileSpreadsheet, Table, Container
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import Navbar from '../components/Navbar';
+import Footer from '../components/Footer';
 
 const LandingPage = () => {
   const navigate = useNavigate();
@@ -61,69 +62,9 @@ const LandingPage = () => {
     <div className="min-h-screen bg-white font-sans text-slate-900 overflow-x-hidden selection:bg-indigo-100 selection:text-indigo-900">
 
       {/* ================================================================================== */}
-      {/* NAVBAR (INTACTO) */}
+      {/* NAVBAR */}
       {/* ================================================================================== */}
-      <nav
-        className={`fixed w-full z-50 transition-all duration-500 ease-in-out border-b 
-        ${isScrolled
-            ? "border-white/40 py-3"
-            : "bg-transparent border-transparent py-5"
-          }`}
-      >
-        <div className={`absolute inset-0 overflow-hidden pointer-events-none transition-all duration-700 ease-out ${isScrolled ? 'opacity-100' : 'opacity-0'}`}>
-          <div className="absolute inset-0 bg-white/70 md:bg-white/30 backdrop-blur-2xl"></div>
-          <div className="absolute -top-[100px] right-0 w-[300px] md:w-[500px] h-[300px] md:h-[500px] bg-rose-500/5 md:bg-rose-500/20 rounded-full blur-[60px] md:blur-[80px] mix-blend-multiply animate-pulse"></div>
-          <div className="absolute -top-[100px] left-0 w-[300px] md:w-[400px] h-[300px] md:h-[400px] bg-indigo-500/5 md:bg-indigo-500/20 rounded-full blur-[60px] md:blur-[80px] mix-blend-multiply"></div>
-          <div className="absolute -top-[200px] left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-purple-500/5 md:bg-purple-500/10 rounded-full blur-[60px] mix-blend-multiply"></div>
-          <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/90 to-transparent shadow-[0_0_10px_white]"></div>
-        </div>
-
-        <div className="max-w-7xl mx-auto px-6 flex items-center justify-between relative z-10">
-          <div className="flex items-center gap-3 cursor-pointer group" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
-            <div className="relative overflow-hidden bg-gradient-to-tr from-indigo-600 to-violet-600 p-2.5 rounded-xl shadow-lg shadow-indigo-500/20 group-hover:scale-105 group-hover:rotate-3 transition-all duration-300">
-              <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-[-150%] transition-transform duration-700 ease-in-out skew-y-12"></div>
-              <BrainCircuit className="text-white relative z-10" size={24} />
-            </div>
-            <span className="text-xl font-bold tracking-tight text-slate-900">VeeBot AI</span>
-          </div>
-
-          <div className="hidden md:flex items-center gap-1">
-            {['Características', 'Planes'].map((item) => (
-              <a key={item} href={item === 'Características' ? '#features' : '#pricing'} onClick={(e) => handleScroll(e, item === 'Características' ? 'features' : 'pricing')} className="relative px-5 py-2 text-sm font-medium text-slate-600 hover:text-indigo-600 transition-colors group overflow-hidden rounded-full">
-                <span className="relative z-10">{item}</span>
-                <span className="absolute inset-0 bg-white/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-full border border-white/60"></span>
-              </a>
-            ))}
-            <div className="w-px h-6 bg-slate-900/10 mx-4"></div>
-            <button onClick={() => navigate('/login')} className="text-sm font-bold text-slate-700 hover:text-indigo-600 px-5 py-2 transition-colors">Login</button>
-            <button onClick={() => navigate('/register')} className="relative group bg-slate-900 text-white px-6 py-2.5 rounded-full text-sm font-bold overflow-hidden shadow-lg shadow-slate-900/20 hover:shadow-indigo-500/30 transition-all hover:-translate-y-0.5 active:scale-95">
-              <span className="relative z-10 flex items-center gap-2">Empezar Gratis <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" /></span>
-              <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-12"></div>
-            </button>
-          </div>
-
-          <div className="md:hidden">
-            <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="p-2.5 text-slate-600 hover:bg-white/50 rounded-xl transition-colors active:scale-95 border border-transparent hover:border-white/50">
-              {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-            </button>
-          </div>
-        </div>
-
-        <div className={`md:hidden absolute top-full left-0 w-full overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.25,1,0.5,1)] origin-top ${isMobileMenuOpen ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'}`}>
-          <div className="bg-white/70 backdrop-blur-3xl border-b border-white/50 shadow-xl p-6 relative">
-            <div className="absolute top-0 right-0 w-full h-full bg-gradient-to-b from-rose-100/30 to-indigo-100/30 pointer-events-none z-0"></div>
-            <div className="flex flex-col space-y-2 relative z-10">
-              <a href="#features" onClick={(e) => handleScroll(e, 'features')} className="text-lg font-medium text-slate-700 p-4 hover:bg-white/60 rounded-2xl transition-colors flex justify-between items-center group">Características <ArrowRight size={16} className="text-indigo-400 opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all" /></a>
-              <a href="#pricing" onClick={(e) => handleScroll(e, 'pricing')} className="text-lg font-medium text-slate-700 p-4 hover:bg-white/60 rounded-2xl transition-colors flex justify-between items-center group">Planes <ArrowRight size={16} className="text-indigo-400 opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all" /></a>
-              <Link to="/terms" className="text-lg font-medium text-slate-700 p-4 hover:bg-white/60 rounded-2xl transition-colors flex justify-between items-center group">Términos <ArrowRight size={16} className="text-indigo-400 opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all" /></Link>
-              <div className="h-px bg-slate-900/10 my-2"></div>
-              <button onClick={() => handleNavigation('/login')} className="w-full py-3.5 text-center font-bold text-slate-700 border border-slate-300/50 rounded-xl hover:bg-white/50 transition-colors">Iniciar Sesión</button>
-              <button onClick={() => handleNavigation('/register')} className="w-full py-3.5 text-center font-bold text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 shadow-lg shadow-indigo-200 transition-colors active:scale-95">Empezar Gratis</button>
-            </div>
-          </div>
-        </div>
-      </nav>
-
+      <Navbar />
       {/* ================================================================================== */}
       {/* 1. HERO SECTION */}
       {/* ================================================================================== */}
@@ -157,9 +98,38 @@ const LandingPage = () => {
           </motion.p>
 
           <motion.div variants={itemVariants} className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-24">
-            <button onClick={() => navigate('/register')} className="w-full sm:w-auto px-8 py-4.5 bg-slate-900 text-white rounded-2xl font-bold text-lg hover:bg-slate-800 shadow-2xl shadow-indigo-900/20 transition-all flex items-center justify-center gap-2 transform hover:-translate-y-1 active:scale-95 group">
-              Prueba Gratis Ahora <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
-            </button>
+            <div className="relative group">
+              {/* 1. GLOW TRASERO PULSANTE (Ambiente) */}
+              <div className="absolute -inset-1 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl blur opacity-25 group-hover:opacity-75 transition duration-1000 group-hover:duration-200 animate-tilt"></div>
+
+              {/* 2. BOTÓN PRINCIPAL */}
+              <motion.button
+                onClick={() => navigate('/register')}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="relative w-full sm:w-auto px-8 py-4 bg-slate-900 rounded-2xl leading-none flex items-center justify-center gap-3 overflow-hidden"
+              >
+                {/* 3. FONDO DEGRADADO INTERNO (Sutil) */}
+                <div className="absolute inset-0 bg-gradient-to-r from-indigo-600 via-violet-600 to-purple-600 opacity-90 group-hover:opacity-100 transition-opacity duration-300"></div>
+
+                {/* 4. EFECTO DESTELLO (SHINE) AL HOVER */}
+                <div className="absolute top-0 -left-[100%] w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-[25deg] group-hover:animate-shine" />
+
+                {/* 5. CONTENIDO DEL BOTÓN */}
+                <span className="relative z-10 font-bold text-lg text-white tracking-wide">
+                  Prueba Gratis Ahora
+                </span>
+
+                {/* ICONO ANIMADO */}
+                <motion.div
+                  className="relative z-10"
+                  animate={{ x: [0, 3, 0] }}
+                  transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut", repeatDelay: 1 }}
+                >
+                  <ArrowRight size={20} className="text-indigo-200 group-hover:text-white transition-colors" />
+                </motion.div>
+              </motion.button>
+            </div>
             <div className="flex items-center gap-4 text-sm font-semibold text-slate-500 px-4">
               <span className="flex items-center gap-1"><CheckCircle size={16} className="text-emerald-500" /> Sin tarjeta</span>
               <span className="flex items-center gap-1"><CheckCircle size={16} className="text-emerald-500" /> Docker Friendly</span>
@@ -509,59 +479,15 @@ const LandingPage = () => {
           </div>
         </div>
       </section>
-
       {/* ================================================================================== */}
-      {/* FOOTER (INTACTO) */}
+      {/* FOOTER */}
       {/* ================================================================================== */}
-      <footer className="relative pt-24 pb-10 overflow-hidden z-10">
-        <div className="absolute inset-0 bg-gradient-to-b from-slate-100 to-slate-50 z-0"></div>
-
-        <motion.div animate={{ y: [0, -20, 0] }} transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }} className="absolute -top-[300px] left-1/4 w-[500px] h-[500px] bg-indigo-500/20 rounded-full blur-[100px] pointer-events-none mix-blend-multiply"></motion.div>
-        <motion.div animate={{ y: [0, 20, 0] }} transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }} className="absolute -top-[200px] right-1/4 w-[600px] h-[600px] bg-purple-500/20 rounded-full blur-[100px] pointer-events-none mix-blend-multiply"></motion.div>
-        <div className="absolute bottom-[-200px] left-1/3 w-[400px] h-[400px] bg-cyan-500/20 rounded-full blur-[100px] pointer-events-none mix-blend-multiply"></div>
-
-        <div className="absolute inset-0 bg-white/40 backdrop-blur-3xl z-10 shadow-[0_-20px_40px_rgba(255,255,255,0.8)]"></div>
-        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-indigo-500/50 to-transparent z-20"></div>
-
-        <div className="relative z-30 max-w-7xl mx-auto px-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-0 items-center">
-            <div className="flex flex-col items-center md:items-start gap-4 order-2 md:order-1">
-              <div className="flex items-center gap-3 group cursor-default">
-                <div className="relative overflow-hidden bg-gradient-to-tr from-indigo-600 to-violet-600 p-2.5 rounded-xl shadow-lg shadow-indigo-500/20 group-hover:scale-110 group-hover:rotate-3 transition-all duration-500 ease-out">
-                  <div className="absolute inset-0 bg-white/30 translate-y-full group-hover:translate-y-[-150%] transition-transform duration-700 ease-in-out skew-y-12"></div>
-                  <BrainCircuit className="text-white relative z-10" size={24} />
-                </div>
-                <span className="text-xl font-bold tracking-tight text-slate-900 group-hover:text-indigo-900 transition-colors">VeeBot AI</span>
-              </div>
-              <p className="text-sm text-slate-500/80 font-medium text-center md:text-left max-w-[250px] leading-relaxed hidden md:block">Infraestructura de reclutamiento inteligente.</p>
-            </div>
-
-            <div className="flex justify-center order-1 md:order-2">
-              <div className="flex flex-wrap justify-center gap-1 px-2 py-2 rounded-full bg-white/40 border border-white/60 backdrop-blur-md shadow-sm">
-                {[{ to: "/terms", label: "Términos" }, { to: "/privacy", label: "Privacidad" }, { to: "/contact", label: "Contacto" }].map((link) => (
-                  <Link key={link.to} to={link.to} className="px-5 py-2 rounded-full text-sm font-semibold text-slate-600 hover:text-indigo-600 hover:bg-white/80 transition-all duration-300">{link.label}</Link>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex flex-col items-center md:items-end gap-2 order-3">
-              <p className="text-sm font-bold text-slate-500">© {new Date().getFullYear()} VeeBot Inc.</p>
-              <div className="flex items-center gap-2 text-[10px] text-slate-400 uppercase tracking-widest font-bold bg-white/60 border border-white px-3 py-1 rounded-full shadow-sm">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]"></span> Systems Online
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-12 pt-8 border-t border-slate-900/5 text-center">
-            <p className="text-xs font-medium text-slate-400 hover:text-indigo-500 transition-colors cursor-default">Designed in Tucumán-Argentina 🧉</p>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 };
 
-// Componente pequeño para los iconos del stack
+// stack icons with labels
 const TechBadge = ({ icon, label }) => (
   <div className="flex flex-col items-center gap-2 group cursor-default">
     <div className="p-3 bg-white rounded-xl shadow-sm border border-slate-200 group-hover:scale-110 group-hover:border-indigo-200 transition-all">

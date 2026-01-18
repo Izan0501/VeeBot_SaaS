@@ -8,3 +8,11 @@
     @apply bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-300;
   }
 }
+
+@keyframes shine {
+  0% { left: -100%; }
+  100% { left: 200%; }
+}
+.animate-shine {
+  animation: shine 1s;
+}

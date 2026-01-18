@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
     Users, UploadCloud, BarChart3, Settings, LogOut,
     BrainCircuit, Menu, X, Sun, Moon, Crown, Zap, Sparkles,
-    FileText, ShieldCheck, HelpCircle, Layers, Mail
+    FileText, ShieldCheck, HelpCircle, Swords, Mail, LifeBuoy
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -175,21 +175,50 @@ const Sidebar = ({ onOpenModal, toggleTheme, currentTheme, userRole }) => {
                     <div>
                         <p className="px-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-3">Herramientas</p>
                         <div className="space-y-1">
-                            <NavItem to="/integrations" icon={<Layers size={20} />} text="Integraciones" active={location.pathname === '/integrations'} />
-                            <NavItem to="/settings" icon={<Settings size={20} />} text="Configuración" active={location.pathname === '/settings'} />
+                            <NavItem to="/comparator" icon={<Swords size={20} />} text="Comparar CVs" active={isActive('/comparator')} />
                             <NavItem to="/emails" icon={<Mail size={20} />} text="Plantillas Email" active={isActive('/emails')} />
+                            <NavItem to="/settings" icon={<Settings size={20} />} text="Configuración" active={location.pathname === '/settings'} />
                         </div>
                     </div>
 
                     {/* SECCIÓN 3: LEGAL & SOPORTE */}
-                    <div>
-                        <p className="px-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-3">Soporte</p>
-                        <div className="space-y-1">
-                            <NavItem to="/contact" icon={<HelpCircle size={20} />} text="Ayuda & Contacto" active={isActive('/contact')} />
-                            <NavItem to="/terms" icon={<FileText size={20} />} text="Términos" active={isActive('/terms')} />
-                            <NavItem to="/privacy" icon={<ShieldCheck size={20} />} text="Privacidad" active={isActive('/privacy')} />
-                        </div>
+                <div>
+                    <p className="px-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-3">Soporte</p>
+                    <div className="space-y-1">
+                        
+                        {/* FAQ - Ruta Interna */}
+                        <NavItem 
+                            to="/dashboard/faq"  
+                            icon={<LifeBuoy size={20} />} 
+                            text="Centro de Ayuda" 
+                            active={isActive('/dashboard/faq')} 
+                        />
+                        
+                        {/* CONTACTO - Ruta Interna */}
+                        <NavItem 
+                            to="/dashboard/contact" 
+                            icon={<Mail size={20} />} 
+                            text="Contactar Soporte" 
+                            active={isActive('/dashboard/contact')} 
+                        />
+
+                        {/* TÉRMINOS - Ruta Interna */}
+                        <NavItem 
+                            to="/dashboard/terms" 
+                            icon={<FileText size={20} />} 
+                            text="Términos" 
+                            active={isActive('/dashboard/terms')} 
+                        />
+
+                        {/* PRIVACIDAD - Ruta Interna */}
+                        <NavItem 
+                            to="/dashboard/privacy" 
+                            icon={<ShieldCheck size={20} />} 
+                            text="Privacidad" 
+                            active={isActive('/dashboard/privacy')} 
+                        />
                     </div>
+                </div>
 
                 </nav>
 
