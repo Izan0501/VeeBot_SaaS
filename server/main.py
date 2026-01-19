@@ -137,6 +137,11 @@ class CompareRequest(BaseModel):
     candidate_id_a: str
     candidate_id_b: str
 
+class ChatRequest(BaseModel):
+    candidate_id: str
+    message: str
+    history: List[dict] = []
+
 # --- DEPENDENCIA DE USUARIO ACTUAL ---
 async def get_current_user(token: str = Depends(oauth2_scheme)):
     credentials_exception = HTTPException(
@@ -1084,3 +1089,53 @@ async def compare_candidates(data: CompareRequest, current_user: dict = Depends(
     except Exception as e:
         print(f"Error comparando: {e}")
         raise HTTPException(status_code=500, detail="Error en el análisis comparativo")
+    
+    
+# ==========================================
+# 9. CANDIDATE DIGITAL TWIN (ROLEPLAY)
+# ==========================================
+@app.post("/simulate/chat")
+async def chat_with_candidate(data: ChatRequest, current_user: dict = Depends(get_current_user)):
+    try:
+        # 1. Obtener datos del candidato
+        candidate = db["candidates"].find_one({"_id": ObjectId(data.candidate_id)})
+        if not candidate:
+            raise HTTPException(status_code=404, detail="Candidato no encontrado")
+
+        resume_text = candidate.get('text_preview', '')[:4000] # Limitamos contexto
+        candidate_name = candidate.get('filename', 'Candidato').split('.')[0]
+
+        # 2. System Prompt: La magia del Roleplay
+        system_prompt = f"""
+        TÚ ERES "{candidate_name}". NO eres una IA. Eres la persona descrita en este CV:
+        ---
+        {resume_text}
+        ---
+        Instrucciones:
+        1. Responde en primera persona ("Yo hice...", "Mi experiencia...").
+        2. Basa tus respuestas ESTRICTAMENTE en la información del CV.
+        3. Si te preguntan algo que no está en el CV, di que no tienes experiencia en eso o inventa algo plausible pero humilde basado en tu perfil.
+        4. Mantén un tono profesional pero conversacional, como en una entrevista de trabajo.
+        5. Sé breve y directo.
+        """
+
+        # 3. Construir mensajes
+        messages = [{"role": "system", "content": system_prompt}]
+        # Añadimos historial previo (últimos 6 mensajes para memoria corta)
+        messages.extend(data.history[-6:]) 
+        # Añadimos mensaje actual
+        messages.append({"role": "user", "content": data.message})
+
+        # 4. Llamada a Groq
+        chat_completion = client.chat.completions.create(
+            messages=messages,
+            model="llama-3.3-70b-versatile",
+            temperature=0.7,
+            max_tokens=300
+        )
+
+        return {"response": chat_completion.choices[0].message.content}
+
+    except Exception as e:
+        print(f"Error chat simulation: {e}")
+        raise HTTPException(status_code=500, detail="Error en la simulación")

@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
     Users, UploadCloud, BarChart3, Settings, LogOut,
     BrainCircuit, Menu, X, Sun, Moon, Crown, Zap, Sparkles,
-    FileText, ShieldCheck, HelpCircle, Swords, Mail, LifeBuoy
+    FileText, ShieldCheck, Bot, Swords, Mail, LifeBuoy
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -160,13 +160,13 @@ const Sidebar = ({ onOpenModal, toggleTheme, currentTheme, userRole }) => {
                     <div>
                         <p className="px-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-3">Dashboard</p>
                         <div className="space-y-1">
-                            <NavItem to="/dashboard" icon={<Users size={20} />} text="Candidatos" active={isActive('/dashboard')} />
                             <NavItem
                                 to="/import"
                                 icon={<UploadCloud size={20} />}
                                 text="Importar CVs"
                                 active={location.pathname === '/import'}
                             />
+                            <NavItem to="/dashboard" icon={<Users size={20} />} text="Candidatos" active={isActive('/dashboard')} />
                             <NavItem to="/analytics" icon={<BarChart3 size={20} />} text="Analíticas" active={isActive('/analytics')} />
                         </div>
                     </div>
@@ -175,6 +175,12 @@ const Sidebar = ({ onOpenModal, toggleTheme, currentTheme, userRole }) => {
                     <div>
                         <p className="px-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-3">Herramientas</p>
                         <div className="space-y-1">
+                            <NavItem
+                                to="/digital-twin"
+                                icon={<Bot size={20} />}
+                                text="Digital Twin AI"
+                                active={isActive('/digital-twin')}
+                            />
                             <NavItem to="/comparator" icon={<Swords size={20} />} text="Comparar CVs" active={isActive('/comparator')} />
                             <NavItem to="/emails" icon={<Mail size={20} />} text="Plantillas Email" active={isActive('/emails')} />
                             <NavItem to="/settings" icon={<Settings size={20} />} text="Configuración" active={location.pathname === '/settings'} />
@@ -182,43 +188,43 @@ const Sidebar = ({ onOpenModal, toggleTheme, currentTheme, userRole }) => {
                     </div>
 
                     {/* SECCIÓN 3: LEGAL & SOPORTE */}
-                <div>
-                    <p className="px-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-3">Soporte</p>
-                    <div className="space-y-1">
-                        
-                        {/* FAQ - Ruta Interna */}
-                        <NavItem 
-                            to="/dashboard/faq"  
-                            icon={<LifeBuoy size={20} />} 
-                            text="Centro de Ayuda" 
-                            active={isActive('/dashboard/faq')} 
-                        />
-                        
-                        {/* CONTACTO - Ruta Interna */}
-                        <NavItem 
-                            to="/dashboard/contact" 
-                            icon={<Mail size={20} />} 
-                            text="Contactar Soporte" 
-                            active={isActive('/dashboard/contact')} 
-                        />
+                    <div>
+                        <p className="px-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-3">Soporte</p>
+                        <div className="space-y-1">
 
-                        {/* TÉRMINOS - Ruta Interna */}
-                        <NavItem 
-                            to="/dashboard/terms" 
-                            icon={<FileText size={20} />} 
-                            text="Términos" 
-                            active={isActive('/dashboard/terms')} 
-                        />
+                            {/* FAQ - Ruta Interna */}
+                            <NavItem
+                                to="/dashboard/faq"
+                                icon={<LifeBuoy size={20} />}
+                                text="Centro de Ayuda"
+                                active={isActive('/dashboard/faq')}
+                            />
 
-                        {/* PRIVACIDAD - Ruta Interna */}
-                        <NavItem 
-                            to="/dashboard/privacy" 
-                            icon={<ShieldCheck size={20} />} 
-                            text="Privacidad" 
-                            active={isActive('/dashboard/privacy')} 
-                        />
+                            {/* CONTACTO - Ruta Interna */}
+                            <NavItem
+                                to="/dashboard/contact"
+                                icon={<Mail size={20} />}
+                                text="Contactar Soporte"
+                                active={isActive('/dashboard/contact')}
+                            />
+
+                            {/* TÉRMINOS - Ruta Interna */}
+                            <NavItem
+                                to="/dashboard/terms"
+                                icon={<FileText size={20} />}
+                                text="Términos"
+                                active={isActive('/dashboard/terms')}
+                            />
+
+                            {/* PRIVACIDAD - Ruta Interna */}
+                            <NavItem
+                                to="/dashboard/privacy"
+                                icon={<ShieldCheck size={20} />}
+                                text="Privacidad"
+                                active={isActive('/dashboard/privacy')}
+                            />
+                        </div>
                     </div>
-                </div>
 
                 </nav>
 

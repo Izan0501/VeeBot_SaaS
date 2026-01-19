@@ -21,6 +21,7 @@ import EmailTemplates from './pages/EmailTemplates';
 import Comparator from './pages/Comparator';
 import Faq from './pages/Faq';
 import PremiumLock from './components/PremiumLock';
+import DigitalTwin from './pages/DigitalTwin';
 
 // --- COMPONENTE MÁGICO: CONTROLADOR DE TEMAS ---
 const ThemeController = ({ userTheme }) => {
@@ -138,7 +139,13 @@ function App() {
         <Route path="/terms" element={<Terms isPublic={true} />} />
         <Route path="/privacy" element={<Privacy isPublic={true} />} />
         <Route path="/faq" element={<Faq isPublic={true} />} />
-
+        
+        <Route path="/digital-twin" element={
+          <ProtectedLayout>
+            <DigitalTwin />
+          </ProtectedLayout>
+        } />
+       
         {/* Rutas Privadas */}
         <Route path="/dashboard" element={<ProtectedLayout><Dashboard isModalOpen={isModalOpen} setIsModalOpen={setIsModalOpen} userRole={userRole} /></ProtectedLayout>} />
 
