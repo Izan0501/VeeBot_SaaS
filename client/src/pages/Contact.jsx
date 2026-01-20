@@ -35,9 +35,8 @@ const Contact = ({ isPublic = true }) => {
     const fadeInUp = { hidden: { opacity: 0, y: 30 }, visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } } };
     const stagger = { visible: { transition: { staggerChildren: 0.1 } } };
 
-    // CONTENIDO PRINCIPAL (Adaptable)
-    const Content = () => (
-        // AGREGADO: overflow-hidden aquí previene el scrollbar causado por las animaciones laterales (x: 50)
+    // --- CORRECCIÓN: Usamos una variable (const contentMarkup) en lugar de un componente funcional ---
+    const contentMarkup = (
         <div className={`flex flex-col lg:flex-row w-full overflow-hidden ${isPublic ? 'min-h-screen pt-20' : 'h-full min-h-full'}`}>
 
             {/* COLUMNA IZQUIERDA (ARTE) */}
@@ -115,7 +114,6 @@ const Contact = ({ isPublic = true }) => {
 
     if (isPublic) {
         return (
-            // AGREGADO: overflow-x-hidden para prevenir scroll horizontal en mobile/public
             <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white transition-colors duration-300 selection:bg-pink-500 selection:text-white overflow-x-hidden relative">
                 <Navbar />
 
@@ -127,16 +125,18 @@ const Contact = ({ isPublic = true }) => {
                     <ArrowLeft size={20} className="text-slate-600 dark:text-slate-400 group-hover:text-pink-600 transition-colors" />
                 </motion.button>
 
-                <Content />
+                {/* Renderizamos la variable directamente */}
+                {contentMarkup}
+
                 <Footer />
             </div>
         );
     }
 
-    // CAMBIO CLAVE AQUÍ: overflow-hidden en el contenedor del dashboard
     return (
         <div className="w-full h-full min-h-full bg-slate-50 dark:bg-slate-950 overflow-hidden">
-            <Content />
+            {/* Renderizamos la variable directamente */}
+            {contentMarkup}
         </div>
     );
 };

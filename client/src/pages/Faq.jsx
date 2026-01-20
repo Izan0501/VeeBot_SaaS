@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom'; // Importar useNavigate
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Search, ChevronDown, HelpCircle, Zap, Shield, CreditCard,
-    MessageSquare, FileText, ArrowLeft // Importar ArrowLeft
+    MessageSquare, FileText, ArrowLeft
 } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 
 const Faq = ({ isPublic = false }) => {
-    const navigate = useNavigate(); // Hook de navegación
+    const navigate = useNavigate();
     const [searchTerm, setSearchTerm] = useState("");
     const [activeCategory, setActiveCategory] = useState("Todas");
 
@@ -17,7 +17,6 @@ const Faq = ({ isPublic = false }) => {
         navigate('/');
     };
 
-    // ... (Mantén aquí el array 'categories' y 'faqs' igual que antes) ...
     const categories = [
         { id: "Todas", label: "Todas" },
         { id: "General", label: "General" },
@@ -27,7 +26,6 @@ const Faq = ({ isPublic = false }) => {
     ];
 
     const faqs = [
-        // ... (Copia el array de faqs que ya tenías) ...
         {
             category: "General",
             q: "¿Qué es exactamente VeeBot AI?",
@@ -76,7 +74,8 @@ const Faq = ({ isPublic = false }) => {
         return matchesSearch && matchesCategory;
     });
 
-    const Content = () => (
+    // --- CORRECCIÓN: Variable en lugar de función de componente ---
+    const contentMarkup = (
         <div className={`max-w-4xl mx-auto px-6 ${isPublic ? '' : 'w-full'}`}>
             {/* HEADER */}
             <div className="text-center mb-12 relative z-10">
@@ -165,7 +164,6 @@ const Faq = ({ isPublic = false }) => {
             <div className="min-h-screen bg-slate-50 font-sans text-slate-900 selection:bg-indigo-100 selection:text-indigo-900 overflow-x-hidden">
                 <Navbar />
 
-                {/* BOTÓN VOLVER (ESTILO CONTACT) */}
                 <motion.button
                     initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.5 }}
                     onClick={handleBack}
@@ -179,7 +177,9 @@ const Faq = ({ isPublic = false }) => {
                         <div className="absolute top-[-20%] left-[-10%] w-[120%] h-[120%] bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-indigo-100/40 via-purple-50/20 to-transparent blur-3xl transform-gpu"></div>
                         <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-indigo-500/5 rounded-full blur-[100px]"></div>
                     </div>
-                    <Content />
+
+                    {/* Render Variable */}
+                    {contentMarkup}
                 </div>
                 <Footer />
             </div>
@@ -188,7 +188,8 @@ const Faq = ({ isPublic = false }) => {
 
     return (
         <div className="min-h-full bg-slate-50 dark:bg-slate-950 p-6 md:p-10 transition-colors duration-300">
-            <Content />
+            {/* Render Variable */}
+            {contentMarkup}
         </div>
     );
 };
