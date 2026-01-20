@@ -523,7 +523,6 @@ async def export_candidates_csv(current_user: dict = Depends(get_current_user)):
 # ==========================================
 # 3.2 DEMO DATA (SEED) - LÓGICA DINÁMICA
 # ==========================================
-
 @app.post("/seed")
 async def seed_demo_data(current_user: dict = Depends(get_current_user)):
     user_id = str(current_user["_id"])
