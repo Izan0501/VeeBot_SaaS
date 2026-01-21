@@ -22,6 +22,7 @@ import Comparator from './pages/Comparator';
 import Faq from './pages/Faq';
 import PremiumLock from './components/PremiumLock';
 import DigitalTwin from './pages/DigitalTwin';
+import Upgrade from './pages/Upgrade';
 
 // --- COMPONENTE MÁGICO: CONTROLADOR DE TEMAS ---
 const ThemeController = ({ userTheme }) => {
@@ -139,13 +140,13 @@ function App() {
         <Route path="/terms" element={<Terms isPublic={true} />} />
         <Route path="/privacy" element={<Privacy isPublic={true} />} />
         <Route path="/faq" element={<Faq isPublic={true} />} />
-        
+
         <Route path="/digital-twin" element={
           <ProtectedLayout>
             <DigitalTwin />
           </ProtectedLayout>
         } />
-       
+
         {/* Rutas Privadas */}
         <Route path="/dashboard" element={<ProtectedLayout><Dashboard isModalOpen={isModalOpen} setIsModalOpen={setIsModalOpen} userRole={userRole} /></ProtectedLayout>} />
 
@@ -156,6 +157,12 @@ function App() {
         <Route path="/emails" element={<ProtectedLayout>{userRole === 'Premium' || userRole === 'Admin' || userRole === 'Reclutador' ? <EmailTemplates /> : <PremiumLock icon="✉️" title="Email Automation" description="Contacta candidatos..." />}</ProtectedLayout>} />
 
         <Route path="/comparator" element={<ProtectedLayout>{userRole === 'Premium' || userRole === 'Admin' || userRole === 'Reclutador' ? <Comparator /> : <PremiumLock icon="⚔️" title="Versus AI" description="Comparación técnica..." />}</ProtectedLayout>} />
+
+        <Route path="/upgrade" element={
+          <ProtectedLayout>
+            <Upgrade />
+          </ProtectedLayout>
+        } />
 
         {/* Rutas Internas de Soporte (Mapeadas al Sidebar) */}
         <Route path="/dashboard/faq" element={<ProtectedLayout><Faq isPublic={false} /></ProtectedLayout>} />

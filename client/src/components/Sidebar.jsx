@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
     Users, UploadCloud, BarChart3, Settings, LogOut,
     BrainCircuit, Menu, X, Sun, Moon, Crown, Zap, Sparkles,
-    FileText, ShieldCheck, Bot, Swords, Mail, LifeBuoy
+    FileText, ShieldCheck, Bot, Swords, Mail, LifeBuoy, CreditCard
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -168,6 +168,12 @@ const Sidebar = ({ onOpenModal, toggleTheme, currentTheme, userRole }) => {
                             />
                             <NavItem to="/dashboard" icon={<Users size={20} />} text="Candidatos" active={isActive('/dashboard')} />
                             <NavItem to="/analytics" icon={<BarChart3 size={20} />} text="Analíticas" active={isActive('/analytics')} />
+                            <NavItem
+                                to="/digital-twin"
+                                icon={<Bot size={20} />}
+                                text="Digital Twin AI"
+                                active={isActive('/digital-twin')}
+                            />
                         </div>
                     </div>
 
@@ -175,14 +181,13 @@ const Sidebar = ({ onOpenModal, toggleTheme, currentTheme, userRole }) => {
                     <div>
                         <p className="px-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-3">Herramientas</p>
                         <div className="space-y-1">
-                            <NavItem
-                                to="/digital-twin"
-                                icon={<Bot size={20} />}
-                                text="Digital Twin AI"
-                                active={isActive('/digital-twin')}
-                            />
                             <NavItem to="/comparator" icon={<Swords size={20} />} text="Comparar CVs" active={isActive('/comparator')} />
                             <NavItem to="/emails" icon={<Mail size={20} />} text="Plantillas Email" active={isActive('/emails')} />
+
+                            {userRole !== 'Premium' && userRole !== 'Agency' && (
+                                <NavItem to="/upgrade" icon={<CreditCard size={20} />} text="Suscribirse" active={location.pathname === '/upgrade'} />
+                            )}
+
                             <NavItem to="/settings" icon={<Settings size={20} />} text="Configuración" active={location.pathname === '/settings'} />
                         </div>
                     </div>
@@ -286,14 +291,14 @@ const Sidebar = ({ onOpenModal, toggleTheme, currentTheme, userRole }) => {
                                 </button>
                             </div>
 
-                            {!isPremium && (
+                            {/* {!isPremium && (
                                 <Link
                                     to="/settings"
                                     className="mt-3 flex items-center justify-center gap-2 w-full py-2 text-xs font-bold text-white bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 rounded-lg transition-all shadow-lg shadow-indigo-900/30 group-hover:scale-[1.02]"
                                 >
                                     <Sparkles size={12} className="fill-white" /> Mejorar a Pro
                                 </Link>
-                            )}
+                            )} */}
                         </div>
                     </div>
                 </div>
