@@ -1,18 +1,78 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
-    Check, X, Crown, Shield, Rocket, Sparkles, Flame, Loader2
+    Check, X, Zap, Crown, Shield, Rocket, Star, Sparkles, Flame, Loader2
 } from 'lucide-react';
-import toast from 'react-hot-toast'; 
+import toast from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
 
 const Upgrade = () => {
-
+    const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
 
+    // ==============================================================================
+    // 🛡️ GUARDIA DE SEGURIDAD (NUEVO)
+    // Verifica si el usuario YA es Premium al entrar o volver a esta página.
+    // Si ya pagó, lo redirige al Dashboard y borra el historial para que no pueda volver.
+    // ==============================================================================
+    useEffect(() => {
+        const verifyCurrentStatus = async () => {
+            try {
+                const token = localStorage.getItem('token');
+                if (!token) return;
+
+                const res = await fetch('http://127.0.0.1:8000/auth/me', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (res.ok) {
+                    const user = await res.json();
+                    // Si el backend dice que ya es Premium/Agency...
+                    if (user.role === 'Premium' || user.role === 'Agency' || user.role === 'Agency Pro') {
+                        // ...lo mandamos al dashboard y REEMPLAZAMOS el historial
+                        // para que el botón "Atrás" no lo traiga de nuevo aquí.
+                        navigate('/dashboard', { replace: true });
+                    }
+                }
+            } catch (error) {
+                console.error("Error verificando suscripción", error);
+            }
+        };
+
+        verifyCurrentStatus();
+    }, [navigate]);
+
+    // ==============================================================================
+    // 🎧 ESCUCHA DE EVENTOS (MODIFICADO PARA BORRAR HISTORIAL)
+    // ==============================================================================
+    useEffect(() => {
+        const handleLemonEvent = (event) => {
+            if (event.data && event.data.event === 'LemonSqueezy.Payment.Success') {
+                toast.success("¡Pago exitoso! Actualizando tu cuenta...", {
+                    duration: 4000,
+                    icon: '🚀'
+                });
+
+                // Esperamos un poco y forzamos la salida
+                setTimeout(() => {
+                    // Usamos replace: true para matar el historial de navegación
+                    navigate('/dashboard', { replace: true });
+                    // Opcional: Recargar la página para asegurar que el Sidebar se actualice
+                    window.location.reload();
+                }, 2000);
+            }
+        };
+
+        window.addEventListener('message', handleLemonEvent);
+        return () => window.removeEventListener('message', handleLemonEvent);
+    }, [navigate]);
+
+    // ==============================================================================
+    // ⚙️ LÓGICA DE PAGO
+    // ==============================================================================
     const handleCheckout = async () => {
         setLoading(true);
         try {
-            // 1. Pedimos el link personalizado al backend (lleva tu ID de usuario incrustado)
             const token = localStorage.getItem('token');
             const response = await fetch('http://127.0.0.1:8000/payments/create-checkout', {
                 method: 'POST',
@@ -25,15 +85,11 @@ const Upgrade = () => {
             if (!response.ok) throw new Error("Error generando el pago");
 
             const data = await response.json();
-            const checkoutUrl = data.checkout_url; // Este link tiene los metadatos ocultos
+            const checkoutUrl = data.checkout_url;
 
-            // 2. Abrimos ese link dinámico en el Overlay de Lemon Squeezy
             if (window.LemonSqueezy) {
-                // Forzamos que se abra en Overlay agregando ?embed=1 si la API no lo trae
-                // (Aunque la función .Open suele manejarlo, aseguramos)
                 window.LemonSqueezy.Url.Open(checkoutUrl);
             } else {
-                // Fallback si el script no cargó
                 window.location.href = checkoutUrl;
             }
 
@@ -89,20 +145,17 @@ const Upgrade = () => {
                     </motion.p>
                 </div>
 
-                {/* --- CARD PRINCIPAL (LA JOYA DE LA CORONA) --- */}
+                {/* --- CARD PRINCIPAL --- */}
                 <motion.div variants={itemVariants} className="max-w-4xl mx-auto mb-24">
                     <div className="relative group">
 
-                        {/* GLOW DE FONDO ANIMADO */}
                         <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-[35px] blur-xl opacity-40 group-hover:opacity-75 transition duration-1000 group-hover:duration-200"></div>
 
-                        {/* CONTENEDOR DE LA TARJETA */}
                         <div className="relative bg-white dark:bg-slate-900 rounded-[32px] p-1 border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden">
                             <div className="absolute top-0 left-0 w-full h-full bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-100 contrast-150"></div>
 
                             <div className="relative bg-slate-50/50 dark:bg-black/40 backdrop-blur-xl rounded-[28px] p-8 md:p-12 flex flex-col md:flex-row gap-12 items-center">
 
-                                {/* LADO IZQUIERDO: PRECIO Y CTA */}
                                 <div className="flex-1 text-center md:text-left">
                                     <div className="inline-flex items-center gap-2 bg-gradient-to-r from-amber-300 to-orange-400 text-slate-900 text-xs font-black px-4 py-1.5 rounded-lg mb-6 uppercase tracking-wider shadow-lg shadow-orange-500/20 transform -rotate-2">
                                         <Crown size={16} fill="black" /> Plan Recomendado
@@ -141,10 +194,8 @@ const Upgrade = () => {
                                     </p>
                                 </div>
 
-                                {/* DIVISOR VERTICAL (SOLO DESKTOP) */}
                                 <div className="hidden md:block w-px h-64 bg-gradient-to-b from-transparent via-slate-200 dark:via-slate-700 to-transparent"></div>
 
-                                {/* LADO DERECHO: FEATURES */}
                                 <div className="flex-1 w-full">
                                     <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
                                         <Flame size={20} className="text-orange-500 fill-orange-500" />
@@ -182,7 +233,6 @@ const Upgrade = () => {
                     </div>
 
                     <div className="bg-white/50 dark:bg-slate-900/50 backdrop-blur-xl rounded-3xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
-                        {/* Header Tabla */}
                         <div className="grid grid-cols-3 p-6 bg-slate-50/50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
                             <div className="col-span-1 text-xs font-bold uppercase tracking-widest text-slate-400">Característica</div>
                             <div className="col-span-1 text-center text-xs font-bold uppercase tracking-widest text-slate-400">Plan Starter</div>
@@ -191,7 +241,7 @@ const Upgrade = () => {
 
                         <TableRow feature="Límite de CVs Mensuales" free="5 CVs" pro="Ilimitado" highlight />
                         <TableRow feature="Modelo de Inteligencia Artificial" free="Llama 3 Basic" pro="Llama 3.3 (70B) Turbo" />
-                        <TableRow feature="Chat con Candidato (Digital Twin)" free="4 mensajes/chat" pro="Conversación Ilimitada" />
+                        <TableRow feature="Chat con Gemelo Digital" free="4 mensajes/chat" pro="Conversación Ilimitada" />
                         <TableRow feature="Exportación a Excel/CSV" free={<XIcon />} pro={<CheckIcon />} />
                         <TableRow feature="Análisis Comparativo (Versus)" free={<XIcon />} pro={<CheckIcon />} />
                         <TableRow feature="Soporte Técnico" free="Email (48hs)" pro="Prioritario (WhatsApp)" />
