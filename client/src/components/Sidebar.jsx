@@ -291,14 +291,14 @@ const Sidebar = ({ onOpenModal, toggleTheme, currentTheme, userRole }) => {
                                 </button>
                             </div>
 
-                            {/* {!isPremium && (
+                            {!isPremium && (
                                 <Link
-                                    to="/settings"
+                                    to="/upgrade"
                                     className="mt-3 flex items-center justify-center gap-2 w-full py-2 text-xs font-bold text-white bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 rounded-lg transition-all shadow-lg shadow-indigo-900/30 group-hover:scale-[1.02]"
                                 >
                                     <Sparkles size={12} className="fill-white" /> Mejorar a Pro
                                 </Link>
-                            )} */}
+                            )}
                         </div>
                     </div>
                 </div>

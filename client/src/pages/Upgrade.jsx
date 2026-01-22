@@ -1,18 +1,14 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import {
-    Check, X, Zap, Crown, Shield, Rocket, Star, Sparkles, Flame, Loader2
+    Check, X, Crown, Shield, Rocket, Sparkles, Flame, Loader2
 } from 'lucide-react';
-import toast from 'react-hot-toast'; // Importamos Toast para errores
+import toast from 'react-hot-toast'; 
 
 const Upgrade = () => {
 
-    // Estado de carga para el botón
     const [loading, setLoading] = useState(false);
 
-    // ==============================================================================
-    // ⚙️ LÓGICA DE PAGO CORREGIDA (Backend Generates Link -> Overlay Opens)
-    // ==============================================================================
     const handleCheckout = async () => {
         setLoading(true);
         try {

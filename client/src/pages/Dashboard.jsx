@@ -330,7 +330,7 @@ const Dashboard = ({ isModalOpen, setIsModalOpen, userRole }) => {
 
                     {!isPremium && (
                         <button
-                            onClick={() => navigate('/settings')}
+                            onClick={() => navigate('/upgrade')}
                             className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-slate-100 text-slate-600 border border-slate-200 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 transition-all group"
                         >
                             <Sparkles size={12} className="text-yellow-500 group-hover:text-indigo-500" />
@@ -416,7 +416,7 @@ const Dashboard = ({ isModalOpen, setIsModalOpen, userRole }) => {
                                 <p className="text-sm md:text-base text-slate-500 dark:text-slate-400 mb-6 leading-relaxed">
                                     Chatea con tus candidatos, obtén análisis profundos y exporta datos con el plan Agency.
                                 </p>
-                                <button onClick={() => navigate('/settings')} className="w-full py-3 bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-xl font-bold text-sm md:text-base hover:shadow-lg hover:shadow-indigo-500/30 transition-all active:scale-95 flex justify-center items-center gap-2">
+                                <button onClick={() => navigate('/upgrade')} className="w-full py-3 bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-xl font-bold text-sm md:text-base hover:shadow-lg hover:shadow-indigo-500/30 transition-all active:scale-95 flex justify-center items-center gap-2">
                                     <Crown size={16} /> Desbloquear
                                 </button>
                                 <p className="text-[10px] md:text-xs text-slate-400 mt-4">Cancela cuando quieras.</p>

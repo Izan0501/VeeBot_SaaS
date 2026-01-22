@@ -90,7 +90,7 @@ const PremiumLock = ({ title, description, icon }) => {
             <div className="absolute -inset-0.5 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl blur opacity-30 group-hover/btn:opacity-75 transition duration-500"></div>
             
             <motion.button
-              onClick={() => navigate('/settings')}
+              onClick={() => navigate('/upgrade')}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               className="relative w-full py-4 bg-slate-900 dark:bg-white rounded-xl leading-none flex items-center justify-center gap-3 overflow-hidden shadow-xl"
