@@ -4,7 +4,6 @@
 
 @layer base {
   body {
-    /* Usamos @apply para inyectar las clases al body */
     @apply bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-300;
   }
 }
@@ -15,4 +14,17 @@
 }
 .animate-shine {
   animation: shine 1s;
+}
+
+@keyframes gradient-xy {
+    0%, 100% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+}
+.animate-gradient-xy {
+    background-size: 200% 200%;
+    animation: gradient-xy 3s ease infinite;
 }

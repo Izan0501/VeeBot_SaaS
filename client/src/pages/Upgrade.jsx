@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
-    Check, X, Zap, Crown, Shield, Rocket, Star, Sparkles, Flame, Loader2
+    Check, X, Crown, Shield, Rocket, Sparkles, Flame, Loader2
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
@@ -11,9 +11,7 @@ const Upgrade = () => {
     const [loading, setLoading] = useState(false);
 
     // ==============================================================================
-    // 🛡️ GUARDIA DE SEGURIDAD (NUEVO)
     // Verifica si el usuario YA es Premium al entrar o volver a esta página.
-    // Si ya pagó, lo redirige al Dashboard y borra el historial para que no pueda volver.
     // ==============================================================================
     useEffect(() => {
         const verifyCurrentStatus = async () => {
