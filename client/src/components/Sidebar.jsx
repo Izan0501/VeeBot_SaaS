@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
     Users, UploadCloud, BarChart3, Settings, LogOut,
     BrainCircuit, Menu, X, Sun, Moon, Crown, Zap, Sparkles,
-    FileText, ShieldCheck, Bot, Swords, Mail, LifeBuoy, ChevronRight
+    FileText, ShieldCheck, Bot, Swords, Mail, LifeBuoy, ChevronRight, Download
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -182,12 +182,62 @@ const Sidebar = ({ onOpenModal, toggleTheme, currentTheme, userRole }) => {
                         <p className="px-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-3">Herramientas</p>
                         <div className="space-y-1">
                             <NavItem to="/comparator" icon={<Swords size={20} />} text="Comparar CVs" active={isActive('/comparator')} />
+                            <NavItem to="/export" icon={<Download size={20} />} text="Exportar Datos" active={isActive('/export')} />
                             <NavItem to="/emails" icon={<Mail size={20} />} text="Plantillas Email" active={isActive('/emails')} />
                             <NavItem to="/settings" icon={<Settings size={20} />} text="Configuración" active={location.pathname === '/settings'} />
                         </div>
                     </div>
 
-                    {/* SECCIÓN 3: LEGAL & SOPORTE */}
+                    {/* SECCIÓN 3: Premium */}
+                    {userRole !== 'Premium' && userRole !== 'Agency' && (
+                        <div>
+                            <p className="px-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-3">Premium</p>
+                            <div className="space-y-1">
+                                <Link to="/upgrade">
+                                    <motion.div
+                                        whileHover={{ scale: 1.02 }}
+                                        whileTap={{ scale: 0.98 }}
+                                        className="group relative w-full rounded-xl p-[1px] overflow-hidden cursor-pointer"
+                                    >
+                                        {/* 1. BORDE GRADIENTE ANIMADO (FONDO ROTATIVO) */}
+                                        <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 opacity-70 group-hover:opacity-100 transition-opacity duration-500 animate-gradient-xy"></div>
+
+                                        {/* 2. GLOW DIFUSO TRASERO (SUTIL) */}
+                                        <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 opacity-0 blur-md group-hover:opacity-30 transition-opacity duration-500"></div>
+
+                                        {/* 3. CONTENIDO COMPACTO (SUPERFICIE) */}
+                                        <div className="relative h-full bg-white dark:bg-slate-950 rounded-[11px] px-3 py-2.5 flex items-center gap-2.5 transition-colors group-hover:bg-slate-50 dark:group-hover:bg-slate-900">
+
+                                            {/* Icono Especial (Más pequeño) */}
+                                            <div className="shrink-0 w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500/10 to-purple-500/10 flex items-center justify-center border border-indigo-500/20 group-hover:border-indigo-500/40 transition-colors">
+                                                <Sparkles
+                                                    size={16}
+                                                    className="text-indigo-600 dark:text-indigo-400 group-hover:text-pink-500 transition-colors duration-300 animate-pulse"
+                                                />
+                                            </div>
+
+                                            {/* Textos (Alineados y compactos) */}
+                                            <div className="flex flex-col flex-1 min-w-0 justify-center">
+                                                <span className="text-[9px] font-extrabold uppercase tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-pink-600 leading-tight">
+                                                    Upgrade
+                                                </span>
+                                                <span className="text-xs font-bold text-slate-700 dark:text-slate-200 truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-300 transition-colors leading-tight">
+                                                    Ser Premium
+                                                </span>
+                                            </div>
+
+                                            {/* Flecha (Sutil y pequeña) */}
+                                            <div className="text-slate-300 group-hover:text-indigo-500 group-hover:translate-x-0.5 transition-all duration-300">
+                                                <ChevronRight size={14} />
+                                            </div>
+                                        </div>
+                                    </motion.div>
+                                </Link>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* SECCIÓN 4: LEGAL & SOPORTE */}
                     <div>
                         <p className="px-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-3">Soporte</p>
                         <div className="space-y-1">
@@ -206,22 +256,6 @@ const Sidebar = ({ onOpenModal, toggleTheme, currentTheme, userRole }) => {
                                 icon={<Mail size={20} />}
                                 text="Contactar Soporte"
                                 active={isActive('/dashboard/contact')}
-                            />
-
-                            {/* TÉRMINOS - Ruta Interna */}
-                            <NavItem
-                                to="/dashboard/terms"
-                                icon={<FileText size={20} />}
-                                text="Términos"
-                                active={isActive('/dashboard/terms')}
-                            />
-
-                            {/* PRIVACIDAD - Ruta Interna */}
-                            <NavItem
-                                to="/dashboard/privacy"
-                                icon={<ShieldCheck size={20} />}
-                                text="Privacidad"
-                                active={isActive('/dashboard/privacy')}
                             />
                         </div>
                     </div>
@@ -269,50 +303,7 @@ const Sidebar = ({ onOpenModal, toggleTheme, currentTheme, userRole }) => {
                                 </button>
                             </div>
                             {/* BOTÓN DE UPGRADE - SOLO PARA USUARIOS NO PREMIUM */}
-                            {userRole !== 'Premium' && userRole !== 'Agency' && (
-                                <div className="px-3 mt-6 mb-2">
-                                    <Link to="/upgrade">
-                                        <motion.div
-                                            whileHover={{ scale: 1.02 }}
-                                            whileTap={{ scale: 0.98 }}
-                                            className="group relative w-full rounded-xl p-[1px] overflow-hidden cursor-pointer"
-                                        >
-                                            {/* 1. BORDE GRADIENTE ANIMADO (FONDO ROTATIVO) */}
-                                            <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 opacity-70 group-hover:opacity-100 transition-opacity duration-500 animate-gradient-xy"></div>
 
-                                            {/* 2. GLOW DIFUSO TRASERO (SUTIL) */}
-                                            <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 opacity-0 blur-md group-hover:opacity-30 transition-opacity duration-500"></div>
-
-                                            {/* 3. CONTENIDO COMPACTO (SUPERFICIE) */}
-                                            <div className="relative h-full bg-white dark:bg-slate-950 rounded-[11px] px-3 py-2.5 flex items-center gap-2.5 transition-colors group-hover:bg-slate-50 dark:group-hover:bg-slate-900">
-
-                                                {/* Icono Especial (Más pequeño) */}
-                                                <div className="shrink-0 w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500/10 to-purple-500/10 flex items-center justify-center border border-indigo-500/20 group-hover:border-indigo-500/40 transition-colors">
-                                                    <Sparkles
-                                                        size={16}
-                                                        className="text-indigo-600 dark:text-indigo-400 group-hover:text-pink-500 transition-colors duration-300 animate-pulse"
-                                                    />
-                                                </div>
-
-                                                {/* Textos (Alineados y compactos) */}
-                                                <div className="flex flex-col flex-1 min-w-0 justify-center">
-                                                    <span className="text-[9px] font-extrabold uppercase tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-pink-600 leading-tight">
-                                                        Upgrade
-                                                    </span>
-                                                    <span className="text-xs font-bold text-slate-700 dark:text-slate-200 truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-300 transition-colors leading-tight">
-                                                        Ser Premium
-                                                    </span>
-                                                </div>
-
-                                                {/* Flecha (Sutil y pequeña) */}
-                                                <div className="text-slate-300 group-hover:text-indigo-500 group-hover:translate-x-0.5 transition-all duration-300">
-                                                    <ChevronRight size={14} />
-                                                </div>
-                                            </div>
-                                        </motion.div>
-                                    </Link>
-                                </div>
-                            )}
                             <div className="flex items-center justify-between gap-2 mt-2 pt-3 border-t border-white/5 dark:border-slate-100">
                                 <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border ${planConfig.bgStyle} ${planConfig.border} ${planConfig.glow}`}>
                                     {planConfig.icon}

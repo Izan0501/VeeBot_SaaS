@@ -23,6 +23,7 @@ import Faq from './pages/Faq';
 import PremiumLock from './components/PremiumLock';
 import DigitalTwin from './pages/DigitalTwin';
 import Upgrade from './pages/Upgrade';
+import DataExport from './pages/DataExport';
 
 // --- COMPONENTE MÁGICO: CONTROLADOR DE TEMAS ---
 const ThemeController = ({ userTheme }) => {
@@ -93,8 +94,8 @@ function App() {
 
   // --- LAYOUT PROTEGIDO CON SCROLL RESET ---
   const ProtectedLayout = ({ children }) => {
-    const mainContentRef = useRef(null); // Referencia al contenedor principal
-    const location = useLocation();      // Hook para detectar cambio de ruta
+    const mainContentRef = useRef(null);
+    const location = useLocation();      
 
     if (!isAuthenticated) return <Navigate to="/login" replace />;
 
@@ -153,6 +154,8 @@ function App() {
         <Route path="/import" element={<ProtectedLayout><ImportData /></ProtectedLayout>} />
 
         <Route path="/analytics" element={<ProtectedLayout>{userRole === 'Premium' || userRole === 'Admin' || userRole === 'Reclutador' ? <Analytics /> : <PremiumLock icon="📊" title="Analíticas Avanzadas" description="Visualiza métricas clave..." />}</ProtectedLayout>} />
+
+        <Route path="/export" element={<ProtectedLayout>{userRole === 'Premium' || userRole === 'Admin' || userRole === 'Reclutador' ? <DataExport /> : <PremiumLock icon="📊" title="Exportación de Datos" description="Descarga tu base de conocimiento..." />}</ProtectedLayout>} />
 
         <Route path="/emails" element={<ProtectedLayout>{userRole === 'Premium' || userRole === 'Admin' || userRole === 'Reclutador' ? <EmailTemplates /> : <PremiumLock icon="✉️" title="Email Automation" description="Contacta candidatos..." />}</ProtectedLayout>} />
 

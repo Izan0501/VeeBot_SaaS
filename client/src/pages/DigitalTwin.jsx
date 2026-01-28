@@ -90,6 +90,7 @@ const DigitalTwin = () => {
     };
 
     return (
+        // AQUI ESTA LA CLAVE: bg-slate-50 dark:bg-slate-950 transition-colors
         <div className="h-full w-full bg-slate-50 dark:bg-slate-950 overflow-hidden font-sans relative flex transition-colors duration-500">
 
             {/* --- BACKGROUND VIVO (ORBES FLOTANTES) --- */}
@@ -125,7 +126,8 @@ const DigitalTwin = () => {
                             initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
                             className="text-3xl font-black text-slate-900 dark:text-white flex items-center gap-3 tracking-tighter"
                         >
-                            Digital Twins<span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 to-purple-600">AI</span>
+                            Digital<span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 to-purple-600">Twins</span>
+                            <span className="text-[10px] bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-2 py-0.5 rounded-full font-bold uppercase tracking-widest opacity-80">Beta</span>
                         </motion.h2>
                         <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 font-medium">
                             {candidates.length} simulaciones neuronales listas.
@@ -239,7 +241,7 @@ const DigitalTwin = () => {
                             FIX: 'pt-10 pb-3' en móvil para que baje el contenido y no se corte con el notch.
                             En desktop 'md:py-0 md:h-24' para mantener el diseño original.
                         */}
-                        <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-800/50 flex items-center justify-between px-6 md:px-10 z-30 sticky top-0 shadow-sm shrink-0 pt-20 pb-3 md:py-0 md:h-24">
+                        <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-800/50 flex items-center justify-between px-6 md:px-10 z-30 sticky top-0 shadow-sm shrink-0 pt-10 pb-3 md:py-0 md:h-24">
 
                             <div className="flex items-center gap-5 w-full">
                                 {/* BOTÓN VOLVER (MOBILE) */}

@@ -6,6 +6,7 @@ import {
     TrendingUp, Users, Target, Award, Download, ArrowUpRight, BrainCircuit, Activity, Zap, Sparkles, Fingerprint, Lightbulb
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
 // --- UTILIDAD DE NORMALIZACIÓN DE ROLES ---
@@ -43,6 +44,8 @@ const Analytics = () => {
     const [loading, setLoading] = useState(true);
     const [timeRange, setTimeRange] = useState('30d');
     const [userThreshold, setUserThreshold] = useState(70);
+
+    const navigate = useNavigate();
 
     // --- 1. FETCH DATOS Y CONFIGURACIÓN ---
     useEffect(() => {
@@ -172,42 +175,6 @@ const Analytics = () => {
 
     const COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#f43f5e', '#10b981'];
 
-    // --- FUNCIÓN DE EXPORTACIÓN ---
-    const handleExportReport = () => {
-        if (filteredCandidates.length === 0) return toast.error("No hay datos para exportar.");
-
-        const separator = ";";
-        const headers = ["ID", "Nombre", "Rol Detectado", "Score", "Estado", "Fecha", "Skills"];
-        const csvHeader = headers.join(separator) + "\n";
-
-        const csvRows = filteredCandidates.map(c => {
-            const cleanName = c.name ? c.name.replace(/;/g, ",") : "";
-            const cleanRole = c.role ? c.role.replace(/;/g, ",") : "";
-            const cleanSkills = c.skills ? c.skills.join(" | ") : "";
-            const cleanDate = c.date ? `"${c.date}"` : "";
-
-            return [
-                c.id, cleanName, cleanRole, c.score, c.status, cleanDate, cleanSkills
-            ].join(separator);
-        });
-
-        const csvContent = csvHeader + csvRows.join("\n");
-        const BOM = "\uFEFF";
-        const blob = new Blob([BOM + csvContent], { type: "text/csv;charset=utf-8;" });
-
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.setAttribute("download", `veebot_reporte_${timeRange}_${new Date().toISOString().slice(0, 10)}.csv`);
-        document.body.appendChild(link);
-        link.click();
-
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
-
-        toast.success("Reporte descargado (Excel Friendly) 📊");
-    };
-
     const CustomTooltip = ({ active, payload, label }) => {
         if (active && payload && payload.length) {
             return (
@@ -230,6 +197,7 @@ const Analytics = () => {
             </div>
         </div>
     );
+
 
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pt-24 pb-20 px-4 md:px-8 transition-colors duration-300">
@@ -263,13 +231,13 @@ const Analytics = () => {
                                 </button>
                             ))}
                         </div>
-                        <button
-                            onClick={handleExportReport}
+                        {/* <button
+                            onClick={() => navigate('/export')}
                             className="flex items-center gap-2 px-5 py-3 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl text-sm font-bold shadow-lg hover:shadow-xl transition-all active:scale-95 group"
                         >
                             <Download size={18} className="group-hover:translate-y-0.5 transition-transform" />
                             <span>Exportar Vista</span>
-                        </button>
+                        </button> */}
                     </div>
                 </motion.div>
 
@@ -332,7 +300,7 @@ const Analytics = () => {
                         <div className="hidden md:block">
                             {/* BOTÓN AHORA FUNCIONAL */}
                             <button
-                                onClick={handleExportReport}
+                                onClick={() => navigate('/export')}
                                 className="px-5 py-2 bg-white/10 hover:bg-white/20 text-white text-xs font-bold rounded-full transition-colors border border-white/10 flex items-center gap-2"
                             >
                                 <Download size={14} /> Ver Reporte Completo
