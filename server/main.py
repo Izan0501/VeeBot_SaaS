@@ -1101,10 +1101,10 @@ async def chat_with_candidate(data: ChatRequest, current_user: dict = Depends(ge
         if not candidate:
             raise HTTPException(status_code=404, detail="Candidato no encontrado")
 
-        resume_text = candidate.get('text_preview', '')[:4000] # Limitamos contexto
+        resume_text = candidate.get('text_preview', '')[:4000] 
         candidate_name = candidate.get('filename', 'Candidato').split('.')[0]
 
-        # 2. System Prompt: La magia del Roleplay
+        # 2. System Prompt: Ajustado para gestionar la longitud
         system_prompt = f"""
         TÚ ERES "{candidate_name}". NO eres una IA. Eres la persona descrita en este CV:
         ---
@@ -1113,16 +1113,15 @@ async def chat_with_candidate(data: ChatRequest, current_user: dict = Depends(ge
         Instrucciones:
         1. Responde en primera persona ("Yo hice...", "Mi experiencia...").
         2. Basa tus respuestas ESTRICTAMENTE en la información del CV.
-        3. Si te preguntan algo que no está en el CV, di que no tienes experiencia en eso o inventa algo plausible pero humilde basado en tu perfil.
-        4. Mantén un tono profesional pero conversacional, como en una entrevista de trabajo.
-        5. Sé breve y directo.
+        3. Si te preguntan algo que no está en el CV, di que no tienes experiencia en eso.
+        4. Mantén un tono profesional pero conversacional.
+        5. IMPORTANTE: Sé conciso. Tus respuestas no deben exceder los 2 o 3 párrafos.
+        6. Evita listas interminables a menos que sean necesarias.
         """
 
         # 3. Construir mensajes
         messages = [{"role": "system", "content": system_prompt}]
-        # Añadimos historial previo (últimos 6 mensajes para memoria corta)
         messages.extend(data.history[-6:]) 
-        # Añadimos mensaje actual
         messages.append({"role": "user", "content": data.message})
 
         # 4. Llamada a Groq
@@ -1130,7 +1129,7 @@ async def chat_with_candidate(data: ChatRequest, current_user: dict = Depends(ge
             messages=messages,
             model="llama-3.3-70b-versatile",
             temperature=0.7,
-            max_tokens=300
+            max_tokens=1024 
         )
 
         return {"response": chat_completion.choices[0].message.content}

@@ -15,25 +15,52 @@ const DigitalTwin = () => {
     const [input, setInput] = useState("");
     const [loading, setLoading] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
+    const [userRole, setUserRole] = useState("Free");
     const scrollRef = useRef(null);
 
     const FREE_LIMIT = 4;
 
+    // --- CARGA DE DATOS Y ROL DEL USUARIO ---
     useEffect(() => {
-        const fetchCandidates = async () => {
+        const fetchData = async () => {
             const token = localStorage.getItem('token');
-            const res = await fetch('http://127.0.0.1:8000/candidates', { headers: { 'Authorization': `Bearer ${token}` } });
-            if (res.ok) {
-                const data = await res.json();
-                setCandidates(data);
+            if (!token) return;
+
+            try {
+                const resCandidates = await fetch('http://127.0.0.1:8000/candidates', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (resCandidates.ok) {
+                    const data = await resCandidates.json();
+                    setCandidates(data);
+                }
+
+                const resUser = await fetch('http://127.0.0.1:8000/auth/me', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (resUser.ok) {
+                    const userData = await resUser.json();
+                    setUserRole(userData.role || "Free");
+                }
+
+            } catch (error) {
+                console.error("Error fetching data:", error);
+                toast.error("Error cargando datos del usuario.");
             }
         };
-        fetchCandidates();
+        fetchData();
     }, []);
 
     useEffect(() => {
         scrollRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages, loading]);
+
+    const isPremium = ['Premium', 'Agency', 'Agency Pro'].includes(userRole);
+
+    const isLimitReached = () => {
+        if (isPremium) return false;
+        return messages.length >= FREE_LIMIT;
+    };
 
     const filteredCandidates = candidates.filter(c =>
         c.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -43,7 +70,7 @@ const DigitalTwin = () => {
         e.preventDefault();
         if (!input.trim() || !selectedCandidate) return;
 
-        if (messages.length >= FREE_LIMIT) {
+        if (isLimitReached()) {
             toast.error("Límite de preguntas alcanzado en el plan Free");
             return;
         }
@@ -90,8 +117,40 @@ const DigitalTwin = () => {
     };
 
     return (
-        // AQUI ESTA LA CLAVE: bg-slate-50 dark:bg-slate-950 transition-colors
         <div className="h-full w-full bg-slate-50 dark:bg-slate-950 overflow-hidden font-sans relative flex transition-colors duration-500">
+
+            {/* --- ESTILOS PARA LA SCROLLBAR ULTRA-ORGASMICA --- */}
+            <style>{`
+                /* Scrollbar container */
+                .custom-scrollbar::-webkit-scrollbar {
+                    width: 6px;
+                    height: 6px;
+                }
+                
+                /* Track (Fondo) */
+                .custom-scrollbar::-webkit-scrollbar-track {
+                    background: transparent;
+                }
+
+                /* Handle (Barra) */
+                .custom-scrollbar::-webkit-scrollbar-thumb {
+                    background: rgba(99, 102, 241, 0.2); /* Indigo muy suave */
+                    border-radius: 100vh;
+                    transition: all 0.3s ease;
+                }
+
+                /* Handle on hover (Efecto Glow) */
+                .custom-scrollbar:hover::-webkit-scrollbar-thumb {
+                    background: linear-gradient(to bottom, #6366f1, #a855f7); /* Indigo to Purple */
+                    box-shadow: 0 0 10px rgba(168, 85, 247, 0.5); /* Glow Púrpura */
+                }
+                
+                /* Firefox support */
+                .custom-scrollbar {
+                    scrollbar-width: thin;
+                    scrollbar-color: rgba(99, 102, 241, 0.3) transparent;
+                }
+            `}</style>
 
             {/* --- BACKGROUND VIVO (ORBES FLOTANTES) --- */}
             <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
@@ -112,13 +171,12 @@ const DigitalTwin = () => {
             ==================================================================================== */}
             <div className={`
                 w-full lg:w-[420px] bg-white/70 dark:bg-slate-900/60 backdrop-blur-2xl border-r border-slate-200/50 dark:border-slate-800/50 
-                flex-col z-20 shadow-2xl lg:shadow-none h-full absolute lg:relative transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]
+                flex flex-col z-20 shadow-2xl lg:shadow-none h-full absolute lg:relative transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]
                 ${selectedCandidate ? '-translate-x-full lg:translate-x-0' : 'translate-x-0'}
             `}>
 
-                {/* Header Sidebar */}
+                {/* Header Sidebar (Fijo arriba) */}
                 <div className="p-6 md:p-8 border-b border-slate-200/50 dark:border-slate-800/50 shrink-0 relative overflow-hidden">
-                    {/* Decoración sutil header */}
                     <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-indigo-500/10 to-transparent rounded-bl-full pointer-events-none"></div>
 
                     <div className="relative z-10">
@@ -127,14 +185,17 @@ const DigitalTwin = () => {
                             className="text-3xl font-black text-slate-900 dark:text-white flex items-center gap-3 tracking-tighter"
                         >
                             Digital<span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 to-purple-600">Twins</span>
-                            <span className="text-[10px] bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-2 py-0.5 rounded-full font-bold uppercase tracking-widest opacity-80">Beta</span>
+                            {isPremium ? (
+                                <span className="text-[10px] bg-gradient-to-r from-amber-400 to-orange-500 text-white px-2 py-0.5 rounded-full font-bold uppercase tracking-widest shadow-sm">Pro</span>
+                            ) : (
+                                <span className="text-[10px] bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-2 py-0.5 rounded-full font-bold uppercase tracking-widest opacity-80">Beta</span>
+                            )}
                         </motion.h2>
                         <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 font-medium">
                             {candidates.length} simulaciones neuronales listas.
                         </p>
                     </div>
 
-                    {/* Search Input "Floaty" */}
                     <div className="mt-8 relative group">
                         <div className="absolute -inset-0.5 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-2xl opacity-20 group-focus-within:opacity-100 transition duration-500 blur-sm group-focus-within:blur-md"></div>
                         <div className="relative flex items-center bg-white dark:bg-slate-950 rounded-2xl shadow-sm">
@@ -155,7 +216,7 @@ const DigitalTwin = () => {
                     </div>
                 </div>
 
-                {/* Lista Ultra-Estilizada */}
+                {/* Lista Ultra-Estilizada (CON SCROLLBAR ORGASMICA) */}
                 <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar scroll-smooth">
                     <AnimatePresence>
                         {filteredCandidates.length === 0 ? (
@@ -175,12 +236,11 @@ const DigitalTwin = () => {
                                 >
                                     <button
                                         onClick={() => handleSelectCandidate(c)}
-                                        className={`w-full p-4 rounded-3xl flex items-center gap-4 transition-all duration-300 group border relative overflow-hidden
+                                        className={`w-full p-4 rounded-3xl flex items-center gap-4 transition-all duration-300 group border relative overflow-hidden shrink-0
                                         ${selectedCandidate?.id === c.id
                                                 ? 'bg-slate-900 dark:bg-white border-slate-900 dark:border-white shadow-xl shadow-slate-900/20 dark:shadow-white/5 scale-[1.02]'
                                                 : 'bg-white/50 dark:bg-slate-800/30 border-transparent hover:bg-white dark:hover:bg-slate-800 hover:shadow-lg hover:shadow-indigo-500/10 hover:border-indigo-100 dark:hover:border-slate-700'}`}
                                     >
-                                        {/* Avatar Dinámico */}
                                         <div className="relative">
                                             <div className={`w-14 h-14 rounded-2xl flex items-center justify-center font-bold text-xl shadow-inner relative z-10 transition-colors
                                                 ${selectedCandidate?.id === c.id
@@ -189,14 +249,12 @@ const DigitalTwin = () => {
                                             >
                                                 {c.name.charAt(0).toUpperCase()}
                                             </div>
-                                            {/* Status Indicator Pulse */}
                                             <span className="absolute -top-1 -right-1 flex h-4 w-4">
                                                 <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${selectedCandidate?.id === c.id ? 'bg-green-400' : 'bg-slate-400'}`}></span>
                                                 <span className={`relative inline-flex rounded-full h-4 w-4 border-2 border-white dark:border-slate-800 ${selectedCandidate?.id === c.id ? 'bg-green-500' : 'bg-slate-400'}`}></span>
                                             </span>
                                         </div>
 
-                                        {/* Info Text */}
                                         <div className="flex-1 min-w-0 text-left">
                                             <h4 className={`text-base font-bold truncate transition-colors ${selectedCandidate?.id === c.id ? 'text-white dark:text-slate-900' : 'text-slate-800 dark:text-slate-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400'}`}>
                                                 {c.name.replace('.pdf', '').replace('.docx', '')}
@@ -211,12 +269,11 @@ const DigitalTwin = () => {
                                             </div>
                                         </div>
 
-                                        {/* Chevron Animado */}
                                         <ChevronRight
                                             size={20}
                                             className={`transition-all duration-300 ${selectedCandidate?.id === c.id
-                                                    ? 'text-white dark:text-slate-900 translate-x-1'
-                                                    : 'text-slate-300 -translate-x-2 opacity-0 group-hover:opacity-100 group-hover:translate-x-0'
+                                                ? 'text-white dark:text-slate-900 translate-x-1'
+                                                : 'text-slate-300 -translate-x-2 opacity-0 group-hover:opacity-100 group-hover:translate-x-0'
                                                 }`}
                                         />
                                     </button>
@@ -237,14 +294,8 @@ const DigitalTwin = () => {
 
                 {selectedCandidate ? (
                     <>
-                        {/* CHAT HEADER: GLASSY & STICKY 
-                            FIX: 'pt-10 pb-3' en móvil para que baje el contenido y no se corte con el notch.
-                            En desktop 'md:py-0 md:h-24' para mantener el diseño original.
-                        */}
-                        <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-800/50 flex items-center justify-between px-6 md:px-10 z-30 sticky top-0 shadow-sm shrink-0 pt-10 pb-3 md:py-0 md:h-24">
-
+                        <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-800/50 flex items-center justify-between px-6 md:px-10 z-30 sticky top-0 shadow-sm shrink-0 pt-20 pb-3 md:py-0 md:h-24">
                             <div className="flex items-center gap-5 w-full">
-                                {/* BOTÓN VOLVER (MOBILE) */}
                                 <button
                                     onClick={handleBackToList}
                                     className="lg:hidden p-3 rounded-full bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-lg border border-slate-100 dark:border-slate-700 active:scale-90 transition-transform mr-2"
@@ -252,7 +303,6 @@ const DigitalTwin = () => {
                                     <ArrowLeft size={22} strokeWidth={3} />
                                 </button>
 
-                                {/* Avatar Grande */}
                                 <div className="relative shrink-0">
                                     <div className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-gradient-to-tr from-indigo-500 to-fuchsia-600 flex items-center justify-center text-white font-black text-xl md:text-2xl shadow-xl ring-4 ring-white dark:ring-slate-900">
                                         {selectedCandidate.name.charAt(0)}
@@ -277,9 +327,8 @@ const DigitalTwin = () => {
                             </div>
                         </div>
 
-                        {/* MESSAGES AREA */}
-                        <div className="flex-1 overflow-y-auto p-4 md:p-10 space-y-8 relative scroll-smooth">
-                            {/* Matrix Pattern Overlay */}
+                        {/* MESSAGES AREA (TAMBIEN CON SCROLLBAR ORGASMICA) */}
+                        <div className="flex-1 overflow-y-auto p-4 md:p-10 space-y-8 relative scroll-smooth custom-scrollbar">
                             <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.07] pointer-events-none"
                                 style={{ backgroundImage: 'radial-gradient(circle, #6366f1 1px, transparent 1px)', backgroundSize: '30px 30px' }}>
                             </div>
@@ -294,21 +343,16 @@ const DigitalTwin = () => {
                                         className={`flex w-full ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                                     >
                                         <div className={`max-w-[85%] md:max-w-[70%] flex gap-4 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-
-                                            {/* Iconos de Avatar en el chat */}
                                             <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 shadow-md mt-auto
                                                 ${msg.role === 'user' ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900' : 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white'}`}>
                                                 {msg.role === 'user' ? <ArrowLeft className="rotate-180" size={18} /> : <Bot size={20} />}
                                             </div>
-
                                             <div className={`p-6 rounded-[2rem] shadow-xl text-[15px] md:text-base leading-relaxed relative overflow-hidden backdrop-blur-sm
                                                 ${msg.role === 'user'
                                                     ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-br-none'
                                                     : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-100 dark:border-slate-700 rounded-bl-none'
                                                 }`}>
-                                                {/* Efecto de brillo en burbujas */}
                                                 <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-white/10 to-transparent pointer-events-none"></div>
-
                                                 {msg.content}
                                             </div>
                                         </div>
@@ -331,7 +375,7 @@ const DigitalTwin = () => {
                                 </motion.div>
                             )}
 
-                            {messages.length >= FREE_LIMIT && (
+                            {isLimitReached() && (
                                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex justify-center py-10">
                                     <button
                                         onClick={() => navigate('/upgrade')}
@@ -369,14 +413,14 @@ const DigitalTwin = () => {
                                         type="text"
                                         value={input}
                                         onChange={(e) => setInput(e.target.value)}
-                                        disabled={messages.length >= FREE_LIMIT || loading}
-                                        placeholder={messages.length >= FREE_LIMIT ? "Actualiza para continuar..." : "Haz una pregunta difícil..."}
+                                        disabled={isLimitReached() || loading}
+                                        placeholder={isLimitReached() ? "Actualiza para continuar..." : "Haz una pregunta difícil..."}
                                         className="flex-1 bg-transparent text-slate-900 dark:text-white px-4 py-6 outline-none text-base md:text-lg placeholder:text-slate-400"
                                     />
 
                                     <button
                                         type="submit"
-                                        disabled={loading || !input.trim() || messages.length >= FREE_LIMIT}
+                                        disabled={loading || !input.trim() || isLimitReached()}
                                         className="m-2 p-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:grayscale disabled:scale-100"
                                     >
                                         <Send size={20} className="ml-0.5" />
@@ -391,7 +435,6 @@ const DigitalTwin = () => {
                 ) : (
                     // --- EMPTY STATE (Desktop) ---
                     <div className="flex-1 hidden lg:flex flex-col items-center justify-center p-8 relative overflow-hidden">
-                        {/* Decoración Fondo */}
                         <div className="absolute w-[800px] h-[800px] bg-gradient-to-tr from-indigo-500/10 to-purple-500/10 rounded-full blur-[100px] animate-pulse"></div>
 
                         <motion.div

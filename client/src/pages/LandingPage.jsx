@@ -8,6 +8,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
+import HeroSection from '../components/HeroSection';
 
 const LandingPage = () => {
   const navigate = useNavigate();
@@ -83,116 +84,9 @@ const LandingPage = () => {
       <Navbar />
 
       {/* ================================================================================== */}
-      {/* 1. HERO SECTION (CLEAN & AIRY) */}
+      {/* 1. HERO SECTION */}
       {/* ================================================================================== */}
-      <section className="pt-32 md:pt-48 pb-32 px-6 relative overflow-hidden bg-white dark:bg-slate-950 transition-colors duration-500">
-        <div className="absolute top-0 left-0 w-full h-full overflow-hidden -z-10 pointer-events-none">
-          <motion.div animate={{ rotate: 360 }} transition={{ duration: 150, repeat: Infinity, ease: "linear" }} className="absolute -top-[50%] -left-[50%] w-[200%] h-[200%] bg-[radial-gradient(circle_at_center,_rgba(99,102,241,0.03)_0%,_transparent_50%)] dark:bg-[radial-gradient(circle_at_center,_rgba(99,102,241,0.08)_0%,_transparent_50%)]" />
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-indigo-600/10 dark:bg-indigo-500/20 rounded-full blur-[120px] opacity-60"></div>
-        </div>
-
-        <motion.div
-          className="max-w-6xl mx-auto text-center relative z-10"
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-        >
-          <motion.div variants={itemVariants} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 shadow-sm mb-8 hover:scale-105 transition-transform cursor-default">
-            <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wide">Nuevo: Exportación a Excel & Docker Ready</span>
-          </motion.div>
-
-          <motion.h1 variants={itemVariants} className="text-5xl md:text-8xl font-black text-slate-900 dark:text-white mb-8 leading-[1.1] tracking-tight">
-            Contrata talento, <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-violet-600 to-rose-500 dark:from-indigo-400 dark:via-purple-400 dark:to-rose-400 animate-gradient-x">
-              olvida los PDFs.
-            </span>
-          </motion.h1>
-
-          <motion.p variants={itemVariants} className="text-xl md:text-2xl text-slate-500 dark:text-slate-400 mb-10 max-w-3xl mx-auto leading-relaxed font-light">
-            Transforma montañas de currículums en <strong>datos estructurados, comparables y exportables</strong>.
-            El único ATS impulsado por Llama 3.3 que entiende el contexto.
-          </motion.p>
-
-          <motion.div variants={itemVariants} className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-24">
-            <div className="relative group">
-              <div className="absolute -inset-1 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl blur opacity-25 group-hover:opacity-75 transition duration-1000 group-hover:duration-200 animate-tilt"></div>
-              <motion.button
-                onClick={() => navigate('/register')}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="relative w-full sm:w-auto px-8 py-4 bg-slate-900 dark:bg-white rounded-2xl leading-none flex items-center justify-center gap-3 overflow-hidden"
-              >
-                <div className="absolute inset-0 bg-gradient-to-r from-indigo-600 via-violet-600 to-purple-600 opacity-90 dark:opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                <div className="absolute top-0 -left-[100%] w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-[25deg] group-hover:animate-shine" />
-                <span className="relative z-10 font-bold text-lg text-white dark:text-slate-900 tracking-wide">
-                  Prueba Gratis Ahora
-                </span>
-                <motion.div
-                  className="relative z-10"
-                  animate={{ x: [0, 3, 0] }}
-                  transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut", repeatDelay: 1 }}
-                >
-                  <ArrowRight size={20} className="text-indigo-200 dark:text-slate-600 group-hover:text-white dark:group-hover:text-slate-900 transition-colors" />
-                </motion.div>
-              </motion.button>
-            </div>
-            <div className="flex items-center gap-4 text-sm font-semibold text-slate-500 dark:text-slate-400 px-4">
-              <span className="flex items-center gap-1"><CheckCircle size={16} className="text-emerald-500" /> Sin tarjeta</span>
-              <span className="flex items-center gap-1"><CheckCircle size={16} className="text-emerald-500" /> Docker Friendly</span>
-            </div>
-          </motion.div>
-
-          <motion.div variants={itemVariants} className="relative mx-auto max-w-5xl">
-            <div className="absolute -inset-1 bg-gradient-to-r from-rose-500 via-indigo-500 to-emerald-500 rounded-[2rem] blur opacity-20 animate-pulse"></div>
-            <div className="relative rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-900/80 backdrop-blur-xl shadow-2xl overflow-hidden">
-              <div className="h-10 bg-slate-50 dark:bg-slate-800 border-b border-slate-100 dark:border-slate-700 flex items-center px-4 gap-2">
-                <div className="flex gap-1.5">
-                  <div className="w-3 h-3 rounded-full bg-red-400/80"></div>
-                  <div className="w-3 h-3 rounded-full bg-yellow-400/80"></div>
-                  <div className="w-3 h-3 rounded-full bg-green-400/80"></div>
-                </div>
-                <div className="mx-auto bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-md px-3 py-1 text-[10px] font-mono text-slate-400 flex items-center gap-1">
-                  <Lock size={8} /> veebot.ai/dashboard
-                </div>
-              </div>
-              <div className="p-6 md:p-10 grid grid-cols-1 md:grid-cols-4 gap-6">
-                <div className="md:col-span-1 space-y-4 hidden md:block">
-                  <div className="h-8 w-24 bg-slate-100 dark:bg-slate-800 rounded-lg"></div>
-                  <div className="space-y-2">
-                    {[1, 2, 3, 4].map(i => <div key={i} className="h-10 w-full bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-700"></div>)}
-                  </div>
-                </div>
-                <div className="md:col-span-3 space-y-6">
-                  <div className="flex justify-between">
-                    <div className="h-8 w-48 bg-slate-100 dark:bg-slate-800 rounded-lg"></div>
-                    <div className="h-8 w-24 bg-indigo-100 dark:bg-indigo-900/50 rounded-lg"></div>
-                  </div>
-                  <div className="space-y-3">
-                    {[1, 2, 3].map(i => (
-                      <div key={i} className="h-20 w-full bg-white dark:bg-slate-800/30 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm flex items-center p-4 gap-4">
-                        <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-700"></div>
-                        <div className="flex-1 space-y-2">
-                          <div className="h-4 w-32 bg-slate-100 dark:bg-slate-700 rounded"></div>
-                          <div className="h-3 w-48 bg-slate-50 dark:bg-slate-700/50 rounded"></div>
-                        </div>
-                        <div className="w-16 h-8 bg-green-100 dark:bg-green-900/30 rounded-lg"></div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-              <div className="absolute bottom-8 right-8 bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-4 py-2 rounded-lg shadow-xl text-sm font-bold flex items-center gap-2 animate-bounce-slow">
-                <Zap size={16} className="text-yellow-400 fill-yellow-400 dark:text-indigo-600 dark:fill-indigo-600" /> IA Analizando...
-              </div>
-            </div>
-          </motion.div>
-        </motion.div>
-      </section>
-
-      {/* SEPARATOR FADE */}
-      <div className="h-24 bg-gradient-to-b from-white to-slate-50 dark:from-slate-950 dark:to-slate-900 w-full"></div>
-
+      <HeroSection onNavigate={handleNavigation} isScrolled={isScrolled} />
       {/* ================================================================================== */}
       {/* 2. DATA INTELLIGENCE (GRID PATTERN + BORDERS) */}
       {/* ================================================================================== */}
@@ -593,33 +487,6 @@ const LandingPage = () => {
           </div>
         </div>
       </section>
-
-      {/* ================================================================================== */}
-      {/* 6. TECH STACK BANNER */}
-      {/* ================================================================================== */}
-      <section className="py-16 bg-slate-50 dark:bg-slate-950/50 border-t border-slate-200 dark:border-slate-800 relative overflow-hidden z-20 transition-colors">
-        <div className="max-w-7xl mx-auto px-6 relative z-10">
-          <motion.div
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            className="text-center mb-12"
-          >
-            <h2 className="text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2">Powered by Modern Tech</h2>
-            <div className="w-12 h-1 bg-indigo-600 mx-auto rounded-full"></div>
-          </motion.div>
-
-          <div className="flex flex-wrap justify-center gap-8 md:gap-12 opacity-60 grayscale hover:grayscale-0 transition-all duration-500">
-            <TechBadge icon={<Code />} label="React" />
-            <TechBadge icon={<FileCode />} label="FastAPI" />
-            <TechBadge icon={<Database />} label="MongoDB" />
-            <TechBadge icon={<Share2 />} label="Pinecone" />
-            <TechBadge icon={<Cpu />} label="Llama 3.3" />
-            <TechBadge icon={<Container />} label="Docker" />
-          </div>
-        </div>
-      </section>
-
       <Footer />
     </div>
   );
