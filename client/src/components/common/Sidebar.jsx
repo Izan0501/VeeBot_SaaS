@@ -167,13 +167,8 @@ const Sidebar = ({ onOpenModal, toggleTheme, currentTheme, userRole }) => {
                                 active={location.pathname === '/import'}
                             />
                             <NavItem to="/dashboard" icon={<Users size={20} />} text="Candidatos" active={isActive('/dashboard')} />
+                            <NavItem to="/export" icon={<Download size={20} />} text="Exportar Datos" active={isActive('/export')} />
                             <NavItem to="/analytics" icon={<BarChart3 size={20} />} text="Analíticas" active={isActive('/analytics')} />
-                            <NavItem
-                                to="/digital-twin"
-                                icon={<Bot size={20} />}
-                                text="Digital Twin AI"
-                                active={isActive('/digital-twin')}
-                            />
                         </div>
                     </div>
 
@@ -181,8 +176,13 @@ const Sidebar = ({ onOpenModal, toggleTheme, currentTheme, userRole }) => {
                     <div>
                         <p className="px-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-3">Herramientas</p>
                         <div className="space-y-1">
+                            <NavItem
+                                to="/digital-twin"
+                                icon={<Bot size={20} />}
+                                text="Digital Twin AI"
+                                active={isActive('/digital-twin')}
+                            />
                             <NavItem to="/comparator" icon={<Swords size={20} />} text="Comparar CVs" active={isActive('/comparator')} />
-                            <NavItem to="/export" icon={<Download size={20} />} text="Exportar Datos" active={isActive('/export')} />
                             <NavItem to="/emails" icon={<Mail size={20} />} text="Plantillas Email" active={isActive('/emails')} />
                             <NavItem to="/settings" icon={<Settings size={20} />} text="Configuración" active={location.pathname === '/settings'} />
                         </div>

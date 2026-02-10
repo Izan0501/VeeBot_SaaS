@@ -117,6 +117,13 @@ function App() {
           </ProtectedLayout>
         } />
 
+        {/* ✅ AHORA ES GRATIS (Movido aquí y sin el check isPremium) */}
+        <Route path="/export" element={
+          <ProtectedLayout isModalOpen={isModalOpen} setIsModalOpen={setIsModalOpen}>
+            <DataExport />
+          </ProtectedLayout>
+        } />
+
         <Route path="/settings" element={
           <ProtectedLayout isModalOpen={isModalOpen} setIsModalOpen={setIsModalOpen}>
             <Settings />
@@ -133,12 +140,6 @@ function App() {
         <Route path="/analytics" element={
           <ProtectedLayout isModalOpen={isModalOpen} setIsModalOpen={setIsModalOpen}>
             {isPremium ? <Analytics /> : <PremiumLock icon="📊" title="Analíticas Avanzadas" description="Visualiza métricas clave de tu proceso de selección." />}
-          </ProtectedLayout>
-        } />
-
-        <Route path="/export" element={
-          <ProtectedLayout isModalOpen={isModalOpen} setIsModalOpen={setIsModalOpen}>
-            {isPremium ? <DataExport /> : <PremiumLock icon="💾" title="Exportación de Datos" description="Descarga tu base de conocimiento en CSV/Excel." />}
           </ProtectedLayout>
         } />
 

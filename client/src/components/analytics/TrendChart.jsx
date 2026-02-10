@@ -1,69 +1,202 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Brush } from 'recharts';
-import { Activity } from 'lucide-react';
+import {
+    AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Brush, ReferenceLine
+} from 'recharts';
+import { Activity, TrendingUp, Calendar } from 'lucide-react';
 
+// --- TOOLTIP ULTRA-PREMIUM ---
 const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
+        const score = payload[0].value;
+        // Determinamos el color y mensaje según el puntaje
+        const statusColor = score >= 80 ? 'text-emerald-500' : score >= 50 ? 'text-amber-500' : 'text-rose-500';
+        const bgStatus = score >= 80 ? 'bg-emerald-500' : score >= 50 ? 'bg-amber-500' : 'bg-rose-500';
+
         return (
-            <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md p-4 border border-slate-200 dark:border-slate-700 shadow-2xl rounded-xl animate-in zoom-in-95 duration-200">
-                <p className="text-sm font-bold text-slate-800 dark:text-white mb-1">{label || payload[0].name}</p>
-                <p className="text-xs text-indigo-600 dark:text-indigo-400 font-medium">
-                    Valor: <span className="font-bold">{payload[0].value}</span>
-                </p>
+            <div className="bg-white/95 dark:bg-[#0f111a]/95 backdrop-blur-xl p-4 border border-slate-100 dark:border-slate-800 shadow-2xl rounded-2xl min-w-[180px] animate-in zoom-in-95 duration-200 ring-1 ring-black/5 dark:ring-white/10">
+                <div className="flex justify-between items-center mb-3 pb-2 border-b border-slate-100 dark:border-slate-800">
+                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">{label}</p>
+                    <div className={`w-2 h-2 rounded-full ${bgStatus} shadow-[0_0_8px_currentColor]`}></div>
+                </div>
+                <div className="flex flex-col">
+                    <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase">Puntaje Promedio</span>
+                    <div className="flex items-baseline gap-1">
+                        <span className={`text-2xl font-black ${statusColor} tracking-tight`}>
+                            {score}
+                        </span>
+                        <span className="text-xs text-slate-400 font-medium">/ 100</span>
+                    </div>
+                </div>
             </div>
         );
     }
     return null;
 };
 
+// --- PUNTO ACTIVO PULSANTE ---
+const CustomActiveDot = (props) => {
+    const { cx, cy, stroke } = props;
+    return (
+        <svg x={cx - 10} y={cy - 10} width={20} height={20} className="overflow-visible">
+            <circle cx="10" cy="10" r="6" fill={stroke} stroke="white" strokeWidth="2" />
+            <circle cx="10" cy="10" r="10" stroke={stroke} strokeWidth="1" fill="none" opacity="0.5">
+                <animate attributeName="r" from="6" to="14" dur="1.5s" begin="0s" repeatCount="indefinite" />
+                <animate attributeName="opacity" from="0.8" to="0" dur="1.5s" begin="0s" repeatCount="indefinite" />
+            </circle>
+        </svg>
+    );
+};
+
 const TrendChart = ({ trendData, hasData }) => {
+    // Calculamos el promedio para la línea de referencia
+    const averageScore = hasData
+        ? Math.round(trendData.reduce((acc, curr) => acc + curr.score, 0) / trendData.length)
+        : 0;
+
     return (
         <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="lg:col-span-2 bg-white dark:bg-slate-900 p-6 md:p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xl shadow-slate-200/50 dark:shadow-none"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+            className="lg:col-span-2 relative overflow-hidden bg-white dark:bg-[#0f111a] p-6 md:p-8 rounded-[32px] border border-slate-200/60 dark:border-slate-800/60 shadow-2xl shadow-slate-200/40 dark:shadow-none"
         >
-            <div className="flex justify-between items-center mb-8">
+            {/* Fondo decorativo sutil */}
+            <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none -mr-16 -mt-16"></div>
+
+            {/* HEADER */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-10 relative z-10 gap-4">
                 <div>
-                    <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                        <Activity size={20} className="text-indigo-500" /> Tendencia de Calidad
+                    <h3 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
+                        <div className="p-2.5 bg-indigo-50 dark:bg-indigo-500/10 rounded-xl">
+                            <Activity size={22} className="text-indigo-600 dark:text-indigo-400" />
+                        </div>
+                        Tendencia de Calidad
                     </h3>
-                    <p className="text-xs text-slate-500 mt-1">Evolución del puntaje de candidatos en este periodo.</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 pl-1">
+                        Evolución de candidatos en tiempo real.
+                    </p>
                 </div>
+
+                {hasData && (
+                    <div className="flex items-center gap-4 bg-slate-50 dark:bg-slate-900/80 px-4 py-2 rounded-2xl border border-slate-100 dark:border-slate-800">
+                        <div className="flex flex-col items-end">
+                            <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Promedio Global</span>
+                            <div className="flex items-center gap-2">
+                                <TrendingUp size={14} className="text-emerald-500" />
+                                <span className="text-lg font-black text-slate-800 dark:text-white">{averageScore}%</span>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
-            <div className="h-80 w-full">
+
+            {/* GRÁFICO */}
+            <div className="h-[380px] w-full relative z-10">
                 {hasData ? (
                     <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={trendData} margin={{ top: 10, right: 30, left: 0, bottom: 20 }}>
+                        <AreaChart data={trendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+
+                            {/* Definiciones de Gradientes y Filtros */}
                             <defs>
                                 <linearGradient id="colorScore" x1="0" y1="0" x2="0" y2="1">
                                     <stop offset="5%" stopColor="#6366f1" stopOpacity={0.4} />
-                                    <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                                    <stop offset="95%" stopColor="#6366f1" stopOpacity={0.02} />
                                 </linearGradient>
+                                {/* Filtro de resplandor para la línea */}
+                                <filter id="glow" height="300%" width="300%" x="-100%" y="-100%">
+                                    <feGaussianBlur stdDeviation="4" result="coloredBlur" />
+                                    <feMerge>
+                                        <feMergeNode in="coloredBlur" />
+                                        <feMergeNode in="SourceGraphic" />
+                                    </feMerge>
+                                </filter>
                             </defs>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" strokeOpacity={0.3} />
-                            <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} dy={10} />
-                            <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} />
-                            <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#6366f1', strokeWidth: 1 }} />
-                            <Area type="monotone" dataKey="score" stroke="#6366f1" strokeWidth={3} fillOpacity={1} fill="url(#colorScore)" />
+
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#64748b" strokeOpacity={0.1} />
+
+                            <XAxis
+                                dataKey="day"
+                                axisLine={false}
+                                tickLine={false}
+                                tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 600 }}
+                                dy={15}
+                                minTickGap={30}
+                            />
+
+                            <YAxis
+                                axisLine={false}
+                                tickLine={false}
+                                tick={{ fill: '#94a3b8', fontSize: 11 }}
+                                domain={[0, 100]}
+                            />
+
+                            <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#6366f1', strokeWidth: 1, strokeDasharray: '4 4' }} />
+
+                            {/* Línea de Promedio */}
+                            <ReferenceLine y={averageScore} stroke="#10b981" strokeDasharray="3 3" strokeOpacity={0.5} />
+
+                            <Area
+                                type="monotone"
+                                dataKey="score"
+                                stroke="#6366f1"
+                                strokeWidth={3}
+                                fillOpacity={1}
+                                fill="url(#colorScore)"
+                                filter="url(#glow)" // Aplica el resplandor
+                                activeDot={<CustomActiveDot />} // Punto animado custom
+                                animationDuration={1500}
+                            />
+
+                            {/* --- EL BRUSH REINVENTADO (Scrollbar Ultra-Pro) --- */}
                             <Brush
                                 dataKey="day"
-                                height={20}
-                                stroke="#818cf8"
-                                fill="transparent"
-                                tickFormatter={() => ""}
+                                height={40}
+                                y={340} // Posición en la parte inferior
+                                stroke="transparent" // Ocultar borde feo
+                                fill="transparent" // Fondo transparente
+                                travellerWidth={50} // Ancho del "mango"
+                                tickFormatter={() => ""} // Ocultar texto dentro del brush
                                 alwaysShowText={false}
-                                travellerWidth={10}
-                                startIndex={Math.max(0, trendData.length - 15)}
-                            />
+                            >
+                                {/* Estilizamos el 'slider' interno con SVGs o CSS global si fuera necesario, 
+                                    pero Recharts permite estilizar el fill del seleccionador */}
+                                <AreaChart>
+                                    {/* Mini gráfico dentro del scrollbar */}
+                                    <Area type="monotone" dataKey="score" stroke="#818cf8" strokeWidth={1} fill="#818cf8" fillOpacity={0.2} />
+                                </AreaChart>
+                            </Brush>
+
                         </AreaChart>
                     </ResponsiveContainer>
                 ) : (
-                    <div className="h-full flex items-center justify-center text-slate-400">Sin datos en este rango.</div>
+                    <div className="h-full w-full flex flex-col items-center justify-center text-slate-400 border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-3xl bg-slate-50/50 dark:bg-slate-900/50">
+                        <Calendar size={48} className="mb-4 opacity-50" />
+                        <p className="font-medium">No hay datos suficientes para mostrar tendencias.</p>
+                    </div>
                 )}
             </div>
+
+            {/* Estilos globales inyectados para personalizar el Brush específicamente (Recharts es difícil de estilizar inline) */}
+            <style>{`
+                .recharts-brush-slide {
+                    fill: rgba(99, 102, 241, 0.1) !important; /* Color de selección suave */
+                    stroke: none !important;
+                }
+                .recharts-brush-traveller rect {
+                    fill: #6366f1 !important; /* Color de los manejadores */
+                    width: 6px !important;
+                    rx: 3px !important; /* Bordes redondeados */
+                    transform: translateX(22px); /* Centrar visualmente */
+                }
+                .recharts-brush-traveller line {
+                    display: none !important; /* Ocultar las lineas feas por defecto */
+                }
+                /* Sombra para el gráfico */
+                .recharts-layer.recharts-area-chart path.recharts-curve {
+                    filter: drop-shadow(0px 4px 10px rgba(99, 102, 241, 0.3));
+                }
+            `}</style>
         </motion.div>
     );
 };

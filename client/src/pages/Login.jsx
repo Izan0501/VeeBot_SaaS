@@ -18,26 +18,19 @@ const Login = () => {
     const [loading, setLoading] = useState(false);
 
     const navigate = useNavigate();
-    const { login } = useAuth(); // Función del contexto para actualizar estado global
+    const { login } = useAuth();
 
     const handleLogin = async (e) => {
         e.preventDefault();
         setLoading(true);
 
         try {
-            // 1. Llamada a la API (auth.js se encarga del fetch y validaciones)
             const data = await authAPI.login(email, password);
-
-            // 2. Si todo sale bien, actualizamos el Contexto Global
-            // El contexto se encarga de guardar en localStorage y validar usuario
             login(data.access_token);
-
             toast.success("¡Bienvenido de nuevo!");
             navigate('/dashboard');
-
         } catch (error) {
             console.error("Login Error:", error);
-            // El mensaje de error ya viene procesado desde authAPI.login
             toast.error(error.message || "Error de conexión. Revisa que el Backend esté encendido.");
         } finally {
             setLoading(false);
@@ -45,14 +38,15 @@ const Login = () => {
     };
 
     return (
-        <div className="flex min-h-screen bg-slate-50 font-sans overflow-hidden relative">
+        // Contenedor principal: Se adapta al modo oscuro en escritorio
+        <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950 font-sans overflow-hidden relative transition-colors duration-300">
 
             {/* --- LADO IZQUIERDO: FORMULARIO --- */}
             <motion.div
                 initial={{ opacity: 0, x: -50 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.8, ease: "easeOut" }}
-                className="w-full lg:w-1/2 flex items-center justify-center p-6 lg:p-8 bg-transparent lg:bg-slate-50 relative z-10"
+                className="w-full lg:w-1/2 flex items-center justify-center p-6 lg:p-8 bg-transparent lg:bg-slate-50 dark:lg:bg-slate-950 relative z-10 transition-colors duration-300"
             >
                 <div className="w-full max-w-md space-y-8 relative">
 
@@ -68,10 +62,10 @@ const Login = () => {
                             <BrainCircuit className="text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]" size={32} />
                         </div>
 
-                        <h2 className="text-4xl font-black text-white lg:text-slate-900 tracking-tight mb-2 drop-shadow-lg lg:drop-shadow-none">
+                        <h2 className="text-4xl font-black text-white lg:text-slate-900 dark:lg:text-white tracking-tight mb-2 drop-shadow-lg lg:drop-shadow-none transition-colors">
                             Bienvenido
                         </h2>
-                        <p className="text-slate-300 lg:text-slate-500 text-lg font-medium">
+                        <p className="text-slate-300 lg:text-slate-500 dark:lg:text-slate-400 text-lg font-medium transition-colors">
                             Ingresa tus credenciales para acceder.
                         </p>
                     </motion.div>
@@ -82,18 +76,20 @@ const Login = () => {
                         animate={{ scale: 1, opacity: 1, y: 0 }}
                         transition={{ delay: 0.3, duration: 0.5, type: "spring" }}
                         className="
-                            bg-white/10 lg:bg-white 
+                            bg-white/10 lg:bg-white dark:lg:bg-slate-900
                             backdrop-blur-xl lg:backdrop-blur-none
                             p-8 rounded-[2rem] 
-                            shadow-2xl shadow-black/20 lg:shadow-slate-200/50 
-                            border border-white/20 lg:border-slate-100
-                            relative overflow-hidden
+                            shadow-2xl shadow-black/20 lg:shadow-slate-200/50 dark:lg:shadow-none
+                            border border-white/20 lg:border-slate-100 dark:lg:border-slate-800
+                            relative overflow-hidden transition-all duration-300
                         "
                     >
                         {/* Brillo superior en borde (Mobile) */}
                         <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/50 to-transparent lg:hidden"></div>
 
                         <form onSubmit={handleLogin} className="space-y-6 relative z-10">
+
+                            {/* Input Email (Usando el componente existente) */}
                             <InputGroup
                                 label="Email"
                                 icon={<Mail />}
@@ -101,25 +97,43 @@ const Login = () => {
                                 value={email}
                                 onChange={setEmail}
                                 placeholder="nombre@empresa.com"
-                                isMobileDark={true}
+                                isMobileDark={true} // Mantiene estilo oscuro en mobile, el componente debe manejar el dark mode desktop internamente
                             />
 
+                            {/* Input Password Manual */}
                             <div>
                                 <div className="flex justify-between items-center mb-2 ml-1">
-                                    <label className="text-xs font-bold text-slate-300 lg:text-slate-500 uppercase tracking-wider">Contraseña</label>
-                                    <button type="button" onClick={() => navigate('/register', { state: { initialView: 'forgot_email' } })} className="text-xs text-indigo-300 lg:text-indigo-600 font-bold hover:text-white lg:hover:text-indigo-800 transition-colors">
+                                    <label className="text-xs font-bold text-slate-300 lg:text-slate-500 dark:lg:text-slate-400 uppercase tracking-wider transition-colors">
+                                        Contraseña
+                                    </label>
+                                    <button
+                                        type="button"
+                                        onClick={() => navigate('/register', { state: { initialView: 'forgot_email' } })}
+                                        className="text-xs text-indigo-300 lg:text-indigo-600 dark:lg:text-indigo-400 font-bold hover:text-white lg:hover:text-indigo-800 dark:lg:hover:text-indigo-300 transition-colors"
+                                    >
                                         ¿Olvidaste tu clave?
                                     </button>
                                 </div>
                                 <div className="relative group">
-                                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-indigo-400 lg:group-focus-within:text-indigo-500 transition-colors duration-300">
+                                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-indigo-400 lg:group-focus-within:text-indigo-500 dark:lg:group-focus-within:text-indigo-400 transition-colors duration-300">
                                         <Lock size={20} />
                                     </div>
                                     <input
                                         type="password"
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
-                                        className="w-full pl-12 pr-4 py-4 bg-slate-900/50 lg:bg-slate-50 border border-slate-700 lg:border-slate-200 rounded-xl text-white lg:text-slate-900 focus:ring-2 focus:ring-indigo-500/50 lg:focus:ring-indigo-500/20 focus:border-indigo-400 lg:focus:border-indigo-500 focus:bg-slate-800 lg:focus:bg-white transition-all font-medium tracking-wide placeholder:text-slate-600"
+                                        className="
+                                            w-full pl-12 pr-4 py-4 
+                                            bg-slate-900/50 lg:bg-slate-50 dark:lg:bg-slate-950
+                                            border border-slate-700 lg:border-slate-200 dark:lg:border-slate-800
+                                            rounded-xl 
+                                            text-white lg:text-slate-900 dark:lg:text-white
+                                            focus:ring-2 focus:ring-indigo-500/50 lg:focus:ring-indigo-500/20 
+                                            focus:border-indigo-400 lg:focus:border-indigo-500 dark:lg:focus:border-indigo-500
+                                            focus:bg-slate-800 lg:focus:bg-white dark:lg:focus:bg-slate-900
+                                            transition-all font-medium tracking-wide 
+                                            placeholder:text-slate-600 dark:placeholder:text-slate-600
+                                        "
                                         placeholder="••••••••"
                                         required
                                     />
@@ -131,7 +145,16 @@ const Login = () => {
                                 whileTap={{ scale: 0.98 }}
                                 type="submit"
                                 disabled={loading}
-                                className="w-full py-4 bg-indigo-600 lg:bg-slate-900 hover:bg-indigo-500 lg:hover:bg-indigo-600 text-white font-bold rounded-xl shadow-lg shadow-indigo-600/30 lg:shadow-none flex items-center justify-center gap-2 group transition-all disabled:opacity-70 disabled:cursor-not-allowed mt-2"
+                                className="
+                                    w-full py-4 rounded-xl font-bold shadow-lg flex items-center justify-center gap-2 group transition-all mt-2
+                                    disabled:opacity-70 disabled:cursor-not-allowed
+                                    
+                                    /* Colores Mobile/Desktop Light */
+                                    bg-indigo-600 lg:bg-slate-900 text-white shadow-indigo-600/30 lg:shadow-none hover:bg-indigo-500 lg:hover:bg-indigo-600
+                                    
+                                    /* Colores Desktop Dark */
+                                    dark:lg:bg-white dark:lg:text-slate-900 dark:lg:hover:bg-slate-200
+                                "
                             >
                                 {loading ? "Verificando..." : <>Ingresar <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" /></>}
                             </motion.button>
@@ -139,14 +162,20 @@ const Login = () => {
                     </motion.div>
 
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} className="text-center">
-                        <p className="text-sm text-slate-400 lg:text-slate-500">
-                            ¿Aún no tienes cuenta? <span onClick={() => navigate('/register')} className="text-white lg:text-indigo-600 font-bold cursor-pointer hover:underline ml-1">Crear cuenta gratis</span>
+                        <p className="text-sm text-slate-400 lg:text-slate-500 dark:lg:text-slate-400">
+                            ¿Aún no tienes cuenta?
+                            <span
+                                onClick={() => navigate('/register')}
+                                className="text-white lg:text-indigo-600 dark:lg:text-indigo-400 font-bold cursor-pointer hover:underline ml-1"
+                            >
+                                Crear cuenta gratis
+                            </span>
                         </p>
                     </motion.div>
                 </div>
             </motion.div>
 
-            {/* COMPONENTE VISUAL DERECHO */}
+            {/* COMPONENTE VISUAL DERECHO (No cambia en dark mode, mantiene su estilo propio) */}
             <LoginVisuals />
         </div>
     );
