@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom'; // Hook para redirección
 
 // --- IMPORTS API Y COMPONENTES ---
 import { candidatesAPI } from '../api/candidates';
@@ -10,6 +11,7 @@ import FileList from '../components/import/FileList';
 import UploadStatus from '../components/import/UploadStatus';
 
 const ImportData = () => {
+    const navigate = useNavigate(); // Inicializamos el hook
     const [dragActive, setDragActive] = useState(false);
     const [files, setFiles] = useState([]);
     const [isUploading, setIsUploading] = useState(false);
@@ -62,7 +64,7 @@ const ImportData = () => {
         files.forEach(file => formData.append("files", file));
 
         try {
-            // Simulación visual de progreso mientras la API procesa
+            // Simulación visual de progreso
             const interval = setInterval(() => {
                 setUploadProgress(prev => Math.min(prev + 10, 90));
             }, 500);
@@ -73,11 +75,16 @@ const ImportData = () => {
             clearInterval(interval);
             setUploadProgress(100);
 
+            // Esperar animación y REDIRIGIR
             setTimeout(() => {
                 toast.success(`¡${files.length} CVs procesados con éxito!`);
                 setFiles([]);
                 setIsUploading(false);
                 setUploadProgress(0);
+
+                // Redirección al Dashboard
+                navigate('/dashboard');
+
             }, 800);
 
         } catch (error) {

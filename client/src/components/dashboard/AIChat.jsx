@@ -1,26 +1,38 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Lock, Crown, Bot, X, Send, Sparkles, Zap, ChevronDown, MessageSquare, Trash2 } from 'lucide-react';
+import { Lock, Crown, Bot, Send, Sparkles, ChevronDown, MessageSquare, Trash2, Loader2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { featuresAPI } from '../../api/features';
 import toast from 'react-hot-toast';
 
-const AIChat = ({ isPremium, messages, isThinking, chatQuery, setMessages, setChatQuery, handleAskAI, messagesEndRef, onNavigate }) => {
+const AIChat = ({
+    isPremium,
+    messages,
+    setMessages,
+    usageCount,
+    isThinking,
+    chatQuery,
+    setChatQuery,
+    handleAskAI,
+    messagesEndRef,
+    onNavigate
+}) => {
     const [isOpen, setIsOpen] = useState(false);
 
     const toggleChat = () => setIsOpen(!isOpen);
 
-    // --- LÓGICA DE LÍMITE (NUEVO) ---
+    // --- LÓGICA DE LÍMITE (PROFESIONAL) ---
     const FREE_LIMIT = 5;
-    const userMessageCount = messages.filter(m => m.role === 'user').length;
-    // El límite se alcanza si NO es premium Y ha superado los mensajes gratuitos
-    const isLimitReached = !isPremium && userMessageCount >= FREE_LIMIT;
-    const remainingQueries = Math.max(0, FREE_LIMIT - userMessageCount);
 
+    // Usamos 'usageCount' (la verdad del backend) en lugar de contar mensajes locales
+    // Si usageCount es undefined (carga inicial), asumimos 0 para no bloquear
+    const currentUsage = usageCount || 0;
 
-    const handleClearChat = async () => {
-        if (messages.length <= 1) return; // No borrar si solo está el saludo inicial
+    const isLimitReached = !isPremium && currentUsage >= FREE_LIMIT;
+    const remainingQueries = Math.max(0, FREE_LIMIT - currentUsage);
 
+    // --- 1. FUNCIÓN DE BORRADO REAL (HARD DELETE) ---
+    const executeClear = async () => {
         try {
             await featuresAPI.clearDashboardChat();
 
@@ -29,14 +41,58 @@ const AIChat = ({ isPremium, messages, isThinking, chatQuery, setMessages, setCh
                 { id: 'init', role: 'ai', text: 'Historial borrado. **¿En qué puedo ayudarte ahora?**' }
             ]);
 
-            // Limpiar localStorage también
+            // Limpiar localStorage por si acaso
             localStorage.removeItem('dashboard_chat_history');
 
-            toast.success("Chat limpiado");
+            toast.success("Historial eliminado permanentemente");
         } catch (error) {
             console.error(error);
-            toast.error("No se pudo limpiar el chat");
+            toast.error("Error al limpiar el chat");
         }
+    };
+
+    // --- 2. ALERT DE CONFIRMACIÓN ---
+    const confirmClearChat = () => {
+        if (messages.length <= 1) return; // No borrar si está vacío
+
+        toast((t) => (
+            <div className="flex flex-col gap-3 min-w-[280px] bg-white dark:bg-slate-800 p-1 rounded-lg">
+                <div className="flex items-center gap-3">
+                    <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-full text-red-600 dark:text-red-400">
+                        <Trash2 size={20} />
+                    </div>
+                    <div>
+                        <h4 className="font-bold text-slate-800 dark:text-white text-sm">¿Borrar historial?</h4>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 leading-tight">
+                            Esta acción es permanente y no se puede deshacer.
+                        </p>
+                    </div>
+                </div>
+
+                <div className="flex gap-2 justify-end mt-2">
+                    <button
+                        onClick={() => toast.dismiss(t.id)}
+                        className="text-xs font-medium px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 transition-colors"
+                    >
+                        Cancelar
+                    </button>
+                    <button
+                        onClick={() => { toast.dismiss(t.id); executeClear(); }}
+                        className="text-xs font-bold text-white bg-red-500 hover:bg-red-600 px-4 py-2 rounded-lg flex items-center gap-1.5 transition-colors shadow-sm active:scale-95"
+                    >
+                        Sí, borrar
+                    </button>
+                </div>
+            </div>
+        ), {
+            duration: 5000,
+            position: 'bottom-center', // Posición ideal para no tapar el chat
+            style: {
+                background: 'transparent',
+                boxShadow: 'none',
+                padding: 0,
+            }
+        });
     };
 
     return (
@@ -52,7 +108,7 @@ const AIChat = ({ isPremium, messages, isThinking, chatQuery, setMessages, setCh
                             transition={{ type: "spring", damping: 25, stiffness: 300 }}
                             className="w-[90vw] md:w-[450px] h-[550px] max-h-[70vh] bg-white/90 dark:bg-[#0B0C15]/90 backdrop-blur-2xl border border-white/20 dark:border-slate-700/50 shadow-2xl rounded-[32px] overflow-hidden flex flex-col relative mb-4"
                         >
-                            {/* --- HEADER (Z-INDEX AUMENTADO A 40 PARA ESTAR SOBRE EL BLOQUEO) --- */}
+                            {/* --- HEADER --- */}
                             <div className="flex items-center justify-between p-5 border-b border-slate-100/50 dark:border-slate-800/50 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md sticky top-0 z-40">
                                 <div className="flex items-center gap-3">
                                     <div className="relative">
@@ -72,16 +128,16 @@ const AIChat = ({ isPremium, messages, isThinking, chatQuery, setMessages, setCh
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-1">
-                                    {/* --- BOTÓN DE BORRAR --- */}
+                                    {/* --- BOTÓN DE BORRAR (CON CONFIRMACIÓN) --- */}
                                     <button
-                                        onClick={handleClearChat}
+                                        onClick={confirmClearChat}
                                         title="Borrar historial"
                                         className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 text-slate-400 hover:text-red-500 rounded-full transition-colors"
                                     >
                                         <Trash2 size={18} />
                                     </button>
 
-                                    {/* BOTÓN DE MINIMIZAR*/}
+                                    {/* BOTÓN DE MINIMIZAR */}
                                     <button
                                         onClick={toggleChat}
                                         className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors text-slate-500 dark:text-slate-400 cursor-pointer"
@@ -128,7 +184,7 @@ const AIChat = ({ isPremium, messages, isThinking, chatQuery, setMessages, setCh
                                 <div ref={messagesEndRef} />
                             </div>
 
-                            {/* --- PREMIUM LOCK OVERLAY (SOLO SI SE ALCANZA EL LÍMITE) --- */}
+                            {/* --- PREMIUM LOCK OVERLAY --- */}
                             {isLimitReached && (
                                 <div className="absolute inset-0 z-30 bg-slate-50/60 dark:bg-slate-900/80 backdrop-blur-[3px] flex items-end pb-20 justify-center animate-in fade-in duration-500">
                                     <motion.div
@@ -156,10 +212,8 @@ const AIChat = ({ isPremium, messages, isThinking, chatQuery, setMessages, setCh
                                         type="text"
                                         value={chatQuery}
                                         onChange={(e) => setChatQuery(e.target.value)}
-                                        // Placeholder dinámico
                                         placeholder={isLimitReached ? "🔒 Límite alcanzado" : "Ej: Busca un experto en React..."}
                                         className={`w-full bg-slate-100 dark:bg-slate-800 border-0 rounded-2xl py-4 pl-5 pr-14 text-sm focus:ring-2 focus:ring-indigo-500/50 transition-all ${isLimitReached ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                        // Deshabilitado solo si está pensando o se alcanzó el límite
                                         disabled={isThinking || isLimitReached}
                                     />
                                     <button
@@ -185,14 +239,14 @@ const AIChat = ({ isPremium, messages, isThinking, chatQuery, setMessages, setCh
                             whileTap={{ scale: 0.9 }}
                             className="group relative w-16 h-16 rounded-full shadow-2xl flex items-center justify-center cursor-pointer"
                         >
-                            {/* Borde Giratorio "Orgasmic" */}
+                            {/* Borde Giratorio */}
                             <span className="absolute inset-[-3px] rounded-full animate-[spin_3s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,#E2CBFF_0%,#393BB2_50%,#E2CBFF_100%)] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
                             {/* Botón Principal */}
                             <span className="absolute inset-0 rounded-full bg-slate-900 dark:bg-white flex items-center justify-center border-2 border-white/10 dark:border-slate-900/10">
                                 <div className="relative">
                                     <MessageSquare size={28} className="text-white dark:text-slate-900" fill="currentColor" />
-                                    {/* Indicador de Notificación si tiene consultas disponibles */}
+                                    {/* Indicador de Notificación */}
                                     {!isLimitReached && (
                                         <div className="absolute -top-1 -right-1">
                                             <span className="flex h-3 w-3">
@@ -215,10 +269,5 @@ const AIChat = ({ isPremium, messages, isThinking, chatQuery, setMessages, setCh
         </div>
     );
 };
-
-// Componente simple para el Loader
-const Loader2 = ({ size, className }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>
-);
 
 export default AIChat;

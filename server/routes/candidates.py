@@ -8,7 +8,7 @@ from bson import ObjectId
 from datetime import datetime
 
 # Import Local Modules
-from database import candidates_collection, insert_candidate, get_all_candidates_from_db, chats_collection
+from database import candidates_collection, usage_collection, insert_candidate, get_all_candidates_from_db, chats_collection
 from security import get_current_user
 from services import analyze_candidate_with_groq,  process_and_store_cv, chat_as_candidate, get_ai_score, index
 from utils import robust_extract
@@ -126,24 +126,36 @@ def get_candidates(current_user: dict = Depends(get_current_user)):
         raise HTTPException(status_code=500, detail="Error conectando a la base de datos")
 
 @router.get("/chat/{candidate_id}")
-def get_chat_history(candidate_id: str, current_user: dict = Depends(get_current_user)):
-    """Recupera el historial de chat de un candidato específico."""
+def get_chat_history(current_user: dict = Depends(get_current_user)):
     user_id = str(current_user["_id"])
+    SPECIAL_ID = "DASHBOARD_ASSISTANT"
     
-    # Buscamos mensajes ordenados por fecha
+    # 1. Obtener historial visible (Chats guardados)
     cursor = chats_collection.find(
-        {"user_id": user_id, "candidate_id": candidate_id}
+        {"user_id": user_id, "candidate_id": SPECIAL_ID}
     ).sort("timestamp", 1)
     
     messages = []
     for doc in cursor:
         messages.append({
-            "role": doc["role"],
-            "content": doc["content"],
-            "timestamp": doc["timestamp"]
+            "id": str(doc["_id"]), 
+            "role": "ai" if doc["role"] == "assistant" else "user", 
+            "text": doc["content"]
         })
+
+    # --- CORRECCIÓN AQUÍ ---
+    # ANTES (Incorrecto para Hard Delete): Contaba mensajes existentes
+    # usage_count = chats_collection.count_documents({"user_id": user_id, "role": "user"})
+
+    # AHORA (Correcto): Leemos el contador persistente de la colección de uso
+    usage_doc = usage_collection.find_one({"user_id": user_id})
+    usage_count = usage_doc.get("ai_queries_count", 0) if usage_doc else 0
+    # -----------------------
     
-    return messages
+    return {
+        "history": messages,
+        "usage_count": usage_count
+    }
 
 # --- MODIFICADO: CHAT CON LÍMITE GLOBAL Y PERSISTENCIA ---
 @router.post("/chat/{candidate_id}")
@@ -235,23 +247,30 @@ async def chat_with_recruiter(
 ):
     try:
         user_id = str(current_user["_id"])
-        # Detección de Premium
         is_premium = current_user.get("is_premium") or current_user.get("isPremium") or False
         GLOBAL_LIMIT = 5 
 
-        # 1. VERIFICACIÓN DE LÍMITE GLOBAL
-        # Contamos mensajes totales (Tanto de Twins como del Dashboard)
+        # --- 1. LÓGICA DE LÍMITE PROFESIONAL ---
         if not is_premium:
-            total_msg_count = chats_collection.count_documents({
-                "user_id": user_id, 
-                "role": "user"
-            })
+            # Buscamos el registro de uso de este usuario
+            usage_doc = usage_collection.find_one({"user_id": user_id})
             
-            if total_msg_count >= GLOBAL_LIMIT:
-                raise HTTPException(
+            # Si no existe, asumimos que lleva 0
+            current_count = usage_doc.get("ai_queries_count", 0) if usage_doc else 0
+            
+            if current_count >= GLOBAL_LIMIT:
+                 raise HTTPException(
                     status_code=403, 
-                    detail=f"Límite Gratuito Alcanzado ({GLOBAL_LIMIT} consultas totales). Pásate a Premium."
+                    detail=f"Límite Gratuito Alcanzado ({GLOBAL_LIMIT} consultas). Pásate a Premium."
                 )
+
+            # INCREMENTAMOS EL CONTADOR (Atomic Update)
+            # upsert=True crea el documento si no existe.
+            usage_collection.update_one(
+                {"user_id": user_id},
+                {"$inc": {"ai_queries_count": 1}},
+                upsert=True
+            )
 
         # 2. Construir Contexto Global (Resumen de TODOS los candidatos)
         # Esto es lo que diferencia a este chat: sabe un poco de todos.
@@ -307,15 +326,14 @@ def clear_dashboard_chat(current_user: dict = Depends(get_current_user)):
     user_id = str(current_user["_id"])
     SPECIAL_ID = "DASHBOARD_ASSISTANT"
     
-    # Borramos solo los mensajes que coincidan con el usuario y el ID especial
+    # Esto limpia la base de datos pero NO afecta el límite del usuario
     result = chats_collection.delete_many({
         "user_id": user_id,
         "candidate_id": SPECIAL_ID
     })
     
-    print(f"🧹 Chat del Dashboard limpiado: {result.deleted_count} mensajes eliminados.")
-    
-    return {"status": "success", "message": "Historial del Dashboard eliminado"}
+    print(f"🧹 Chat Dashboard eliminado: {result.deleted_count} mensajes.")
+    return {"status": "success", "message": "Historial eliminado"}
 
 # --- MODIFICADO: DELETE CANDIDATE (Limpia historial) ---
 @router.delete("/candidates/{candidate_id}")

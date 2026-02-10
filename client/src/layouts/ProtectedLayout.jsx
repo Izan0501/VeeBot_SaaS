@@ -4,7 +4,6 @@ import { Loader2 } from 'lucide-react';
 
 // --- IMPORTS DE COMPONENTES ---
 import Sidebar from '../components/common/Sidebar';
-import UploadModal from '../components/import/UploadModal';
 
 // --- IMPORTS DE CONTEXTO ---
 import { useAuth } from '../context/AuthContext';
@@ -61,12 +60,6 @@ const ProtectedLayout = ({ children, isModalOpen, setIsModalOpen }) => {
         {children}
       </main>
 
-      {/* MODAL GLOBAL: Disponible en toda la zona privada */}
-      <UploadModal 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
-      />
-      
     </div>
   );
 };

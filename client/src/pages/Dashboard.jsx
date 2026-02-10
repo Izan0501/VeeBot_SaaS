@@ -12,42 +12,23 @@ import ClearModal from '../components/dashboard/ClearModal';
 import DashboardHeader from '../components/dashboard/DashboardHeader';
 import StatsGrid from '../components/dashboard/StatsGrid';
 import CandidatesTable from '../components/dashboard/CandidatesTable';
-import AIChat from '../components/dashboard/AIChat';
+import AIChat from '../components/dashboard/AIChat'; // El componente flotante
 import { Trash2 } from 'lucide-react';
 
 const Dashboard = ({ isModalOpen, setIsModalOpen }) => {
-    // 1. Estados
+    // 1. Estados Principales
     const [candidates, setCandidates] = useState([]);
     const [selectedLetter, setSelectedLetter] = useState("Todos");
     const [searchTerm, setSearchTerm] = useState("");
     const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
     const [showClearModal, setShowClearModal] = useState(false);
     const [clearing, setClearing] = useState(false);
-
-    // --- CHAT STATE CON PERSISTENCIA ---
+    
+    // --- ESTADOS DEL CHAT & LÍMITES ---
     const [messages, setMessages] = useState([
         { id: 'init', role: 'ai', text: 'Hola, soy tu asistente de reclutamiento. **¿Qué perfil estás buscando hoy?**' }
     ]);
-
-    // Guardar en localStorage cada vez que cambien los mensajes
-    useEffect(() => {
-        const loadHistory = async () => {
-            try {
-                const history = await featuresAPI.getDashboardHistory();
-                if (history && history.length > 0) {
-                    // Combinamos mensaje inicial con el historial traído
-                    setMessages([
-                        { id: 'init', role: 'ai', text: 'Hola, soy tu asistente de reclutamiento. **¿Qué perfil estás buscando hoy?**' },
-                        ...history
-                    ]);
-                }
-            } catch (error) {
-                console.error("Error cargando historial del dashboard", error);
-            }
-        };
-        loadHistory();
-    }, []);
-
+    const [usageCount, setUsageCount] = useState(0); // <--- Nuevo Estado para el Límite
     const [chatQuery, setChatQuery] = useState("");
     const [isThinking, setIsThinking] = useState(false);
 
@@ -60,16 +41,41 @@ const Dashboard = ({ isModalOpen, setIsModalOpen }) => {
     const prevCandidatesLength = useRef(0);
 
     const navigate = useNavigate();
-    const { user } = useAuth();
+    const { user } = useAuth(); 
     const isPremium = user?.isPremium;
 
-    // --- EFECTOS GENERALES ---
+    // --- EFECTOS ---
+
+    // 1. Cargar Historial y Uso al montar
     useEffect(() => {
+        const loadDashboardData = async () => {
+            try {
+                // Esta llamada ahora devuelve { history: [...], usage_count: 5 }
+                const data = await featuresAPI.getDashboardHistory();
+                
+                if (data.history && data.history.length > 0) {
+                    setMessages([
+                        { id: 'init', role: 'ai', text: 'Hola, soy tu asistente de reclutamiento. **¿Qué perfil estás buscando hoy?**' },
+                        ...data.history
+                    ]);
+                }
+                
+                // Sincronizamos el contador real del servidor
+                setUsageCount(data.usage_count || 0);
+
+            } catch (error) {
+                console.error("Error cargando datos del dashboard", error);
+            }
+        };
+        
+        loadDashboardData();
+        
+        // Scroll top inicial
         if (mainScrollRef.current) mainScrollRef.current.scrollTo(0, 0);
         window.scrollTo(0, 0);
     }, []);
 
-    // Chat scroll automático
+    // Chat scroll
     useEffect(() => {
         if (messages.length > 1 || isThinking) messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
     }, [messages, isThinking]);
@@ -91,9 +97,7 @@ const Dashboard = ({ isModalOpen, setIsModalOpen }) => {
         prevCandidatesLength.current = candidates.length;
     }, [candidates]);
 
-
-
-    // --- DATA FETCHING (API) ---
+    // --- DATA FETCHING (CANDIDATOS) ---
     const fetchCandidates = async () => {
         try {
             const data = await candidatesAPI.getAll();
@@ -114,6 +118,46 @@ const Dashboard = ({ isModalOpen, setIsModalOpen }) => {
     }, [isModalOpen]);
 
     // --- LÓGICA DE NEGOCIO ---
+
+    const handleAskAI = async (e) => {
+        e.preventDefault();
+        
+        // NO bloqueamos aquí por isPremium. Dejamos que el backend decida.
+        if (!chatQuery.trim()) return;
+        
+        const currentQuery = chatQuery;
+        const newMsgUser = { id: Date.now(), role: 'user', text: currentQuery };
+        
+        // Optimistic Updates
+        setMessages(prev => [...prev, newMsgUser]);
+        setUsageCount(prev => prev + 1); // Asumimos éxito y sumamos 1
+        setChatQuery("");
+        setIsThinking(true);
+        
+        try {
+            const data = await featuresAPI.analyzeChat(currentQuery);
+            setMessages(prev => [...prev, { id: Date.now() + 1, role: 'ai', text: data.response || "No pude generar una respuesta." }]);
+        } catch (error) {
+            console.error(error);
+            
+            // Si el backend rechaza por límite, hacemos ROLLBACK
+            if (error.message && (error.message.includes("Límite") || error.message.includes("403"))) {
+                toast.error(error.message, { icon: '🔒' });
+                
+                // 1. Borramos el mensaje del usuario (fue rechazado)
+                setMessages(prev => prev.filter(m => m.id !== newMsgUser.id));
+                // 2. Restamos el contador que subimos optimistamente
+                setUsageCount(prev => Math.max(0, prev - 1));
+            
+            } else {
+                const msg = error.message === 'Sesión expirada' ? "⚠️ Sesión expirada." : "Error de conexión.";
+                setMessages(prev => [...prev, { id: Date.now() + 1, role: 'ai', text: msg }]);
+            }
+        } finally {
+            setIsThinking(false);
+        }
+    };
+
     const executeDelete = async (id) => {
         const toastId = toast.loading("Eliminando...");
         try {
@@ -121,7 +165,6 @@ const Dashboard = ({ isModalOpen, setIsModalOpen }) => {
             setCandidates(prev => prev.filter(c => c.id !== id));
             toast.success("Candidato eliminado", { id: toastId });
         } catch (error) {
-            console.error(error);
             toast.error("No se pudo eliminar", { id: toastId });
         }
     };
@@ -144,51 +187,17 @@ const Dashboard = ({ isModalOpen, setIsModalOpen }) => {
         try {
             await candidatesAPI.deleteAll();
             setCandidates([]);
-            // También limpiamos el chat al borrar todo
+            
+            // También limpiamos el chat visualmente, pero NO el límite de uso
             setMessages([{ id: 'init', role: 'ai', text: 'Base de datos limpia. ¿Qué buscamos ahora?' }]);
-            localStorage.removeItem('dashboard_chat_history');
-
+            // Opcional: Llamar a clearDashboardChat si quieres limpiar el historial de IA también
+            
             toast.success("Candidatos Eliminados", { id: toastId });
             setShowClearModal(false);
         } catch (error) {
-            console.error(error);
             toast.error(error.message || "Error al vaciar tabla", { id: toastId });
         } finally {
             setClearing(false);
-        }
-    };
-
-    const handleAskAI = async (e) => {
-        e.preventDefault();
-
-        if (!chatQuery.trim()) return;
-
-        const currentQuery = chatQuery;
-
-        // 1. Agregamos el mensaje del usuario (Optimistic UI)
-        const newMsgUser = { id: Date.now(), role: 'user', text: currentQuery };
-        setMessages(prev => [...prev, newMsgUser]);
-
-        setChatQuery("");
-        setIsThinking(true);
-
-        try {
-            // La API ahora se encarga de verificar si te pasaste de los 5 mensajes
-            const data = await featuresAPI.analyzeChat(currentQuery);
-            setMessages(prev => [...prev, { id: Date.now() + 1, role: 'ai', text: data.response }]);
-        } catch (error) {
-            console.error(error);
-
-            // Si el backend nos dice "Límite alcanzado", borramos el mensaje del usuario para que no cuente visualmente
-            if (error.message && error.message.includes("Límite")) {
-                toast.error(error.message, { icon: '🔒' });
-                setMessages(prev => prev.filter(m => m.id !== newMsgUser.id));
-            } else {
-                const msg = error.message === 'Sesión expirada' ? "⚠️ Sesión expirada." : "Error de conexión.";
-                setMessages(prev => [...prev, { id: Date.now() + 1, role: 'ai', text: msg }]);
-            }
-        } finally {
-            setIsThinking(false);
         }
     };
 
@@ -228,34 +237,40 @@ const Dashboard = ({ isModalOpen, setIsModalOpen }) => {
     return (
         <div className="flex-1 flex flex-col h-full overflow-hidden bg-slate-50 dark:bg-slate-950 transition-colors duration-300 relative">
             <ClearModal isOpen={showClearModal} onClose={() => setShowClearModal(false)} onConfirm={handleClearAll} isClearing={clearing} count={candidates.length} />
-            <DashboardHeader candidatesCount={candidates.length} onOpenClearModal={() => setShowClearModal(true)} isPremium={isPremium} onNavigate={navigate} onOpenUploadModal={() => setIsModalOpen(true)} />
-
+            
+            <DashboardHeader 
+                candidatesCount={candidates.length} 
+                onOpenClearModal={() => setShowClearModal(true)} 
+                isPremium={isPremium} 
+                onNavigate={navigate} 
+            />
+            
             <div ref={mainScrollRef} className="flex-1 overflow-auto p-4 md:p-8 space-y-8 custom-scrollbar">
                 <StatsGrid variants={{ container: containerVariants, item: itemVariants }} candidates={candidates} avgScore={avgScore} lowMatchCount={lowMatchCount} />
-
-                {/* NOTA: Eliminamos el AIChat estático de aquí */}
-
-                <CandidatesTable
-                    searchTerm={searchTerm} setSearchTerm={setSearchTerm}
+                
+                <CandidatesTable 
+                    searchTerm={searchTerm} setSearchTerm={setSearchTerm} 
                     filterMenuRef={filterMenuRef} isFilterMenuOpen={isFilterMenuOpen} setIsFilterMenuOpen={setIsFilterMenuOpen}
                     selectedLetter={selectedLetter} setSelectedLetter={setSelectedLetter}
                     filteredCandidates={filteredCandidates} alphabet={alphabet}
                     handleSendEmail={handleSendEmail} handleDelete={handleDelete}
-                    ref={tableRef}
+                    ref={tableRef} 
                 />
             </div>
 
-            {/* --- COMPONENTE FLOTANTE AQUÍ (Fuera del scroll area) --- */}
-            <AIChat
-                isPremium={isPremium}
-                messages={messages}
-                isThinking={isThinking}
-                chatQuery={chatQuery}
+            {/* --- COMPONENTE FLOTANTE --- */}
+            {/* Pasamos 'usageCount' y 'setMessages' para la lógica completa */}
+            <AIChat 
+                isPremium={isPremium} 
+                messages={messages} 
                 setMessages={setMessages}
-                setChatQuery={setChatQuery}
-                handleAskAI={handleAskAI}
-                messagesEndRef={messagesEndRef}
-                onNavigate={navigate}
+                usageCount={usageCount}
+                isThinking={isThinking} 
+                chatQuery={chatQuery} 
+                setChatQuery={setChatQuery} 
+                handleAskAI={handleAskAI} 
+                messagesEndRef={messagesEndRef} 
+                onNavigate={navigate} 
             />
         </div>
     );

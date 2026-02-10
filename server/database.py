@@ -11,6 +11,7 @@ db = mongo_client[DB_NAME]
 candidates_collection = db["candidates"]
 users_collection = db["users"]
 chats_collection = db["chats"]
+usage_collection = db["user_usage"]
 
 # DB Functions for Candidates
 def insert_candidate(filename, name, text_preview, ai_data, user_id):
