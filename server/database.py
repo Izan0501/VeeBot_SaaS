@@ -1,23 +1,21 @@
-import os
 from pymongo import MongoClient
-from dotenv import load_dotenv
-from pathlib import Path
+from bson import ObjectId
 from datetime import datetime
-from bson import ObjectId 
+from config import MONGO_URI, DB_NAME
 
-# env load
-env_path = Path(__file__).resolve().parent.parent / '.env'
-load_dotenv(dotenv_path=env_path)
+#DB connection
+mongo_client = MongoClient(MONGO_URI)
+db = mongo_client[DB_NAME]
 
-# connection
-uri = os.getenv("MONGO_URI")
-client = MongoClient(uri)
-db = client[os.getenv("DB_NAME", "recruit_db")]
+# Collections
 candidates_collection = db["candidates"]
+users_collection = db["users"]
+chats_collection = db["chats"]
 
+# DB Functions for Candidates
 def insert_candidate(filename, name, text_preview, ai_data, user_id):
     """
-    Guarda un candidato vinculándolo al ID del usuario que lo subió.
+    Save candidate data to MongoDB, including AI analysis results and user association.
     """
     candidate_doc = {
         "user_id": user_id, 
@@ -39,10 +37,10 @@ def insert_candidate(filename, name, text_preview, ai_data, user_id):
 
 def get_all_candidates_from_db(user_id):
     """
-    Recupera SOLO los candidatos que pertenecen al usuario actual.
+    Get only the candidates that belong to the user (security) and return a simplified list for the frontend.
     """
     candidates = []
-    # FILTRO: Solo documentos donde user_id coincida
+    # FILTER: Only candidates where "user_id" matches the provided user_id, sorted by upload_date descending
     cursor = candidates_collection.find({"user_id": user_id}).sort("upload_date", -1)
     
     for doc in cursor:
@@ -65,30 +63,32 @@ def get_all_candidates_from_db(user_id):
 
 def delete_candidate_by_id(candidate_id, user_id):
     """
-    Borra un candidato, pero verifica que pertenezca al usuario (seguridad).
+    Delete a candidate by its ID, but only if it belongs to the user (security).
     """
     try:
         result = candidates_collection.delete_one({
             "_id": ObjectId(candidate_id),
-            "user_id": user_id # <--- Seguridad extra: solo borra si es tuyo
+            "user_id": user_id
         })
         return result.deleted_count > 0
     except Exception as e:
         print(f"Error borrando: {e}")
         return False
     
-def delete_full_user_data(user_id, users_col, candidates_col):
+def delete_full_user_data(user_id):
     """
-    Borra el usuario y todos sus candidatos asociados.
+    Delete user and all their candidates from MongoDB
     """
     try:
-        # 1. Borrar Candidatos
-        candidates_col.delete_many({"user_id": user_id})
+        # 1. Delete Candidates
+        candidates_result = candidates_collection.delete_many({"user_id": user_id})
+        print(f"Eliminados {candidates_result.deleted_count} candidatos de Mongo.")
         
-        # 2. Borrar Usuario
-        result = users_col.delete_one({"_id": ObjectId(user_id)})
+        # 2. Delete User
+        users_result = users_collection.delete_one({"_id": ObjectId(user_id)})
         
-        return result.deleted_count > 0
+        # True if user was deleted, False if not found or error
+        return users_result.deleted_count > 0
     except Exception as e:
         print(f"Error borrando datos Mongo: {e}")
         return False

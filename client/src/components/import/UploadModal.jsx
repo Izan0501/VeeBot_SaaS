@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Upload, FileText, Trash2, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { candidatesAPI } from '../../api/candidates'; 
 
 const UploadModal = ({ isOpen, onClose }) => {
     const [files, setFiles] = useState([]);
@@ -13,7 +14,12 @@ const UploadModal = ({ isOpen, onClose }) => {
         const selectedFiles = Array.from(e.target.files);
         // Filtramos solo PDFs
         const pdfFiles = selectedFiles.filter(file => file.type === 'application/pdf');
-        setFiles([...files, ...pdfFiles]);
+
+        if (pdfFiles.length !== selectedFiles.length) {
+            toast.error("Solo se permiten archivos PDF");
+        }
+
+        setFiles(prev => [...prev, ...pdfFiles]);
     };
 
     const removeFile = (index) => {
@@ -23,53 +29,23 @@ const UploadModal = ({ isOpen, onClose }) => {
     const handleUpload = async () => {
         if (files.length === 0) return;
 
-        // 1. RECUPERAR TOKEN
-        const token = localStorage.getItem('token');
-        if (!token) {
-            toast.error("No hay sesión activa. Por favor inicia sesión.");
-            return;
-        }
-
         setIsUploading(true);
-        const formData = new FormData();
 
-        files.forEach((file) => {
-            formData.append('files', file);
-        });
-
+        // Usamos toast.promise para feedback visual automático
         await toast.promise(
-            fetch('http://127.0.0.1:8000/upload', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}` 
-                },
-                body: formData,
-            }).then(async (response) => {
-                // Manejar error de sesión expirada
-                if (response.status === 401) {
-                    throw new Error("Sesión expirada. Recarga la página.");
-                }
-
-                const data = await response.json();
-                if (!response.ok) throw new Error(data.detail || "Error al subir");
-                return data;
-            }),
+            candidatesAPI.upload(files), // Llamada limpia a la API
             {
                 loading: `Procesando ${files.length} documentos con Llama 3...`,
-                success: (data) => `¡${data.message}!`,
+                success: (data) => {
+                    setFiles([]);
+                    setTimeout(() => onClose(), 1500); // Cerramos el modal tras éxito
+                    return `¡${data.message || 'Archivos subidos'}!`;
+                },
                 error: (err) => `Error: ${err.message}`,
             }
-        )
-            .then(() => {
-                setFiles([]);
-                setTimeout(() => onClose(), 1500);
-            })
-            .catch((err) => {
-                console.error(err);
-            })
-            .finally(() => {
-                setIsUploading(false);
-            });
+        ).finally(() => {
+            setIsUploading(false);
+        });
     };
 
     return (
@@ -81,15 +57,15 @@ const UploadModal = ({ isOpen, onClose }) => {
             ></div>
 
             {/* Modal Card */}
-            <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden transform transition-all scale-100 animate-in fade-in zoom-in duration-200">
+            <div className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden transform transition-all scale-100 animate-in fade-in zoom-in duration-200">
 
                 {/* Header */}
-                <div className="flex justify-between items-center p-6 border-b border-slate-100">
-                    <h3 className="text-lg font-bold text-slate-800">Analizar Nuevos Candidatos</h3>
-                    <button 
-                        onClick={onClose} 
+                <div className="flex justify-between items-center p-6 border-b border-slate-100 dark:border-slate-800">
+                    <h3 className="text-lg font-bold text-slate-800 dark:text-white">Analizar Nuevos Candidatos</h3>
+                    <button
+                        onClick={onClose}
                         disabled={isUploading}
-                        className="text-slate-400 hover:text-slate-600 transition-colors disabled:opacity-50"
+                        className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors disabled:opacity-50"
                     >
                         <X size={20} />
                     </button>
@@ -99,7 +75,7 @@ const UploadModal = ({ isOpen, onClose }) => {
                 <div className="p-6 space-y-4">
 
                     {/* Dropzone */}
-                    <div className="border-2 border-dashed border-slate-300 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors relative group">
+                    <div className="border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors relative group">
                         <input
                             type="file"
                             multiple
@@ -108,11 +84,11 @@ const UploadModal = ({ isOpen, onClose }) => {
                             disabled={isUploading}
                             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 disabled:cursor-not-allowed"
                         />
-                        <div className="flex flex-col items-center justify-center py-10 text-slate-500">
-                            <div className="bg-white p-3 rounded-full shadow-sm mb-3 group-hover:scale-110 transition-transform">
-                                <Upload size={24} className="text-indigo-600" />
+                        <div className="flex flex-col items-center justify-center py-10 text-slate-500 dark:text-slate-400">
+                            <div className="bg-white dark:bg-slate-700 p-3 rounded-full shadow-sm mb-3 group-hover:scale-110 transition-transform">
+                                <Upload size={24} className="text-indigo-600 dark:text-indigo-400" />
                             </div>
-                            <p className="font-medium text-slate-700">Haz clic o arrastra tus PDFs aquí</p>
+                            <p className="font-medium text-slate-700 dark:text-slate-200">Haz clic o arrastra tus PDFs aquí</p>
                             <p className="text-xs text-slate-400 mt-1">Soporta múltiples archivos (Máx 10MB)</p>
                         </div>
                     </div>
@@ -124,15 +100,15 @@ const UploadModal = ({ isOpen, onClose }) => {
                                 Archivos listos ({files.length})
                             </p>
                             {files.map((file, index) => (
-                                <div key={index} className="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-lg shadow-sm">
+                                <div key={index} className="flex items-center justify-between p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm">
                                     <div className="flex items-center gap-3 overflow-hidden">
-                                        <div className="bg-indigo-50 p-2 rounded text-indigo-600">
+                                        <div className="bg-indigo-50 dark:bg-indigo-900/30 p-2 rounded text-indigo-600 dark:text-indigo-400">
                                             <FileText size={16} />
                                         </div>
-                                        <span className="text-sm font-medium text-slate-700 truncate max-w-[200px]">{file.name}</span>
+                                        <span className="text-sm font-medium text-slate-700 dark:text-slate-200 truncate max-w-[200px]">{file.name}</span>
                                     </div>
-                                    <button 
-                                        onClick={() => removeFile(index)} 
+                                    <button
+                                        onClick={() => removeFile(index)}
                                         disabled={isUploading}
                                         className="text-slate-400 hover:text-red-500 transition-colors disabled:opacity-50"
                                     >
@@ -145,11 +121,11 @@ const UploadModal = ({ isOpen, onClose }) => {
                 </div>
 
                 {/* Footer */}
-                <div className="p-6 bg-slate-50 border-t border-slate-100 flex justify-end gap-3">
+                <div className="p-6 bg-slate-50 dark:bg-slate-900/50 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3">
                     <button
                         onClick={onClose}
                         disabled={isUploading}
-                        className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-800 transition-colors disabled:opacity-50"
+                        className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-white transition-colors disabled:opacity-50"
                     >
                         Cancelar
                     </button>
@@ -157,8 +133,10 @@ const UploadModal = ({ isOpen, onClose }) => {
                         onClick={handleUpload}
                         disabled={files.length === 0 || isUploading}
                         className={`px-6 py-2 rounded-lg text-sm font-bold text-white shadow-lg shadow-indigo-500/30 flex items-center gap-2
-              ${files.length === 0 || isUploading ? 'bg-indigo-400 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700 hover:-translate-y-0.5 transition-all'}
-            `}
+                          ${files.length === 0 || isUploading
+                                ? 'bg-indigo-400 dark:bg-indigo-500/50 cursor-not-allowed'
+                                : 'bg-indigo-600 hover:bg-indigo-700 hover:-translate-y-0.5 transition-all'}
+                        `}
                     >
                         {isUploading ? <><Loader2 size={16} className="animate-spin" /> Procesando IA...</> : 'Analizar CVs'}
                     </button>

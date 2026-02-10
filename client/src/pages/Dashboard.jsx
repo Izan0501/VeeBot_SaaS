@@ -1,14 +1,22 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import {
-    BarChart3, Trash2, Send, Loader2, Bot, User, UploadCloud, Filter, ChevronDown, Search, X, Lock, Crown, Sparkles, ArrowUpRight, AlertOctagon, Activity, Mail
-} from 'lucide-react';
 import toast from 'react-hot-toast';
-import ReactMarkdown from 'react-markdown';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
 
-const Dashboard = ({ isModalOpen, setIsModalOpen, userRole }) => {
-    // --- ESTADOS ---
+// --- IMPORTS API Y CONTEXTO ---
+import { candidatesAPI } from '../api/candidates';
+import { featuresAPI } from '../api/features';
+import { useAuth } from '../context/AuthContext';
+
+// --- IMPORTS COMPONENTES ---
+import ClearModal from '../components/dashboard/ClearModal';
+import DashboardHeader from '../components/dashboard/DashboardHeader';
+import StatsGrid from '../components/dashboard/StatsGrid';
+import CandidatesTable from '../components/dashboard/CandidatesTable';
+import AIChat from '../components/dashboard/AIChat';
+import { Trash2 } from 'lucide-react';
+
+const Dashboard = ({ isModalOpen, setIsModalOpen }) => {
+    // 1. Estados
     const [candidates, setCandidates] = useState([]);
     const [selectedLetter, setSelectedLetter] = useState("Todos");
     const [searchTerm, setSearchTerm] = useState("");
@@ -16,17 +24,34 @@ const Dashboard = ({ isModalOpen, setIsModalOpen, userRole }) => {
     const [showClearModal, setShowClearModal] = useState(false);
     const [clearing, setClearing] = useState(false);
 
-    const navigate = useNavigate();
-
-    const isPremium = userRole === 'Premium' || userRole === 'Admin' || userRole === 'Reclutador';
-
+    // --- CHAT STATE CON PERSISTENCIA ---
     const [messages, setMessages] = useState([
         { id: 'init', role: 'ai', text: 'Hola, soy tu asistente de reclutamiento. **¿Qué perfil estás buscando hoy?**' }
     ]);
+
+    // Guardar en localStorage cada vez que cambien los mensajes
+    useEffect(() => {
+        const loadHistory = async () => {
+            try {
+                const history = await featuresAPI.getDashboardHistory();
+                if (history && history.length > 0) {
+                    // Combinamos mensaje inicial con el historial traído
+                    setMessages([
+                        { id: 'init', role: 'ai', text: 'Hola, soy tu asistente de reclutamiento. **¿Qué perfil estás buscando hoy?**' },
+                        ...history
+                    ]);
+                }
+            } catch (error) {
+                console.error("Error cargando historial del dashboard", error);
+            }
+        };
+        loadHistory();
+    }, []);
+
     const [chatQuery, setChatQuery] = useState("");
     const [isThinking, setIsThinking] = useState(false);
 
-    // --- REFS ---
+    // Refs
     const messagesEndRef = useRef(null);
     const filterMenuRef = useRef(null);
     const mainScrollRef = useRef(null);
@@ -34,116 +59,70 @@ const Dashboard = ({ isModalOpen, setIsModalOpen, userRole }) => {
     const prevModalOpen = useRef(isModalOpen);
     const prevCandidatesLength = useRef(0);
 
+    const navigate = useNavigate();
+    const { user } = useAuth();
+    const isPremium = user?.isPremium;
+
+    // --- EFECTOS GENERALES ---
     useEffect(() => {
-        if (mainScrollRef.current) {
-            mainScrollRef.current.scrollTo(0, 0);
-        }
+        if (mainScrollRef.current) mainScrollRef.current.scrollTo(0, 0);
         window.scrollTo(0, 0);
     }, []);
 
+    // Chat scroll automático
     useEffect(() => {
-        if (messages.length > 1 || isThinking) {
-            messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-        }
+        if (messages.length > 1 || isThinking) messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
     }, [messages, isThinking]);
 
-    const fetchCandidates = async () => {
-        try {
-            const token = localStorage.getItem('token');
-            if (!token) return;
-            const res = await fetch('http://127.0.0.1:8000/candidates', {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if (res.ok) {
-                const data = await res.json();
-                setCandidates(data);
-            }
-        } catch (error) {
-            console.error("Error:", error);
-        }
-    };
-
-    useEffect(() => {
-        if (!isModalOpen && !prevModalOpen.current) {
-            fetchCandidates();
-        }
-        if (prevModalOpen.current === true && isModalOpen === false) {
-            fetchCandidates();
-            toast.success("Lista de candidatos actualizada");
-            setTimeout(() => {
-                if (tableRef.current) {
-                    tableRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }
-            }, 300);
-        }
-        prevModalOpen.current = isModalOpen;
-    }, [isModalOpen]);
-
-    useEffect(() => {
-        if (candidates.length > prevCandidatesLength.current) {
-            if (candidates.length - prevCandidatesLength.current > 0) {
-                if (prevCandidatesLength.current > 0) {
-                    setTimeout(() => {
-                        tableRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    }, 100);
-                }
-            }
-        }
-        prevCandidatesLength.current = candidates.length;
-    }, [candidates]);
-
+    // Click outside filter
     useEffect(() => {
         const handleClickOutside = (event) => {
-            if (filterMenuRef.current && !filterMenuRef.current.contains(event.target)) {
-                setIsFilterMenuOpen(false);
-            }
+            if (filterMenuRef.current && !filterMenuRef.current.contains(event.target)) setIsFilterMenuOpen(false);
         };
         document.addEventListener("mousedown", handleClickOutside);
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
-    const filteredCandidates = useMemo(() => {
-        let result = [...candidates];
-        if (selectedLetter !== "Todos") {
-            result = result.filter(c => c.name.trim().toUpperCase().startsWith(selectedLetter));
+    // Auto-scroll on new candidates
+    useEffect(() => {
+        if (candidates.length > prevCandidatesLength.current && candidates.length - prevCandidatesLength.current > 0 && prevCandidatesLength.current > 0) {
+            setTimeout(() => tableRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
         }
-        if (searchTerm) {
-            result = result.filter(c =>
-                c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                (c.role && c.role.toLowerCase().includes(searchTerm.toLowerCase()))
-            );
-        }
-        result.sort((a, b) => b.score - a.score);
-        return result;
-    }, [candidates, selectedLetter, searchTerm]);
-
-    // --- CÁLCULOS PARA CARDS NUEVAS ---
-    const avgScore = useMemo(() => {
-        if (candidates.length === 0) return 0;
-        const sum = candidates.reduce((acc, c) => acc + (c.score || 0), 0);
-        return Math.round(sum / candidates.length);
+        prevCandidatesLength.current = candidates.length;
     }, [candidates]);
 
-    const lowMatchCount = useMemo(() => {
-        return candidates.filter(c => c.score < 50).length;
-    }, [candidates]);
 
-    const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
+    // --- DATA FETCHING (API) ---
+    const fetchCandidates = async () => {
+        try {
+            const data = await candidatesAPI.getAll();
+            if (Array.isArray(data)) setCandidates(data);
+        } catch (error) {
+            console.error("Error fetching candidates:", error);
+        }
+    };
+
+    useEffect(() => {
+        if (!isModalOpen && !prevModalOpen.current) fetchCandidates();
+        if (prevModalOpen.current === true && isModalOpen === false) {
+            fetchCandidates();
+            toast.success("Lista de candidatos actualizada");
+            setTimeout(() => tableRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 300);
+        }
+        prevModalOpen.current = isModalOpen;
+    }, [isModalOpen]);
+
+    // --- LÓGICA DE NEGOCIO ---
     const executeDelete = async (id) => {
         const toastId = toast.loading("Eliminando...");
         try {
-            const token = localStorage.getItem('token');
-            const res = await fetch(`http://127.0.0.1:8000/candidates/${id}`, {
-                method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if (res.ok) {
-                toast.success("Eliminado", { id: toastId });
-                setCandidates(prev => prev.filter(c => c.id !== id));
-            } else throw new Error();
+            await candidatesAPI.delete(id);
+            setCandidates(prev => prev.filter(c => c.id !== id));
+            toast.success("Candidato eliminado", { id: toastId });
         } catch (error) {
-            toast.error("Error al eliminar", { id: toastId });
+            console.error(error);
+            toast.error("No se pudo eliminar", { id: toastId });
         }
     };
 
@@ -163,20 +142,17 @@ const Dashboard = ({ isModalOpen, setIsModalOpen, userRole }) => {
         setClearing(true);
         const toastId = toast.loading("Vaciando base de datos...");
         try {
-            const token = localStorage.getItem('token');
-            // Borrado en bucle (funciona con tu backend actual)
-            const deletePromises = candidates.map(c =>
-                fetch(`http://127.0.0.1:8000/candidates/${c.id}`, {
-                    method: 'DELETE',
-                    headers: { 'Authorization': `Bearer ${token}` }
-                })
-            );
-            await Promise.all(deletePromises);
+            await candidatesAPI.deleteAll();
             setCandidates([]);
-            toast.success("Tabla vaciada correctamente", { id: toastId });
+            // También limpiamos el chat al borrar todo
+            setMessages([{ id: 'init', role: 'ai', text: 'Base de datos limpia. ¿Qué buscamos ahora?' }]);
+            localStorage.removeItem('dashboard_chat_history');
+
+            toast.success("Candidatos Eliminados", { id: toastId });
             setShowClearModal(false);
         } catch (error) {
-            toast.error("Error al vaciar tabla", { id: toastId });
+            console.error(error);
+            toast.error(error.message || "Error al vaciar tabla", { id: toastId });
         } finally {
             setClearing(false);
         }
@@ -184,571 +160,105 @@ const Dashboard = ({ isModalOpen, setIsModalOpen, userRole }) => {
 
     const handleAskAI = async (e) => {
         e.preventDefault();
-        if (!isPremium) {
-            toast.error("Función exclusiva del Plan Agency 🔒", { icon: '🔒', style: { borderRadius: '10px', background: '#333', color: '#fff', }, });
-            return;
-        }
+
         if (!chatQuery.trim()) return;
+
         const currentQuery = chatQuery;
-        setMessages(prev => [...prev, { id: Date.now(), role: 'user', text: currentQuery }]);
+
+        // 1. Agregamos el mensaje del usuario (Optimistic UI)
+        const newMsgUser = { id: Date.now(), role: 'user', text: currentQuery };
+        setMessages(prev => [...prev, newMsgUser]);
+
         setChatQuery("");
         setIsThinking(true);
+
         try {
-            const token = localStorage.getItem('token');
-            const formData = new FormData();
-            formData.append('query', currentQuery);
-            const res = await fetch('http://127.0.0.1:8000/analyze', {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${token}` },
-                body: formData
-            });
-            if (res.status === 401) {
-                setMessages(prev => [...prev, { id: Date.now() + 1, role: 'ai', text: "⚠️ Sesión expirada." }]);
-                return;
-            }
-            const data = await res.json();
+            // La API ahora se encarga de verificar si te pasaste de los 5 mensajes
+            const data = await featuresAPI.analyzeChat(currentQuery);
             setMessages(prev => [...prev, { id: Date.now() + 1, role: 'ai', text: data.response }]);
-        } catch {
-            setMessages(prev => [...prev, { id: Date.now() + 1, role: 'ai', text: "Error de conexión." }]);
+        } catch (error) {
+            console.error(error);
+
+            // Si el backend nos dice "Límite alcanzado", borramos el mensaje del usuario para que no cuente visualmente
+            if (error.message && error.message.includes("Límite")) {
+                toast.error(error.message, { icon: '🔒' });
+                setMessages(prev => prev.filter(m => m.id !== newMsgUser.id));
+            } else {
+                const msg = error.message === 'Sesión expirada' ? "⚠️ Sesión expirada." : "Error de conexión.";
+                setMessages(prev => [...prev, { id: Date.now() + 1, role: 'ai', text: msg }]);
+            }
         } finally {
             setIsThinking(false);
         }
     };
 
-    // Función rápida para enviar email (sin modal complejo por ahora, directo y efectivo)
     const handleSendEmail = async (candidateId, type) => {
         if (!isPremium) return toast.error("Función Premium 🔒");
-
-        const toastId = toast.loading(`Enviando email de ${type === 'interview' ? 'Invitación' : 'Rechazo'}...`);
+        const toastId = toast.loading(`Enviando email...`);
         try {
-            const token = localStorage.getItem('token');
-            const res = await fetch('http://127.0.0.1:8000/email/send-candidate', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    candidate_id: candidateId,
-                    template_type: type
-                })
-            });
-
-            if (res.ok) {
-                toast.success("Email enviado correctamente", { id: toastId });
-            } else {
-                throw new Error();
-            }
+            await featuresAPI.sendEmail(candidateId, type);
+            toast.success("Email enviado correctamente", { id: toastId });
         } catch (error) {
             toast.error("Error al enviar email", { id: toastId });
         }
     };
 
-    // Variantes de Animación
-    const containerVariants = {
-        hidden: { opacity: 0 },
-        visible: {
-            opacity: 1,
-            transition: { staggerChildren: 0.1 }
-        }
-    };
+    // --- CALCULOS MEMOIZADOS ---
+    const filteredCandidates = useMemo(() => {
+        let result = [...candidates];
+        if (selectedLetter !== "Todos") result = result.filter(c => c.name.trim().toUpperCase().startsWith(selectedLetter));
+        if (searchTerm) result = result.filter(c => c.name.toLowerCase().includes(searchTerm.toLowerCase()) || (c.role && c.role.toLowerCase().includes(searchTerm.toLowerCase())));
+        result.sort((a, b) => b.score - a.score);
+        return result;
+    }, [candidates, selectedLetter, searchTerm]);
 
-    const itemVariants = {
-        hidden: { y: 20, opacity: 0 },
-        visible: {
-            y: 0,
-            opacity: 1,
-            transition: { type: "spring", stiffness: 100 }
-        }
-    };
+    const avgScore = useMemo(() => {
+        if (candidates.length === 0) return 0;
+        const sum = candidates.reduce((acc, c) => acc + (c.score || 0), 0);
+        return Math.round(sum / candidates.length);
+    }, [candidates]);
+
+    const lowMatchCount = useMemo(() => candidates.filter(c => c.score < 50).length, [candidates]);
+    const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+
+    // --- RENDER ---
+    const containerVariants = { hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.1 } } };
+    const itemVariants = { hidden: { y: 20, opacity: 0 }, visible: { y: 0, opacity: 1, transition: { type: "spring", stiffness: 100 } } };
 
     return (
-        <div className="flex-1 flex flex-col h-full overflow-hidden bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
+        <div className="flex-1 flex flex-col h-full overflow-hidden bg-slate-50 dark:bg-slate-950 transition-colors duration-300 relative">
+            <ClearModal isOpen={showClearModal} onClose={() => setShowClearModal(false)} onConfirm={handleClearAll} isClearing={clearing} count={candidates.length} />
+            <DashboardHeader candidatesCount={candidates.length} onOpenClearModal={() => setShowClearModal(true)} isPremium={isPremium} onNavigate={navigate} onOpenUploadModal={() => setIsModalOpen(true)} />
 
-            {/* --- MODAL CONFIRMACIÓN VACIAR TABLA --- */}
-            <AnimatePresence>
-                {showClearModal && (
-                    <motion.div
-                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4"
-                        onClick={() => setShowClearModal(false)}
-                    >
-                        <motion.div
-                            initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
-                            onClick={(e) => e.stopPropagation()}
-                            className="bg-white dark:bg-slate-900 p-8 rounded-3xl shadow-2xl border border-red-100 dark:border-red-900/50 max-w-sm w-full relative overflow-hidden"
-                        >
-                            <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
-
-                            <div className="w-14 h-14 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mb-6 text-red-600 dark:text-red-500 mx-auto border-4 border-white dark:border-slate-800 shadow-xl">
-                                <AlertOctagon size={28} />
-                            </div>
-
-                            <div className="text-center mb-8">
-                                <h3 className="text-2xl font-black text-slate-900 dark:text-white mb-2 tracking-tight">¿Estás seguro?</h3>
-                                <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed">
-                                    Esta acción eliminará <strong>{candidates.length} candidatos</strong> de forma permanente. No podrás deshacerlo.
-                                </p>
-                            </div>
-
-                            <div className="flex gap-3">
-                                <button
-                                    onClick={() => setShowClearModal(false)}
-                                    className="flex-1 py-3 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-bold text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-                                >
-                                    Cancelar
-                                </button>
-                                <button
-                                    onClick={handleClearAll}
-                                    disabled={clearing}
-                                    className="flex-1 py-3 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-bold text-sm shadow-lg shadow-red-500/30 transition-all flex items-center justify-center gap-2"
-                                >
-                                    {clearing ? <Loader2 className="animate-spin" size={16} /> : <Trash2 size={16} />}
-                                    {clearing ? "Borrando..." : "Vaciar Todo"}
-                                </button>
-                            </div>
-                        </motion.div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-
-            {/* HEADER */}
-            <header className="h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-4 md:px-8 sticky top-0 z-20 shadow-sm transition-colors">
-                <h2 className="text-lg font-bold text-slate-800 dark:text-white tracking-tight">Dashboard de Talento</h2>
-                <div className="flex items-center gap-3">
-
-                    {/* BOTÓN VACIAR TABLA */}
-                    {candidates.length > 0 && (
-                        <button
-                            onClick={() => setShowClearModal(true)}
-                            className="p-2 rounded-xl text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 transition-all border border-transparent hover:border-red-100 dark:hover:border-red-900/30"
-                            title="Vaciar tabla"
-                        >
-                            <Trash2 size={18} />
-                        </button>
-                    )}
-
-                    {!isPremium && (
-                        <button
-                            onClick={() => navigate('/upgrade')}
-                            className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-slate-100 text-slate-600 border border-slate-200 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 transition-all group"
-                        >
-                            <Sparkles size={12} className="text-yellow-500 group-hover:text-indigo-500" />
-                            <span>Mejorar Plan</span>
-                        </button>
-                    )}
-                    <button
-                        onClick={() => setIsModalOpen(true)}
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-all shadow-lg shadow-indigo-200 dark:shadow-none flex items-center gap-2 transform hover:-translate-y-0.5 active:scale-95"
-                    >
-                        <UploadCloud size={18} />
-                        <span className="hidden md:inline">Subir CVs</span>
-                    </button>
-                </div>
-            </header>
-
-            {/* CONTENIDO SCROLLABLE */}
             <div ref={mainScrollRef} className="flex-1 overflow-auto p-4 md:p-8 space-y-8 custom-scrollbar">
+                <StatsGrid variants={{ container: containerVariants, item: itemVariants }} candidates={candidates} avgScore={avgScore} lowMatchCount={lowMatchCount} />
 
-                {/* --- STATS ANIMADOS (4 CARDS AHORA) --- */}
-                <motion.div
-                    variants={containerVariants}
-                    initial="hidden"
-                    animate="visible"
-                    className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6"
-                >
-                    <motion.div variants={itemVariants}>
-                        <StatCard
-                            title="Total Candidatos"
-                            value={candidates.length}
-                            trend="Base Activa"
-                            icon={<User className="text-white" size={20} />}
-                            color="bg-indigo-500"
-                        />
-                    </motion.div>
-                    <motion.div variants={itemVariants}>
-                        <StatCard
-                            title="Top Talents"
-                            value={candidates.filter(c => c.score > 80).length}
-                            trend="Match > 80%"
-                            icon={<BarChart3 className="text-white" size={20} />}
-                            color="bg-emerald-500"
-                        />
-                    </motion.div>
+                {/* NOTA: Eliminamos el AIChat estático de aquí */}
 
-                    {/* --- NUEVA CARD 1: Calidad Promedio --- */}
-                    <motion.div variants={itemVariants}>
-                        <StatCard
-                            title="Calidad Global"
-                            value={`${avgScore}%`}
-                            trend="Score Promedio"
-                            icon={<Activity className="text-white" size={20} />}
-                            color="bg-violet-500"
-                        />
-                    </motion.div>
-
-                    {/* --- NUEVA CARD 2: Descartados / Bajo Match --- */}
-                    <motion.div variants={itemVariants}>
-                        <StatCard
-                            title="Bajo Ajuste"
-                            value={lowMatchCount}
-                            trend="Score < 50%"
-                            icon={<Filter className="text-white" size={20} />}
-                            color="bg-rose-500"
-                        />
-                    </motion.div>
-                </motion.div>
-
-                {/* --- CHAT IA --- */}
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2, duration: 0.5 }}
-                    className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col h-[600px] md:h-[800px] transition-all relative group"
-                >
-                    {!isPremium && (
-                        <div className="absolute inset-0 z-10 bg-slate-50/70 dark:bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 transition-all duration-500">
-                            <div className="w-full max-w-xs md:max-w-sm bg-white dark:bg-slate-800 p-6 md:p-8 rounded-3xl shadow-2xl border border-indigo-100 dark:border-indigo-900/50 text-center transform scale-100 animate-in fade-in zoom-in duration-300">
-                                <div className="w-14 h-14 bg-indigo-50 dark:bg-indigo-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
-                                    <Lock className="text-indigo-600 dark:text-indigo-400" size={28} />
-                                </div>
-                                <h3 className="text-xl md:text-2xl font-bold text-slate-900 dark:text-white mb-2">IA Bloqueada</h3>
-                                <p className="text-sm md:text-base text-slate-500 dark:text-slate-400 mb-6 leading-relaxed">
-                                    Chatea con tus candidatos, obtén análisis profundos y exporta datos con el plan Agency.
-                                </p>
-                                <button onClick={() => navigate('/upgrade')} className="w-full py-3 bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-xl font-bold text-sm md:text-base hover:shadow-lg hover:shadow-indigo-500/30 transition-all active:scale-95 flex justify-center items-center gap-2">
-                                    <Crown size={16} /> Desbloquear
-                                </button>
-                                <p className="text-[10px] md:text-xs text-slate-400 mt-4">Cancela cuando quieras.</p>
-                            </div>
-                        </div>
-                    )}
-
-                    <div className="bg-slate-50/80 dark:bg-slate-800/50 backdrop-blur border-b border-slate-100 dark:border-slate-800 p-4 md:p-5 flex items-center gap-4">
-                        <div className="bg-indigo-100 dark:bg-indigo-900/30 p-2.5 rounded-xl"><Bot className="text-indigo-600 dark:text-indigo-400" size={24} /></div>
-                        <div>
-                            <h3 className="font-bold text-slate-800 dark:text-white text-sm md:text-base">VeeBot AI Recruiter</h3>
-                            <div className="flex items-center gap-2">
-                                <span className="relative flex h-2 w-2 md:h-2.5 md:w-2.5"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span><span className="relative inline-flex rounded-full h-full w-full bg-green-500"></span></span>
-                                <span className="text-[10px] md:text-xs text-slate-500 dark:text-slate-400 font-medium">Sistema RAG Activo</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-6 md:space-y-8 bg-gradient-to-b from-white to-slate-50 dark:from-slate-900 dark:to-slate-950">
-                        {messages.map((msg) => (
-                            <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                <div className={`flex gap-3 md:gap-4 max-w-[95%] md:max-w-[85%] lg:max-w-[80%] ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-                                    <div className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center flex-shrink-0 shadow-sm mt-1 ${msg.role === 'user' ? 'bg-indigo-600' : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700'}`}>
-                                        {msg.role === 'user' ? <User size={16} className="text-white" /> : <Bot size={16} className="text-indigo-600 dark:text-indigo-400" />}
-                                    </div>
-                                    <div className={`p-4 md:p-5 rounded-2xl shadow-sm text-sm md:text-base leading-relaxed overflow-hidden ${msg.role === 'user' ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-tl-none'}`}>
-                                        <ReactMarkdown components={{ strong: ({ node, ...props }) => <span className="font-bold text-indigo-700 dark:text-indigo-300" {...props} />, ul: ({ node, ...props }) => <ul className="list-disc pl-5 my-2 space-y-1" {...props} />, li: ({ node, ...props }) => <li className="pl-1" {...props} />, p: ({ node, ...props }) => <p className="mb-2 last:mb-0" {...props} />, h3: ({ node, ...props }) => <h3 className="text-base md:text-lg font-bold mt-2 mb-1" {...props} /> }}>
-                                            {msg.text}
-                                        </ReactMarkdown>
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
-                        {isThinking && (
-                            <div className="flex gap-4">
-                                <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center"><Loader2 size={16} className="text-indigo-600 animate-spin" /></div>
-                                <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-6 py-4 rounded-2xl rounded-tl-none shadow-sm flex gap-1.5 items-center">
-                                    <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce"></span><span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce delay-100"></span><span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce delay-200"></span>
-                                </div>
-                            </div>
-                        )}
-                        <div ref={messagesEndRef} />
-                    </div>
-
-                    <div className="p-4 md:p-5 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 transition-colors">
-                        <form onSubmit={handleAskAI} className="relative flex items-center gap-3">
-                            <input type="text" value={chatQuery} onChange={(e) => setChatQuery(e.target.value)} placeholder={isPremium ? "Ej: ¿Quién sabe React y vive en CABA?" : "🔒 Desbloquea para chatear con la IA"} className={`flex-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 text-sm md:text-base rounded-xl py-3 md:py-4 px-5 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all placeholder-slate-400 dark:placeholder-slate-500 ${!isPremium ? 'opacity-50 cursor-not-allowed' : ''}`} disabled={isThinking || !isPremium} />
-                            <button type="submit" disabled={isThinking || !chatQuery.trim() || !isPremium} className={`bg-indigo-600 text-white p-3 md:p-4 rounded-xl transition-all shadow-md transform ${!isPremium ? 'opacity-50 cursor-not-allowed' : 'hover:bg-indigo-700 hover:shadow-lg active:scale-95'}`}>
-                                {isPremium ? <Send size={20} /> : <Lock size={20} />}
-                            </button>
-                        </form>
-                    </div>
-                </motion.div>
-
-                {/* --- SECCIÓN DE CANDIDATOS (TABLA) --- */}
-                <motion.div
+                <CandidatesTable
+                    searchTerm={searchTerm} setSearchTerm={setSearchTerm}
+                    filterMenuRef={filterMenuRef} isFilterMenuOpen={isFilterMenuOpen} setIsFilterMenuOpen={setIsFilterMenuOpen}
+                    selectedLetter={selectedLetter} setSelectedLetter={setSelectedLetter}
+                    filteredCandidates={filteredCandidates} alphabet={alphabet}
+                    handleSendEmail={handleSendEmail} handleDelete={handleDelete}
                     ref={tableRef}
-                    className="space-y-6 pt-6 scroll-mt-20"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.3, duration: 0.5 }}
-                >
-                    {/* --- BARRA DE CONTROL (BUSCADOR Y FILTRO) --- */}
-                    <div className="bg-white dark:bg-slate-900 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-lg shadow-slate-200/50 dark:shadow-none flex flex-col md:flex-row gap-2 items-center justify-between transition-colors relative z-20">
-                        <div className="relative w-full md:w-96 group">
-                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                <Search className="text-slate-400 group-focus-within:text-indigo-500 transition-colors" size={18} />
-                            </div>
-                            <input
-                                type="text"
-                                placeholder="Buscar talento..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="block w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-slate-950 border-none rounded-xl text-sm font-medium focus:ring-2 focus:ring-indigo-500/50 focus:bg-white dark:focus:bg-slate-900 transition-all text-slate-700 dark:text-slate-200 placeholder-slate-400"
-                            />
-                            {searchTerm && (
-                                <button onClick={() => setSearchTerm("")} className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
-                                    <X size={16} />
-                                </button>
-                            )}
-                        </div>
-
-                        <div className="relative w-full md:w-auto" ref={filterMenuRef}>
-                            <button
-                                onClick={() => setIsFilterMenuOpen(!isFilterMenuOpen)}
-                                className={`w-full md:w-auto flex items-center justify-between md:justify-center gap-3 px-5 py-3 rounded-xl text-sm font-bold border transition-all duration-200 ${isFilterMenuOpen || selectedLetter !== "Todos"
-                                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-500/30'
-                                    : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
-                                    }`}
-                            >
-                                <span className="flex items-center gap-2">
-                                    <Filter size={16} />
-                                    {selectedLetter === "Todos" ? "Filtrar" : selectedLetter}
-                                </span>
-                                <ChevronDown size={16} className={`transition-transform duration-200 ${isFilterMenuOpen ? 'rotate-180' : ''}`} />
-                            </button>
-
-                            <AnimatePresence>
-                                {isFilterMenuOpen && (
-                                    <motion.div
-                                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                                        className="absolute right-0 top-full mt-2 w-full md:w-80 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl shadow-slate-400/20 dark:shadow-none border border-slate-200 dark:border-slate-800 p-5 z-50 origin-top-right"
-                                    >
-                                        <div className="flex justify-between items-center mb-4">
-                                            <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Inicial del nombre</span>
-                                            {selectedLetter !== "Todos" && (
-                                                <button onClick={() => { setSelectedLetter("Todos"); setIsFilterMenuOpen(false); }} className="text-xs text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 font-bold hover:underline">
-                                                    Restablecer
-                                                </button>
-                                            )}
-                                        </div>
-                                        <div className="grid grid-cols-6 gap-2">
-                                            {alphabet.map((letter) => (
-                                                <button
-                                                    key={letter}
-                                                    onClick={() => { setSelectedLetter(letter); setIsFilterMenuOpen(false); }}
-                                                    className={`h-9 w-9 flex items-center justify-center rounded-xl text-xs font-bold transition-all duration-200 
-                                                    ${selectedLetter === letter
-                                                            ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/40 scale-110'
-                                                            : 'bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-indigo-50 dark:hover:bg-slate-700 hover:text-indigo-600 dark:hover:text-white'
-                                                        }`}
-                                                >
-                                                    {letter}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </motion.div>
-                                )}
-                            </AnimatePresence>
-                        </div>
-                    </div>
-
-                    {/* --- TABLA DE RESULTADOS (DESKTOP) --- */}
-                    <div className="bg-white dark:bg-slate-900 rounded-[20px] border border-slate-200 dark:border-slate-800 shadow-xl shadow-slate-200/40 dark:shadow-none overflow-hidden transition-colors relative">
-
-                        <div className="hidden min-[1050px]:block overflow-x-auto">
-                            {/* 'table-fixed' es clave para que las columnas respeten el ancho */}
-                            <table className="w-full text-left text-sm text-slate-600 dark:text-slate-300 table-fixed">
-
-                                {/* HEADER STICKY */}
-                                <thead className="bg-slate-50/90 dark:bg-slate-950/90 backdrop-blur-md text-xs uppercase font-extrabold text-slate-400 tracking-wider border-b border-slate-200 dark:border-slate-800 sticky top-0 z-10">
-                                    <tr>
-                                        <th className="px-6 py-5 w-[35%]">Candidato</th>
-                                        <th className="px-6 py-5 w-[20%]">Match IA</th>
-                                        <th className="px-6 py-5 w-[15%]">Estado</th>
-                                        <th className="px-6 py-5 w-[10%]">Fecha</th>
-                                        <th className="px-6 py-5 w-[20%] text-right pr-8">Acciones</th>
-                                    </tr>
-                                </thead>
-
-                                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                                    {filteredCandidates.length === 0 ? (
-                                        <tr>
-                                            <td colSpan="5" className="px-6 py-20 text-center">
-                                                <div className="flex flex-col items-center justify-center opacity-50">
-                                                    <Search size={48} className="mb-4 text-slate-300 dark:text-slate-600" />
-                                                    <p className="text-lg font-medium text-slate-500 dark:text-slate-400">No se encontraron candidatos.</p>
-                                                    <p className="text-sm text-slate-400">Intenta ajustar los filtros de búsqueda.</p>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ) : (
-                                        filteredCandidates.map((c) => (
-                                            <tr key={c.id} className="group hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors duration-200">
-
-                                                {/* COL 1: CANDIDATO */}
-                                                <td className="px-6 py-5">
-                                                    <div className="flex items-center gap-4">
-                                                        <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-indigo-100 to-white dark:from-slate-800 dark:to-slate-900 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-black border border-indigo-100 dark:border-slate-700 shadow-sm group-hover:scale-110 transition-transform duration-300">
-                                                            {c.name.charAt(0).toUpperCase()}
-                                                        </div>
-                                                        <div className="min-w-0">
-                                                            <p className="font-bold text-slate-900 dark:text-white truncate text-base">{c.name}</p>
-                                                            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium truncate flex items-center gap-1.5">
-                                                                <span className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-600"></span>
-                                                                {c.role || "Rol no especificado"}
-                                                            </p>
-                                                        </div>
-                                                    </div>
-                                                </td>
-
-                                                {/* COL 2: SCORE */}
-                                                <td className="px-6 py-5">
-                                                    <div className="flex flex-col gap-1.5 max-w-[140px]">
-                                                        <div className="flex justify-between items-center">
-                                                            <span className={`text-xs font-bold ${c.score >= 80 ? 'text-emerald-600 dark:text-emerald-400' : c.score >= 50 ? 'text-amber-600 dark:text-amber-400' : 'text-slate-400'}`}>
-                                                                {c.score}% Relevancia
-                                                            </span>
-                                                        </div>
-                                                        <div className="w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                                                            <motion.div
-                                                                initial={{ width: 0 }}
-                                                                animate={{ width: `${c.score}%` }}
-                                                                transition={{ duration: 1, ease: "easeOut" }}
-                                                                className={`h-full rounded-full shadow-sm ${c.score >= 80 ? 'bg-gradient-to-r from-emerald-400 to-emerald-500' : c.score >= 50 ? 'bg-gradient-to-r from-amber-400 to-amber-500' : 'bg-slate-300 dark:bg-slate-600'}`}
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                </td>
-
-                                                {/* COL 3: ESTADO */}
-                                                <td className="px-6 py-5">
-                                                    <StatusBadge status={c.status} />
-                                                </td>
-
-                                                {/* COL 4: FECHA */}
-                                                <td className="px-6 py-5">
-                                                    <span className="text-slate-400 dark:text-slate-500 font-semibold text-xs whitespace-nowrap">
-                                                        {c.date || "Reciente"}
-                                                    </span>
-                                                </td>
-
-                                                {/* COL 5: ACCIONES (Fixed Width & Right Aligned) */}
-                                                <td className="px-6 py-5 pr-8">
-                                                    <div className="flex items-center justify-end gap-3 opacity-80 group-hover:opacity-100 transition-opacity">
-
-                                                        {/* EMAIL ENTREVISTA */}
-                                                        <button
-                                                            onClick={() => handleSendEmail(c.id, 'interview')}
-                                                            className="group/btn relative p-2.5 rounded-xl text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-all active:scale-95"
-                                                            title="Invitar a Entrevista"
-                                                        >
-                                                            <Mail size={18} strokeWidth={2.5} />
-                                                        </button>
-
-                                                        {/* EMAIL RECHAZO */}
-                                                        <button
-                                                            onClick={() => handleSendEmail(c.id, 'rejection')}
-                                                            className="group/btn relative p-2.5 rounded-xl text-slate-400 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-500/10 transition-all active:scale-95"
-                                                            title="Enviar Rechazo"
-                                                        >
-                                                            <X size={18} strokeWidth={2.5} />
-                                                        </button>
-
-                                                        {/* DIVISOR */}
-                                                        <div className="w-px h-5 bg-slate-200 dark:bg-slate-700 mx-1"></div>
-
-                                                        {/* ELIMINAR */}
-                                                        <button
-                                                            onClick={() => handleDelete(c.id)}
-                                                            className="group/btn relative p-2.5 rounded-xl text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-all active:scale-95"
-                                                            title="Eliminar"
-                                                        >
-                                                            <Trash2 size={18} strokeWidth={2.5} />
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
-
-                        {/* --- VISTA MÓVIL (CARDS) MEJORADA --- */}
-                        <div className="min-[1050px]:hidden p-4 space-y-4 bg-slate-50 dark:bg-slate-950">
-                            {filteredCandidates.map((c) => (
-                                <div key={c.id} className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col gap-5">
-                                    <div className="flex items-start justify-between">
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-900/20 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-black text-lg border border-indigo-100 dark:border-indigo-900">
-                                                {c.name.charAt(0).toUpperCase()}
-                                            </div>
-                                            <div>
-                                                <h4 className="font-bold text-slate-900 dark:text-white text-lg leading-tight">{c.name}</h4>
-                                                <p className="text-sm text-slate-500 font-medium">{c.role || "Sin rol"}</p>
-                                            </div>
-                                        </div>
-                                        <StatusBadge status={c.status} />
-                                    </div>
-
-                                    {/* Score Bar Mobile */}
-                                    <div className="bg-slate-50 dark:bg-slate-950/50 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
-                                        <div className="flex justify-between items-center mb-2">
-                                            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Ajuste del Perfil</span>
-                                            <span className={`text-sm font-bold ${c.score >= 80 ? 'text-emerald-600' : 'text-amber-600'}`}>{c.score}%</span>
-                                        </div>
-                                        <div className="w-full h-2.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
-                                            <div className={`h-full rounded-full ${c.score >= 80 ? 'bg-emerald-500' : c.score >= 50 ? 'bg-amber-500' : 'bg-slate-400'}`} style={{ width: `${c.score}%` }}></div>
-                                        </div>
-                                    </div>
-
-                                    {/* Actions Mobile */}
-                                    <div className="flex items-center justify-end gap-2 pt-2">
-                                        <button onClick={() => handleSendEmail(c.id, 'interview')} className="flex-1 py-2.5 rounded-xl font-bold text-xs bg-emerald-50 text-emerald-700 border border-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-900/30 flex justify-center gap-2">
-                                            <Mail size={16} /> Entrevista
-                                        </button>
-                                        <button onClick={() => handleSendEmail(c.id, 'rejection')} className="py-2.5 px-4 rounded-xl font-bold text-xs bg-amber-50 text-amber-700 border border-amber-100 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-900/30">
-                                            <X size={16} />
-                                        </button>
-                                        <button onClick={() => handleDelete(c.id)} className="py-2.5 px-4 rounded-xl font-bold text-xs bg-red-50 text-red-700 border border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30">
-                                            <Trash2 size={16} />
-                                        </button>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
-                    <div className="text-center text-xs font-medium text-slate-400 pt-4 pb-8">
-                        Mostrando {filteredCandidates.length} candidatos ordenados por relevancia.
-                    </div>
-                </motion.div>
-            </div >
-        </div >
-    );
-};
-
-const StatCard = ({ title, value, trend, icon, color }) => (
-    <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
-        <div className="flex justify-between items-start mb-3">
-            <div className={`p-2.5 rounded-xl ${color} shadow-lg shadow-indigo-500/20`}>{icon}</div>
-            <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-900/50">
-                <ArrowUpRight size={10} className="text-green-600 dark:text-green-400" />
-                <span className="text-[10px] font-bold text-green-600 dark:text-green-400 uppercase tracking-wider">{trend}</span>
+                />
             </div>
-        </div>
-        <div>
-            <h3 className="text-3xl font-extrabold text-slate-800 dark:text-white tracking-tight">{value}</h3>
-            <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1">{title}</p>
-        </div>
-    </div>
-);
 
-const StatusBadge = ({ status }) => {
-    let styles = 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700';
-    if (status && status.includes('Alto')) styles = 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 border-green-200 dark:border-green-900/50';
-    else if (status && status.includes('Medio')) styles = 'bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 border-yellow-200 dark:border-yellow-900/50';
-    else if (status && status.includes('Rechazado')) styles = 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-900/50';
-    return <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide border ${styles}`}>{status || "Pendiente"}</span>;
+            {/* --- COMPONENTE FLOTANTE AQUÍ (Fuera del scroll area) --- */}
+            <AIChat
+                isPremium={isPremium}
+                messages={messages}
+                isThinking={isThinking}
+                chatQuery={chatQuery}
+                setMessages={setMessages}
+                setChatQuery={setChatQuery}
+                handleAskAI={handleAskAI}
+                messagesEndRef={messagesEndRef}
+                onNavigate={navigate}
+            />
+        </div>
+    );
 };
 
 export default Dashboard;

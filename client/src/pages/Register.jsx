@@ -1,17 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import {
-    BrainCircuit, UserPlus, ArrowLeft, Mail, Lock, KeyRound,
-    CheckCircle2, HelpCircle, ArrowRight, Star, ShieldCheck
-} from 'lucide-react';
+import { BrainCircuit, UserPlus, ArrowLeft, Mail, Lock, CheckCircle2, HelpCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
+
+// --- IMPORTS API ---
+import { authAPI } from '../api/auth';
+
+// --- IMPORTS COMPONENTES ---
+import AuthVisuals from '../components/auth/AuthVisuals';
+import { InputGroup, PasswordInput } from '../components/auth/AuthInputs';
 
 const Register = () => {
     // --- ESTADOS Y LÓGICA ---
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [confirmPassword, setConfirmPassword] = useState(''); // <--- NUEVO ESTADO
+    const [confirmPassword, setConfirmPassword] = useState('');
     const [loading, setLoading] = useState(false);
 
     const navigate = useNavigate();
@@ -36,52 +40,49 @@ const Register = () => {
         const errorMsg = validatePassword(password);
         if (errorMsg) return toast.error(errorMsg);
 
-        // 2. Validar coincidencia (NUEVO)
+        // 2. Validar coincidencia
         if (password !== confirmPassword) {
             return toast.error("Las contraseñas no coinciden.");
         }
 
         setLoading(true);
         try {
-            const res = await fetch('http://127.0.0.1:8000/auth/register', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password }),
-            });
-            const data = await res.json();
-            if (res.ok) {
-                toast.success("¡Cuenta creada!");
-                navigate('/login');
-            } else { toast.error(data.detail || "Error"); }
-        } catch { toast.error("Error de conexión"); } finally { setLoading(false); }
+            await authAPI.register(email, password);
+            toast.success("¡Cuenta creada!");
+            navigate('/login');
+        } catch (error) {
+            toast.error(error.message || "Error al registrar cuenta");
+        } finally {
+            setLoading(false);
+        }
     };
 
     const verifyEmail = async (e) => {
         e.preventDefault();
         setLoading(true);
         try {
-            const res = await fetch('http://127.0.0.1:8000/auth/verify-email', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email })
-            });
-            if (res.ok) { toast.success("Email verificado."); setView('forgot_new_pass'); }
-            else { toast.error("Email no encontrado."); }
-        } catch { toast.error("Error de conexión"); } finally { setLoading(false); }
+            await authAPI.verifyEmail(email);
+            toast.success("Email verificado.");
+            setView('forgot_new_pass');
+        } catch (error) {
+            toast.error(error.message || "Email no encontrado.");
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleDirectReset = async (e) => {
         e.preventDefault();
         setLoading(true);
         try {
-            const res = await fetch('http://127.0.0.1:8000/auth/reset-password-direct', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, new_password: password })
-            });
-            if (res.ok) { toast.success("¡Listo!"); setTimeout(() => navigate('/login'), 1500); }
-            else { toast.error("Error al cambiar clave."); }
-        } catch { toast.error("Error de conexión"); } finally { setLoading(false); }
+            await authAPI.resetPasswordDirect(email, password);
+            toast.success("¡Contraseña actualizada!");
+            setTimeout(() => navigate('/login'), 1500);
+        } catch (error) {
+            toast.error(error.message || "Error al cambiar clave.");
+        } finally {
+            setLoading(false);
+        }
     };
 
     // --- ANIMACIONES ---
@@ -89,10 +90,6 @@ const Register = () => {
         initial: { opacity: 0, x: 20 },
         animate: { opacity: 1, x: 0 },
         exit: { opacity: 0, x: -20 }
-    };
-    const slideUp = {
-        hidden: { opacity: 0, y: 30 },
-        visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } }
     };
 
     return (
@@ -113,107 +110,10 @@ const Register = () => {
                 <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
             </motion.button>
 
-            {/* --- FONDO ANIMADO MÓVIL (Solo visible en lg:hidden) --- */}
-            <div className="lg:hidden absolute inset-0 overflow-hidden pointer-events-none z-0">
-                <div className="absolute inset-0 bg-slate-900"></div>
-                <motion.div
-                    animate={{ scale: [1, 1.2, 1], opacity: [0.4, 0.6, 0.4] }}
-                    transition={{ duration: 8, repeat: Infinity }}
-                    className="absolute -top-[20%] -left-[20%] w-[150vw] h-[150vw] bg-indigo-600/30 rounded-full blur-[80px]"
-                ></motion.div>
-                <motion.div
-                    animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0.5, 0.3] }}
-                    transition={{ duration: 10, repeat: Infinity, delay: 1 }}
-                    className="absolute -bottom-[20%] -right-[20%] w-[150vw] h-[150vw] bg-purple-600/20 rounded-full blur-[80px]"
-                ></motion.div>
-            </div>
+            {/* COMPONENTE VISUAL IZQUIERDO */}
+            <AuthVisuals />
 
-            {/* --- LADO IZQUIERDO: ARTE DESKTOP (ANILLOS CON PULSO) --- */}
-            <motion.div
-                initial={{ x: '-100%' }}
-                animate={{ x: 0 }}
-                transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-                className="hidden lg:flex w-1/2 bg-slate-950 relative flex-col justify-between p-16 overflow-hidden"
-            >
-                {/* Anillo Exterior */}
-                <motion.div
-                    initial={{ x: "-50%", y: "-50%", scale: 1, opacity: 0.1 }}
-                    animate={{
-                        x: "-50%", y: "-50%",
-                        scale: [1, 1.15, 1],
-                        opacity: [0.1, 0.3, 0.1]
-                    }}
-                    transition={{
-                        duration: 1.5,
-                        repeat: Infinity,
-                        ease: [0.4, 0, 0.2, 1]
-                    }}
-                    className="absolute top-1/2 left-1/2 w-[700px] h-[700px] border-2 border-white/10 rounded-full pointer-events-none"
-                />
-
-                {/* Anillo Interior */}
-                <motion.div
-                    initial={{ x: "-50%", y: "-50%", scale: 1, opacity: 0.2 }}
-                    animate={{
-                        x: "-50%", y: "-50%",
-                        scale: [1, 1.1, 1],
-                        opacity: [0.2, 0.5, 0.2]
-                    }}
-                    transition={{
-                        duration: 1.5,
-                        delay: 0.1,
-                        repeat: Infinity,
-                        ease: [0.4, 0, 0.2, 1]
-                    }}
-                    className="absolute top-1/2 left-1/2 w-[550px] h-[550px] border-[3px] border-indigo-500/30 rounded-full pointer-events-none shadow-[0_0_30px_rgba(99,102,241,0.3)]"
-                />
-
-                <motion.div
-                    animate={{
-                        scale: [1, 1.2, 1],
-                        opacity: [0.3, 0.5, 0.3]
-                    }}
-                    transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-                    className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-indigo-600/30 blur-[120px] rounded-full pointer-events-none"
-                ></motion.div>
-
-                {/* Contenido Texto */}
-                <div className="relative z-10 mt-10">
-                    <motion.div variants={slideUp} initial="hidden" animate="visible" className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs font-bold uppercase tracking-wider mb-6">
-                        <Star size={12} className="fill-indigo-300" /> Únete a los líderes
-                    </motion.div>
-
-                    <motion.h1 variants={slideUp} initial="hidden" animate="visible" transition={{ delay: 0.1 }} className="text-6xl font-bold text-white tracking-tight leading-tight mb-6">
-                        El futuro del <br />
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400 animate-gradient-x">Reclutamiento.</span>
-                    </motion.h1>
-
-                    <motion.p variants={slideUp} initial="hidden" animate="visible" transition={{ delay: 0.2 }} className="text-lg text-slate-400 max-w-md leading-relaxed">
-                        Deja de leer CVs manualmente. Únete a miles de reclutadores que usan VeeBot para encontrar el talento oculto en segundos.
-                    </motion.p>
-                </div>
-
-                <div className="relative z-10 space-y-4">
-                    {["Análisis semántico con IA", "Filtrado automático", "Seguridad Enterprise"].map((item, i) => (
-                        <motion.div
-                            key={i}
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: 0.5 + (i * 0.1) }}
-                            className="flex items-center gap-3 text-slate-300"
-                        >
-                            <div className="p-1 rounded-full bg-green-500/20 text-green-400"><CheckCircle2 size={16} /></div>
-                            <span className="text-sm font-medium">{item}</span>
-                        </motion.div>
-                    ))}
-                </div>
-
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }} className="relative z-10 text-xs text-slate-600">
-                    © {new Date().getFullYear()} VeeBot Inc. Todos los derechos reservados.
-                </motion.div>
-            </motion.div>
-
-            {/* --- LADO DERECHO: FORMULARIO (Adaptado Mobile Premium) --- */}
+            {/* --- LADO DERECHO: FORMULARIO --- */}
             <motion.div
                 initial={{ opacity: 0, x: -50 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -236,7 +136,7 @@ const Register = () => {
                         </p>
                     </motion.div>
 
-                    {/* CARD DEL FORMULARIO CON GLASS SUTIL */}
+                    {/* CARD DEL FORMULARIO */}
                     <div className="
                         bg-white/10 lg:bg-white 
                         backdrop-blur-xl lg:backdrop-blur-none
@@ -250,7 +150,7 @@ const Register = () => {
 
                         <AnimatePresence mode='wait'>
 
-                            {/* VISTA 1: REGISTRO (CON CAMPO CONFIRMAR) */}
+                            {/* VISTA 1: REGISTRO */}
                             {view === 'register' && (
                                 <motion.form
                                     key="register"
@@ -266,7 +166,6 @@ const Register = () => {
 
                                     <PasswordInput value={password} onChange={setPassword} showValidation={true} isMobileDark={true} />
 
-                                    {/* CAMPO DE CONFIRMACIÓN NUEVO */}
                                     <PasswordInput
                                         label="Confirmar Contraseña"
                                         value={confirmPassword}
@@ -358,70 +257,5 @@ const Register = () => {
         </div>
     );
 };
-
-// --- COMPONENTES UI REUTILIZABLES (ADAPTADOS MOBILE DARK) ---
-
-const InputGroup = ({ label, icon, type, value, onChange, placeholder, isMobileDark }) => (
-    <div>
-        <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ml-1 ${isMobileDark ? 'text-slate-300 lg:text-slate-500' : 'text-slate-500'}`}>{label}</label>
-        <div className="relative group">
-            <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors duration-300 ${isMobileDark ? 'text-slate-400 group-focus-within:text-indigo-400 lg:group-focus-within:text-indigo-500' : 'text-slate-400'}`}>
-                {React.cloneElement(icon, { size: 20 })}
-            </div>
-            <input
-                type={type}
-                value={value}
-                onChange={(e) => onChange(e.target.value)}
-                className={`w-full pl-12 pr-4 py-3.5 lg:py-3.5 rounded-xl border focus:outline-none focus:ring-2 transition-all font-medium placeholder:text-slate-600 lg:placeholder:text-slate-400
-                    ${isMobileDark
-                        ? 'bg-slate-900/50 lg:bg-slate-50 border-slate-700 lg:border-slate-200 text-white lg:text-slate-900 focus:ring-indigo-500/50 lg:focus:ring-indigo-500/20 focus:border-indigo-400 lg:focus:border-indigo-500 focus:bg-slate-800 lg:focus:bg-white'
-                        : 'bg-slate-50 border-slate-200'
-                    }`}
-                placeholder={placeholder}
-                required
-            />
-        </div>
-    </div>
-);
-
-const PasswordInput = ({ value, onChange, showValidation, label = "Contraseña", isMobileDark, placeholder = "••••••••" }) => (
-    <div>
-        <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ml-1 ${isMobileDark ? 'text-slate-300 lg:text-slate-500' : 'text-slate-500'}`}>{label}</label>
-        <div className="relative group">
-            <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors duration-300 ${isMobileDark ? 'text-slate-400 group-focus-within:text-indigo-400 lg:group-focus-within:text-indigo-500' : 'text-slate-400'}`}>
-                <Lock size={20} />
-            </div>
-            <input
-                type="password"
-                value={value}
-                onChange={(e) => onChange(e.target.value)}
-                className={`w-full pl-12 pr-4 py-3.5 lg:py-3.5 rounded-xl border focus:outline-none focus:ring-2 transition-all font-medium tracking-wide placeholder:text-slate-600 lg:placeholder:text-slate-400
-                    ${isMobileDark
-                        ? 'bg-slate-900/50 lg:bg-slate-50 border-slate-700 lg:border-slate-200 text-white lg:text-slate-900 focus:ring-indigo-500/50 lg:focus:ring-indigo-500/20 focus:border-indigo-400 lg:focus:border-indigo-500 focus:bg-slate-800 lg:focus:bg-white'
-                        : 'bg-slate-50 border-slate-200'
-                    }`}
-                placeholder={placeholder}
-                required
-            />
-        </div>
-        {showValidation && (
-            <div className="mt-3 grid grid-cols-2 gap-2">
-                <ReqItem met={value.length >= 6} text="Mín. 6 caracteres" isMobileDark={isMobileDark} />
-                <ReqItem met={/[A-Z]/.test(value)} text="Mayúscula" isMobileDark={isMobileDark} />
-                <ReqItem met={/\d/.test(value)} text="Número" isMobileDark={isMobileDark} />
-                <ReqItem met={/[!@#$%^&*]/.test(value)} text="Símbolo" isMobileDark={isMobileDark} />
-            </div>
-        )}
-    </div>
-);
-
-const ReqItem = ({ met, text, isMobileDark }) => (
-    <div className={`flex items-center gap-1.5 text-[10px] font-bold transition-colors duration-300 ${met ? "text-emerald-400 lg:text-emerald-600" : (isMobileDark ? "text-slate-500 lg:text-slate-300" : "text-slate-300")}`}>
-        <div className={`w-3 h-3 rounded-full flex items-center justify-center border ${met ? "bg-emerald-500 border-emerald-500" : (isMobileDark ? "border-slate-600 lg:border-slate-200" : "border-slate-200")}`}>
-            {met && <CheckCircle2 size={10} className="text-white" />}
-        </div>
-        <span>{text}</span>
-    </div>
-);
 
 export default Register;

@@ -1,50 +1,78 @@
 import os
 import json
-import re
 import requests
-from pinecone import Pinecone
-from dotenv import load_dotenv
-import pdfplumber
-from pathlib import Path
-from datetime import datetime, timedelta
-from database import candidates_collection
 import time
+from datetime import datetime, timedelta
+from pinecone import Pinecone
+from sentence_transformers import SentenceTransformer
+from groq import Groq
 
-env_path = Path(__file__).resolve().parent.parent / '.env'
-load_dotenv(dotenv_path=env_path)
+# Import Locals
+from config import GROQ_API_KEY, PINECONE_API_KEY, PINECONE_INDEX_NAME
+from database import candidates_collection
 
-pc = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
-index = pc.Index("recruit-index")
+# Services for Vector DB (Pinecone) and AI (GROQ)
+pc = Pinecone(api_key=PINECONE_API_KEY)
+index = pc.Index(PINECONE_INDEX_NAME)
 
-def extract_text_from_pdf(pdf_path):
-    text = ""
-    with pdfplumber.open(pdf_path) as pdf:
-        for page in pdf.pages:
-            text += page.extract_text() or ""
-    return text
+# Embedding Model Initialization
+embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
 
-def process_and_store_cv(text, filename, candidate_name, user_id):
-    # Vector Dummy
-    vector = [0.1] * 1536 
-    
-    # GUARDAMOS CON METADATA USER_ID PARA FILTRAR DESPUÉS
-    index.upsert(
-        vectors=[
-            {
-                "id": filename, 
-                "values": vector,
-                "metadata": {
-                    "text": text[:5000], 
-                    "name": candidate_name,
-                    "user_id": user_id 
-                }
-            }
-        ]
-    )
+# Vectorial Logic (Pinecone)
+def get_embedding(text):
+    """
+    Generate embedding vector from text using SentenceTransformer.
+    """
+    try:
+        text = text.replace("\n", " ")
+        
+        vector = embedding_model.encode(text).tolist()
+        return vector
+    except Exception as e:
+        print(f"❌ Error generando embedding: {e}")
+        return None
 
-# --- LLAMADA A GROQ ---
+def process_and_store_cv(text, mongo_id, vector_id, user_id):
+    # 1. Generar Embedding
+    vector = get_embedding(text)
+    if not vector:
+        return
+
+    # 2. Preparar Metadata
+    metadata = {
+        "mongo_id": str(mongo_id),
+        "text": text[:1000] # Guardamos un snippet del texto
+    }
+
+    # 3. Subir a Pinecone (UPSERT)
+    try:
+        # --- AQUÍ ESTÁ LA CLAVE ---
+        # Debes pasar namespace=user_id. Si no lo haces, se guarda en "default"
+        # y luego el delete(namespace=user_id) no encontrará nada.
+        index.upsert(
+            vectors=[(vector_id, vector, metadata)], 
+            namespace=user_id 
+        )
+        print(f"✅ Vector guardado en namespace {user_id}: {vector_id}")
+    except Exception as e:
+        print(f"❌ Error subiendo a Pinecone: {e}")
+
+def delete_user_vectors(user_id):
+    """
+    Delete all vectors in Pinecone associated with a specific user_id.
+    """
+    try:
+        #Delete by filter
+        index.delete(filter={"user_id": user_id})
+        return True
+    except Exception as e:
+        print(f"Error borrando vectores Pinecone: {e}")
+        return False
+
+# AI Integration (GROQ)
 def raw_groq_request(messages, model="llama-3.3-70b-versatile", json_mode=False):
-    api_key = os.getenv("GROQ_API_KEY", "").strip()
+  
+    api_key = GROQ_API_KEY or os.getenv("GROQ_API_KEY", "").strip()
     url = "https://api.groq.com/openai/v1/chat/completions"
     
     headers = {
@@ -59,7 +87,6 @@ def raw_groq_request(messages, model="llama-3.3-70b-versatile", json_mode=False)
     }
     if json_mode: payload["response_format"] = {"type": "json_object"}
 
-    # CAMBIO: INTENTAR HASTA 3 VECES
     max_retries = 3
     for attempt in range(max_retries):
         try:
@@ -69,24 +96,22 @@ def raw_groq_request(messages, model="llama-3.3-70b-versatile", json_mode=False)
                 return response.json()["choices"][0]["message"]["content"]
             
             elif response.status_code == 429:
-                # Si Groq dice "Too Many Requests", esperamos un poco
                 wait_time = 2 * (attempt + 1)
                 print(f"⚠️ Rate Limit de Groq. Reintentando en {wait_time}s...")
                 time.sleep(wait_time)
-                continue # Vuelve a intentar
+                continue 
             
             else:
                 raise Exception(f"Error Groq {response.status_code}: {response.text}")
                 
         except Exception as e:
-            if attempt == max_retries - 1: # Si fue el último intento
+            if attempt == max_retries - 1: 
                 print(f"Error final en request: {e}")
                 raise e
             time.sleep(1)
 
 def get_ai_score(text, model_name="llama-3.3-70b-versatile"): 
-    # --- PROMPT: MODO "AUDITOR CÍNICO" ---
-    # Cambiamos la lógica: No evalúes "potencial", evalúa "evidencia actual".
+    # Prompt 
     prompt = f"""
     Actúa como un Engineering Manager escéptico y cínico que odia contratar a la persona equivocada.
     Tu trabajo es AUDITAR este CV para detectar incompetencia, relleno de palabras clave (keyword stuffing) y falta de experiencia real.
@@ -155,6 +180,16 @@ def get_ai_score(text, model_name="llama-3.3-70b-versatile"):
         }
 
 def analyze_candidate_with_groq(query, candidates_context):
+    api_key = os.getenv("GROQ_API_KEY")
+    
+    # --- AGREGA ESTO PARA DEPURAR ---
+    print(f"🔍 DEBUG GROQ KEY EN USO: '{api_key}'") 
+    # (Tranquilo, esto solo sale en tu consola local)
+    
+    if not api_key:
+        print("❌ ERROR: La API Key está vacía o es None")
+        return "Error: No hay API Key configurada."
+    
     system_prompt = f"""
     Eres VeeBot, un asistente experto en reclutamiento.
     
@@ -176,69 +211,88 @@ def analyze_candidate_with_groq(query, candidates_context):
         )
     except Exception as e:
         return f"Error consultando a la IA: {str(e)}"
+
+def chat_as_candidate(candidate_name, full_cv_text, user_query):
+    """
+    Simula ser el candidato usando su CV completo como base de conocimiento.
+    """
+    api_key = os.getenv("GROQ_API_KEY", "").strip()
+    client = Groq(api_key=api_key)
+
+    # Construimos un System Prompt robusto
+    system_prompt = f"""
+    Eres {candidate_name}, un candidato en una entrevista.
     
+    AQUÍ ESTÁ TU CV REAL (Información Fuente):
+    =========================================
+    {full_cv_text}
+    =========================================
     
-# Elimina todos los vectores asociados a un usuario específico en Pinecone.    
-def delete_user_vectors(user_id):
+    INSTRUCCIONES CRÍTICAS:
+    1. Responde USANDO EXCLUSIVAMENTE la información del CV de arriba.
+    2. Cita ejemplos concretos del texto (empresas, fechas, tecnologías usadas en cada proyecto).
+    3. Si el CV dice "Trabajé en Google usando Python", TÚ dices "En mi experiencia en Google utilicé Python para...".
+    4. NO uses frases como "No tengo detalles". BUSCA LOS DETALLES EN EL TEXTO DE ARRIBA.
+    5. NO inventes proyectos ni experiencias genéricas.
+    6. Si te preguntan por una tecnología o proyecto que NO está en tu CV, di honestamente: "No tengo experiencia específica en eso mencionada en mi CV, pero puedo aprender."
+    """
+
     try:
-        # Borramos usando el filtro de metadata que agregamos al subir
-        index.delete(filter={"user_id": user_id})
-        return True
+        chat_completion = client.chat.completions.create(
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_query}
+            ],
+            model="llama-3.3-70b-versatile", # Modelo potente para razonamiento
+            temperature=0.7, # Un poco de creatividad para la conversación
+        )
+        return chat_completion.choices[0].message.content
     except Exception as e:
-        print(f"Error borrando vectores Pinecone: {e}")
-        return False
-
-def cleanup_expired_candidates():
-    """
-    Busca y elimina candidatos con más de 25 días de antigüedad.
-    Limpia tanto MongoDB como Pinecone.
-    """
-    days_limit = 25
-    expiration_date = datetime.now() - timedelta(days=days_limit)
+        print(f"Error en Groq Chat: {e}")
+        return "Disculpa, tuve un problema procesando tu pregunta."
     
-    print(f"🧹 [AUTO-CLEANUP] Iniciando limpieza de archivos anteriores a {expiration_date}...")
+# Secondary Maintenance Service
+def cleanup_expired_candidates():
+    # Cleanup candidates older than 25 days
+    days_limit = 25
+    expiration_date = datetime.utcnow() - timedelta(days=days_limit)
+    
+    print(f"🧹 [AUTO-CLEANUP] Buscando archivos anteriores a {expiration_date.strftime('%Y-%m-%d')}...")
 
     try:
-        # 1. Buscar candidatos expirados en Mongo
         expired_cursor = candidates_collection.find({"upload_date": {"$lt": expiration_date}})
-        
         expired_candidates = list(expired_cursor)
         
         if not expired_candidates:
-            print("✅ [AUTO-CLEANUP] No se encontraron candidatos expirados.")
+            print("✅ [AUTO-CLEANUP] Sistema limpio. No hay expirados.")
             return
 
-        print(f"⚠️ [AUTO-CLEANUP] Encontrados {len(expired_candidates)} candidatos para eliminar.")
+        print(f"⚠️ [AUTO-CLEANUP] Encontrados {len(expired_candidates)} candidatos viejos.")
 
         pinecone_ids_to_delete = []
         mongo_ids_to_delete = []
 
         for candidate in expired_candidates:
-            # Recolectar IDs para borrar en lote
-            # Nota: 'filename' es el ID que usamos en Pinecone (ver process_and_store_cv)
-            if "filename" in candidate:
-                pinecone_ids_to_delete.append(candidate["filename"])
+            pinecone_ids_to_delete.append(str(candidate["_id"]))
             
             mongo_ids_to_delete.append(candidate["_id"])
 
-        # 2. Borrar de Pinecone (Vectores)
         if pinecone_ids_to_delete:
             try:
-                # Borramos en lotes de 100 para no saturar
                 batch_size = 100
                 for i in range(0, len(pinecone_ids_to_delete), batch_size):
                     batch = pinecone_ids_to_delete[i:i + batch_size]
                     index.delete(ids=batch)
+                
                 print(f"🗑️ [PINECONE] {len(pinecone_ids_to_delete)} vectores eliminados.")
             except Exception as e:
                 print(f"❌ [PINECONE ERROR] {e}")
 
-        # 3. Borrar de MongoDB (Datos)
         if mongo_ids_to_delete:
             result = candidates_collection.delete_many({"_id": {"$in": mongo_ids_to_delete}})
             print(f"🗑️ [MONGO] {result.deleted_count} documentos eliminados.")
 
-        print("✨ [AUTO-CLEANUP] Limpieza finalizada correctamente.")
+        print("✨ [AUTO-CLEANUP] Ciclo finalizado.")
 
     except Exception as e:
         print(f"❌ [AUTO-CLEANUP ERROR] Fallo crítico: {e}")

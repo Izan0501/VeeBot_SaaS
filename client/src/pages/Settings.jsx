@@ -1,10 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import {
-  User, BrainCircuit, Save, Shield, CreditCard, Sparkles, Database, CheckCircle, Zap, ExternalLink, Star, Crown, Lock, Info, Clock, Activity, AlertTriangle, Trash2, X, AlertOctagon, ChevronRight
+  User, BrainCircuit, Save, Shield, Sparkles, Database, Zap, ExternalLink, Star, Crown, Lock, Info, Clock, Activity, AlertTriangle, Trash2, AlertOctagon, Loader2, ChevronRight
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+
+// --- IMPORTS API (Lo nuevo) ---
+import { authAPI } from '../api/auth';
+import { paymentsAPI } from '../api/payments';
+import { featuresAPI } from '../api/features';
+
+// --- IMPORTS COMPONENTES ---
+import ModalOverlay from '../components/common/ModalOverlay';
+import SectionCard from '../components/settings/SectionCard';
+import InputGroup from '../components/common/InputGroup';
+import ReadOnlyField from '../components/common/ReadOnlyField';
+import Toggle from '../components/common/Toggle';
+import FeatureItem from '../components/settings/FeatureItem';
+import SettingsSidebar from '../components/settings/SettingsSidebar';
 
 const Settings = () => {
   const [loading, setLoading] = useState(false);
@@ -27,7 +41,7 @@ const Settings = () => {
   const [passwords, setPasswords] = useState({ current: '', new: '' });
   const [changingPass, setChangingPass] = useState(false);
 
-  const isPremium = formData.role === 'Premium' || formData.role === 'Admin' || formData.role === 'Reclutador';
+  const isPremium = ['Premium', 'Admin', 'Reclutador', 'Agency', 'Agency Pro'].includes(formData.role);
 
   // --- SCROLL & NAV ---
   const scrollToSection = (sectionId) => {
@@ -36,82 +50,95 @@ const Settings = () => {
     if (element) element.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-  // --- DATA FETCHING (IGUAL QUE ANTES) ---
+  // --- DATA FETCHING ---
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const token = localStorage.getItem('token');
-        if (!token) return;
-        const res = await fetch('http://127.0.0.1:8000/auth/me', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (res.ok) {
-          const data = await res.json();
+        // Usamos la API centralizada
+        const data = await authAPI.getMe();
+        
+        if (data.email) {
           setFormData({
-            name: data.name || '', email: data.email || '', role: data.role || 'Free',
-            minScore: data.min_score || 70, autoReject: data.auto_reject || false,
+            name: data.name || '', 
+            email: data.email || '', 
+            role: data.role || 'Free',
+            minScore: data.min_score || 70, 
+            autoReject: data.auto_reject || false,
             joinDate: data.created_at ? new Date(data.created_at).toLocaleDateString() : new Date().toLocaleDateString()
           });
         }
-      } catch (error) { toast.error("Error cargando perfil"); } finally { setFetching(false); }
+      } catch (error) {
+        console.error(error);
+        // Si falla la sesión (401), la redirección la maneja el AuthContext o la API
+      } finally {
+        setFetching(false);
+      }
     };
     fetchProfile();
   }, []);
 
-  // --- HANDLERS (LOGICA INTACTA) ---
+  // --- HANDLERS (Ahora usan la API) ---
+  
   const handleSave = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
-      const payload = { name: formData.name, role: formData.role, min_score: parseInt(formData.minScore), auto_reject: formData.autoReject };
-      const res = await fetch('http://127.0.0.1:8000/auth/me', {
-        method: 'PUT',
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      if (res.ok) toast.success("Perfil actualizado"); else throw new Error();
-    } catch { toast.error("Error al guardar"); } finally { setLoading(false); }
+      const payload = { 
+        name: formData.name, 
+        role: formData.role, 
+        min_score: parseInt(formData.minScore), 
+        auto_reject: formData.autoReject 
+      };
+      
+      await authAPI.updateProfile(payload);
+      toast.success("Perfil actualizado");
+    } catch { 
+      toast.error("Error al guardar"); 
+    } finally { 
+      setLoading(false); 
+    }
   };
 
   const handleChangePassword = async () => {
     if (!passwords.current || !passwords.new) { toast.error("Completa campos"); return; }
     setChangingPass(true);
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch('http://127.0.0.1:8000/auth/change-password', {
-        method: 'PUT',
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ current_password: passwords.current, new_password: passwords.new })
-      });
-      const data = await res.json();
-      if (res.ok) { toast.success("Contraseña actualizada"); setPasswords({ current: '', new: '' }); } else { toast.error(data.detail); }
-    } catch { toast.error("Error servidor"); } finally { setChangingPass(false); }
+      await authAPI.changePassword(passwords.current, passwords.new);
+      toast.success("Contraseña actualizada"); 
+      setPasswords({ current: '', new: '' });
+    } catch (err) { 
+      toast.error(err.message || "Error al cambiar contraseña"); 
+    } finally { 
+      setChangingPass(false); 
+    }
   };
 
   const handleUpgrade = async () => {
     setUpgradeLoading(true);
     const toastId = toast.loading("Iniciando pago seguro...");
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch('http://127.0.0.1:8000/payments/create-checkout', { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.checkout_url) window.location.href = data.checkout_url;
+      const data = await paymentsAPI.createCheckout();
+      if (data.checkout_url) {
+        window.location.href = data.checkout_url;
       } else throw new Error();
-    } catch { toast.error("Error de conexión", { id: toastId }); setUpgradeLoading(false); }
+    } catch { 
+      toast.error("Error de conexión", { id: toastId }); 
+      setUpgradeLoading(false); 
+    }
   };
 
   const handleManageSubscription = async () => {
     setPortalLoading(true);
     const toastId = toast.loading("Accediendo a facturación...");
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch('http://127.0.0.1:8000/payments/create-portal', { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.portal_url) window.location.href = data.portal_url;
+      const data = await paymentsAPI.createPortal();
+      if (data.portal_url) {
+        window.location.href = data.portal_url;
       } else throw new Error();
-    } catch { toast.error("Error al abrir portal", { id: toastId }); } finally { setPortalLoading(false); }
+    } catch { 
+      toast.error("Error al abrir portal", { id: toastId }); 
+    } finally { 
+      setPortalLoading(false); 
+    }
   };
 
   const handleDeleteClick = () => isPremium ? setShowPremiumAlert(true) : setShowDeleteConfirm(true);
@@ -120,14 +147,26 @@ const Settings = () => {
     setDeleting(true);
     const toastId = toast.loading("Eliminando cuenta...");
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch('http://127.0.0.1:8000/auth/me', { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
-      if (res.ok) {
-        toast.success("Cuenta eliminada.", { id: toastId });
-        localStorage.removeItem('token');
-        setTimeout(() => { navigate('/'); window.location.reload(); }, 2000);
-      } else { const data = await res.json(); throw new Error(data.detail); }
-    } catch (error) { toast.error(error.message, { id: toastId }); setDeleting(false); setShowDeleteConfirm(false); }
+      await authAPI.deleteAccount();
+      toast.success("Cuenta eliminada.", { id: toastId });
+      localStorage.removeItem('token');
+      setTimeout(() => { navigate('/'); window.location.reload(); }, 2000);
+    } catch (error) { 
+      toast.error(error.message || "Error al eliminar cuenta", { id: toastId }); 
+      setDeleting(false); 
+      setShowDeleteConfirm(false); 
+    }
+  };
+
+  const handleSeedData = async () => {
+    const toastId = toast.loading("Generando datos falsos...");
+    try {
+        await featuresAPI.seedData();
+        toast.success("¡Datos cargados!", { id: toastId });
+        navigate('/dashboard');
+    } catch {
+        toast.error("Error al cargar demo data", { id: toastId });
+    }
   };
 
   const handleAutoRejectToggle = () => {
@@ -139,15 +178,11 @@ const Settings = () => {
   const containerVars = { hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.1 } } };
   const itemVars = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 100 } } };
 
-  // ... (toda la lógica de estados y funciones sigue igual) ...
-
   if (fetching) return <div className="min-h-screen flex justify-center items-center bg-slate-50 dark:bg-slate-950"><div className="animate-pulse text-indigo-600 font-medium">Cargando perfil...</div></div>;
 
   return (
-    // CORRECCIÓN 1: overflow-x-hidden (Para que funcione el Sticky)
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pt-24 pb-20 px-4 md:px-8 md:pt-10 transition-colors duration-300 relative overflow-x-hidden">
 
-      {/* CORRECCIÓN 2: Fondo Ambiental REAL (No una caja sólida) */}
       <div className="absolute top-0 left-0 w-full h-[500px] bg-gradient-to-b from-indigo-50/50 to-transparent dark:from-indigo-950/20 pointer-events-none"></div>
 
       {/* --- MODALES --- */}
@@ -199,54 +234,16 @@ const Settings = () => {
           </motion.button>
         </motion.div>
 
-        {/* CORRECCIÓN 3: items-start para que el sticky no se estire */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
 
-          {/* SIDEBAR (Columna Izquierda - 4 cols) */}
-          <div className="lg:col-span-4 lg:sticky lg:top-28 h-fit z-10 space-y-6">
-
-            {/* User Card */}
-            <motion.div variants={itemVars} className="bg-white dark:bg-slate-900 p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xl shadow-slate-200/50 dark:shadow-none flex flex-col items-center text-center relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-full h-24 bg-gradient-to-b from-slate-50 to-transparent dark:from-slate-800/50"></div>
-              <div className={`relative w-24 h-24 rounded-full flex items-center justify-center text-4xl font-black mb-4 shadow-2xl ${isPremium ? 'bg-gradient-to-tr from-amber-300 to-orange-500 text-white ring-4 ring-white dark:ring-slate-700' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'}`}>
-                {formData.name ? formData.name.charAt(0).toUpperCase() : 'U'}
-                {isPremium && <div className="absolute bottom-0 right-0 bg-white dark:bg-slate-900 p-1 rounded-full"><div className="bg-green-500 w-4 h-4 rounded-full border-2 border-white dark:border-slate-900"></div></div>}
-              </div>
-              <h2 className="text-xl font-bold text-slate-900 dark:text-white relative">{formData.name}</h2>
-              <p className="text-xs text-slate-400 mb-6 relative">{formData.email}</p>
-
-              {isPremium ?
-                <span className="px-4 py-1.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-xs font-bold border border-amber-200 dark:border-amber-700 flex items-center gap-1.5 shadow-sm">
-                  <Crown size={14} className="fill-amber-500 text-amber-500" /> Agency Pro
-                </span>
-                :
-                <span className="px-4 py-1.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 text-xs font-bold border border-slate-200 dark:border-slate-700">Plan Gratuito</span>
-              }
-            </motion.div>
-
-            {/* Menu Navigation */}
-            <motion.div variants={itemVars} className="hidden lg:block bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden p-2">
-              {[
-                { id: 'profile', icon: <User size={18} />, label: 'Perfil' },
-                { id: 'subscription', icon: <CreditCard size={18} />, label: 'Suscripción' },
-                { id: 'ai', icon: <BrainCircuit size={18} />, label: 'Inteligencia Artificial' },
-                { id: 'security', icon: <Shield size={18} />, label: 'Seguridad' },
-              ].map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => scrollToSection(item.id)}
-                  className={`w-full flex items-center justify-between px-5 py-4 text-sm font-medium transition-all rounded-2xl mb-1 last:mb-0
-                    ${activeSection === item.id
-                      ? 'bg-slate-900 text-white shadow-lg dark:bg-white dark:text-slate-900'
-                      : 'text-slate-500 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800'
-                    }`}
-                >
-                  <div className="flex items-center gap-3">{item.icon} <span>{item.label}</span></div>
-                  {activeSection === item.id && <ChevronRight size={16} />}
-                </button>
-              ))}
-            </motion.div>
-          </div>
+          {/* SIDEBAR (Ahora importado) */}
+          <SettingsSidebar
+            formData={formData}
+            isPremium={isPremium}
+            activeSection={activeSection}
+            scrollToSection={scrollToSection}
+            itemVars={itemVars}
+          />
 
           {/* MAIN CONTENT (Columna Derecha - 8 cols) */}
           <div className="lg:col-span-8 space-y-8">
@@ -269,9 +266,8 @@ const Settings = () => {
             <div id="subscription" className="scroll-mt-28">
               <motion.div variants={itemVars}>
                 {isPremium ? (
-                  // PREMIUM CARD (CON EFECTO VIVO)
+                  // PREMIUM CARD
                   <div className="relative overflow-hidden rounded-[2rem] border border-amber-500/20 bg-slate-900 shadow-2xl">
-                    {/* Background Effects */}
                     <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-amber-500/10 rounded-full blur-[80px] pointer-events-none"></div>
                     <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-orange-500/10 rounded-full blur-[80px] pointer-events-none"></div>
 
@@ -309,10 +305,8 @@ const Settings = () => {
                     </div>
                   </div>
                 ) : (
-                  // FREE CARD (UPSELL OSCURO)
+                  // FREE CARD
                   <div className="relative overflow-hidden rounded-[2rem] bg-slate-950 p-8 md:p-10 text-white shadow-2xl transition-transform hover:scale-[1.01] duration-500 border border-slate-800 group">
-
-                    {/* Blobs Animados */}
                     <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 5, repeat: Infinity }} className="absolute top-[-20%] right-[-20%] w-[500px] h-[500px] bg-indigo-600/20 rounded-full blur-[100px] pointer-events-none"></motion.div>
                     <motion.div animate={{ scale: [1, 1.3, 1] }} transition={{ duration: 7, repeat: Infinity, delay: 1 }} className="absolute bottom-[-20%] left-[-20%] w-[400px] h-[400px] bg-purple-600/20 rounded-full blur-[80px] pointer-events-none"></motion.div>
 
@@ -321,14 +315,12 @@ const Settings = () => {
                         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 text-xs font-bold uppercase backdrop-blur-md shadow-lg shadow-indigo-900/20">
                           <Star size={12} className="fill-indigo-300" /> Plan Recomendado
                         </div>
-
                         <div>
                           <h3 className="text-4xl font-black tracking-tighter text-white mb-3">Libera el poder de la IA</h3>
                           <p className="text-indigo-200 text-sm max-w-md leading-relaxed opacity-80">
                             Elimina los límites de subida, activa el filtrado automático y obtén insights profundos de tus candidatos.
                           </p>
                         </div>
-
                         <div className="flex flex-wrap gap-x-6 gap-y-3">
                           <FeatureItem dark text="CVs Ilimitados" />
                           <FeatureItem dark text="Auto-Rechazo" />
@@ -341,7 +333,6 @@ const Settings = () => {
                         <div className="text-center relative z-10">
                           <p className="text-5xl font-black text-white tracking-tighter mb-1">$29</p>
                           <p className="text-xs text-indigo-300 mb-6 uppercase tracking-widest font-bold">USD / mes</p>
-
                           <button onClick={handleUpgrade} disabled={upgradeLoading} className="relative w-full py-4 bg-white text-indigo-950 font-black rounded-2xl overflow-hidden transition-all shadow-[0_0_20px_rgba(255,255,255,0.3)] hover:shadow-[0_0_40px_rgba(255,255,255,0.5)] active:scale-95 flex justify-center items-center gap-2 group/btn">
                             <div className="absolute inset-0 -translate-x-full group-hover/btn:translate-x-full transition-transform duration-1000 bg-gradient-to-r from-transparent via-indigo-100/50 to-transparent skew-x-12"></div>
                             <span className="relative z-10 flex items-center gap-2">
@@ -405,7 +396,7 @@ const Settings = () => {
 
             {/* 4. SEGURIDAD */}
             <div id="security" className="scroll-mt-28 space-y-8">
-                    {/* Candidates Demo Test */}
+              {/* Candidates Demo Test (AHORA CON FUNCIONALIDAD API) */}
               <SectionCard title="Modo Demostración" icon={<Sparkles className="text-white" size={20} />} headerColor="bg-cyan-500">
                 <div className="flex flex-col md:flex-row items-center justify-between gap-6">
                   <div>
@@ -417,28 +408,14 @@ const Settings = () => {
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    onClick={async () => {
-                      const toastId = toast.loading("Generando datos falsos...");
-                      try {
-                        const token = localStorage.getItem('token');
-                        const res = await fetch('http://127.0.0.1:8000/seed', {
-                          method: 'POST',
-                          headers: { 'Authorization': `Bearer ${token}` }
-                        });
-                        if (res.ok) {
-                          toast.success("¡Datos cargados!", { id: toastId });
-                          navigate('/dashboard'); 
-                        } else throw new Error();
-                      } catch {
-                        toast.error("Error al cargar demo data", { id: toastId });
-                      }
-                    }}
+                    onClick={handleSeedData}
                     className="px-6 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-bold text-sm shadow-lg shadow-cyan-500/20 flex items-center gap-2 whitespace-nowrap"
                   >
                     <Database size={16} /> Cargar Datos Demo
                   </motion.button>
                 </div>
               </SectionCard>
+              
               <SectionCard title="Seguridad de la Cuenta" icon={<Shield className="text-white" size={20} />} headerColor="bg-green-600">
                 <div className="space-y-6">
                   <div className="p-4 bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-100 dark:border-yellow-900/30 rounded-xl flex items-start gap-3">
@@ -456,7 +433,8 @@ const Settings = () => {
                   </div>
                 </div>
               </SectionCard>
-              {/* DANGER ZONE (Intacto) */}
+              
+              {/* DANGER ZONE */}
               <motion.div variants={itemVars} className="rounded-3xl border border-red-200 dark:border-red-900/50 bg-white dark:bg-slate-900 p-8 shadow-sm relative overflow-hidden">
                 <div className="absolute top-0 left-0 w-1 h-full bg-red-500"></div>
                 <div className="flex flex-col md:flex-row justify-between items-center gap-6">
@@ -478,81 +456,5 @@ const Settings = () => {
     </div>
   );
 };
-
-// --- COMPONENTES AUXILIARES REFINADOS ---
-
-const ModalOverlay = ({ children, onClose }) => (
-  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-    <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white dark:bg-slate-900 p-8 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-700 max-w-sm w-full relative">
-      <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><X size={20} /></button>
-      {children}
-    </motion.div>
-  </motion.div>
-);
-
-const SectionCard = ({ title, icon, children, headerColor = "bg-slate-800" }) => (
-  <motion.div
-    variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }}
-    className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-lg shadow-slate-200/50 dark:shadow-none transition-colors overflow-hidden"
-  >
-    <div className="p-8 pb-0">
-      <div className="flex items-center gap-4 mb-8">
-        <div className={`p-3 ${headerColor} rounded-2xl shadow-lg shadow-${headerColor.replace('bg-', '')}/30`}>
-          {icon}
-        </div>
-        <h3 className="text-xl font-bold text-slate-900 dark:text-white">{title}</h3>
-      </div>
-    </div>
-    <div className="p-8 pt-0">{children}</div>
-  </motion.div>
-);
-
-const InputGroup = ({ label, value, onChange, type = "text", disabled = false, icon, locked = false }) => (
-  <div className="flex flex-col gap-2">
-    <label className="text-xs font-bold text-slate-500 uppercase tracking-wide ml-1">{label}</label>
-    <div className="relative">
-      <input
-        type={type}
-        value={value}
-        onChange={onChange}
-        disabled={disabled}
-        className={`w-full px-4 py-3.5 rounded-xl border transition-all text-sm font-medium
-                ${locked
-            ? 'bg-slate-50 dark:bg-slate-950/50 border-slate-200 dark:border-slate-800 text-slate-500 cursor-default'
-            : 'bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent'
-          }
-            `}
-      />
-      {locked && (
-        <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-slate-400">
-          <Lock size={16} />
-        </div>
-      )}
-    </div>
-  </div>
-);
-
-const ReadOnlyField = ({ label, value, icon }) => (
-  <div className="flex flex-col gap-2">
-    <label className="text-xs font-bold text-slate-500 uppercase tracking-wide ml-1">{label}</label>
-    <div className="w-full px-4 py-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 text-slate-500 dark:text-slate-400 text-sm font-medium flex items-center justify-between cursor-default">
-      {value}
-      <span className="text-slate-300 dark:text-slate-600">{icon}</span>
-    </div>
-  </div>
-);
-
-const Toggle = ({ enabled, onChange }) => (
-  <button onClick={onChange} className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors focus:outline-none ${enabled ? 'bg-indigo-600' : 'bg-slate-200 dark:bg-slate-700'}`}>
-    <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition-transform ${enabled ? 'translate-x-6' : 'translate-x-1'}`} />
-  </button>
-);
-
-const FeatureItem = ({ text, dark }) => (
-  <div className={`flex items-center gap-2 text-sm font-medium ${dark ? 'text-indigo-100' : 'text-slate-400'}`}>
-    <CheckCircle size={16} className={dark ? "text-indigo-300" : "text-slate-500"} />
-    {text}
-  </div>
-);
 
 export default Settings;

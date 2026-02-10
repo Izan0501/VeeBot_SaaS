@@ -8,7 +8,7 @@ load_dotenv()
 
 # Configuración
 api_key = os.getenv("PINECONE_API_KEY")
-index_name = "recruit-index"
+index_name = "veebot-index"
 
 if not api_key:
     print("❌ Error: No se encontró PINECONE_API_KEY en el archivo .env")
@@ -26,7 +26,7 @@ if index_name not in existing_indexes:
     try:
         pc.create_index(
             name=index_name,
-            dimension=1536, # Estándar para embeddings de texto
+            dimension=384,
             metric="cosine",
             spec=ServerlessSpec(
                 cloud="aws",

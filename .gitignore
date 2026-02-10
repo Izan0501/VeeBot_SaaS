@@ -23,3 +23,5 @@ dist/
 build/
 client/dist/
 server/uploads/
+uploads/*
+!uploads/.gitkeep
