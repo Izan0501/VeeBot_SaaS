@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 // --- SECCIONES DE LA LANDING ---
 import HeroSection from '../components/landing/HeroSection';
 import DataIntelligence from '../components/landing/DataIntelligence';
-import FeaturesGrid from '../components/landing/FeaturesGrid';
+import DigitalTwinSection from '../components/landing/DigitalTwinSection';
 import Pricing from '../components/landing/Pricing'; 
 import FAQ from '../components/landing/FAQ';
 
@@ -33,14 +33,8 @@ const LandingPage = () => {
       {/* 2. DATA INTELLIGENCE */}
       <DataIntelligence />
 
-      {/* SEPARATOR FADE */}
-      <div className="h-24 bg-gradient-to-b from-slate-50 to-white dark:from-slate-900 dark:to-slate-950 w-full"></div>
-
-      {/* 3. FEATURES */}
-      <FeaturesGrid />
-
-      {/* SEPARATOR GRADIENT */}
-      <div className="h-32 bg-gradient-to-b from-white to-slate-100 dark:from-slate-950 dark:to-slate-900 w-full"></div>
+      {/* 3. DIGITAL TWIN */}
+      <DigitalTwinSection />
 
       {/* 4. PRICING */}
       <Pricing />

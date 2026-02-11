@@ -28,7 +28,7 @@ const Navbar = () => {
   }, [isOpen]);
 
   const navLinks = [
-    { name: 'Features', path: '#features' },
+    { name: 'DigitalTwin', path: '#DigitalTwin' },
     { name: 'Pricing', path: '#pricing' },
     { name: 'FAQ´s', path: '#FAQ' },
   ];
