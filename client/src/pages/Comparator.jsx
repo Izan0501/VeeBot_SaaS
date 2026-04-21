@@ -4,7 +4,7 @@ import toast from 'react-hot-toast';
 
 // --- IMPORTS API ---
 import { candidatesAPI } from '../api/candidates'; 
-import { featuresAPI } from '../api/features';     
+import { compareWithGroq } from '../api/groqClient';
 
 // --- IMPORTS COMPONENTES ---
 import ComparatorHeader from '../components/comparator/ComparatorHeader';
@@ -42,12 +42,19 @@ const Comparator = () => {
         setResult(null);
 
         try {
-            const data = await featuresAPI.compareCandidates(selectedA, selectedB);
+            // Obtenemos los objetos completos de los candidatos ya cargados en estado
+            const candA = candidates.find(c => c.id === selectedA);
+            const candB = candidates.find(c => c.id === selectedB);
+
+            if (!candA || !candB) throw new Error("Candidatos no encontrados");
+
+            // Llamamos a Groq directamente desde el browser
+            const data = await compareWithGroq(candA, candB);
             setResult(data);
             toast.success("¡Análisis completado!");
         } catch (error) {
             console.error(error);
-            toast.error("Error al comparar. Verifica tu plan o conexión.");
+            toast.error("Error al comparar. Verifica tu conexión.");
         } finally {
             setLoading(false);
         }

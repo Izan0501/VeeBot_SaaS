@@ -1,18 +1,28 @@
 services:
   server:
     build: ./server
-    # --- CAMBIO CRÍTICO: MODO HOST ---
-    # Esto conecta el contenedor directo a la tarjeta de red de tu PC.
-    # Elimina cualquier bloqueo de Docker.
-    network_mode: "host" 
-    
-    # IMPORTANTE: No uses 'ports' ni 'networks' ni 'dns' aquí.
-    # El puerto 8000 se abrirá automáticamente en tu localhost.
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./server:/app
     env_file:
       - .env
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+    networks:
+      - veebot_net
 
   client:
     build: ./client
     ports:
       - "5173:5173"
-    # El cliente lo dejamos aislado normal, no necesita permisos especiales
+    volumes:
+      - ./client:/app
+      - /app/node_modules
+    networks:
+      - veebot_net
+
+networks:
+  veebot_net:
+    driver: bridge

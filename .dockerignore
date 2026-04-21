@@ -2,3 +2,10 @@ node_modules/
 server/venv/
 client/node_modules/
 .git
+
+# Environment files
+.env
+.env.*
+
+.agents/
+skills-lock.json

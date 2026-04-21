@@ -14,6 +14,17 @@ export const candidatesAPI = {
         return data;
     },
 
+    getById: async (candidateId) => {
+        const res = await fetch(`${API_URL}/candidates/${candidateId}`, {
+            method: 'GET',
+            headers: getHeaders()
+        });
+        const text = await res.text();
+        const data = text ? JSON.parse(text) : {};
+        if (!res.ok) throw new Error('Error al obtener candidato');
+        return data;
+    },
+
     chatWithCandidate: async (candidateId, message) => {
         const formData = new FormData();
         formData.append('query', message);

@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 // --- IMPORTS API Y CONTEXTO ---
 import { candidatesAPI } from '../api/candidates';
 import { featuresAPI } from '../api/features';
+import { dashboardChatWithGroq } from '../api/groqClient';
 import { useAuth } from '../context/AuthContext';
 
 // --- IMPORTS COMPONENTES ---
@@ -50,8 +51,8 @@ const Dashboard = ({ isModalOpen, setIsModalOpen }) => {
     useEffect(() => {
         const loadDashboardData = async () => {
             try {
-                // Esta llamada ahora devuelve { history: [...], usage_count: 5 }
-                const data = await featuresAPI.getDashboardHistory();
+                // Pasamos el ID especial para el historial del dashboard
+                const data = await featuresAPI.getDashboardHistory("DASHBOARD_ASSISTANT");
                 
                 if (data.history && data.history.length > 0) {
                     setMessages([
@@ -121,38 +122,23 @@ const Dashboard = ({ isModalOpen, setIsModalOpen }) => {
 
     const handleAskAI = async (e) => {
         e.preventDefault();
-        
-        // NO bloqueamos aquí por isPremium. Dejamos que el backend decida.
         if (!chatQuery.trim()) return;
         
         const currentQuery = chatQuery;
         const newMsgUser = { id: Date.now(), role: 'user', text: currentQuery };
         
-        // Optimistic Updates
         setMessages(prev => [...prev, newMsgUser]);
-        setUsageCount(prev => prev + 1); // Asumimos éxito y sumamos 1
+        setUsageCount(prev => prev + 1);
         setChatQuery("");
         setIsThinking(true);
         
         try {
-            const data = await featuresAPI.analyzeChat(currentQuery);
-            setMessages(prev => [...prev, { id: Date.now() + 1, role: 'ai', text: data.response || "No pude generar una respuesta." }]);
+            // Llamada directa a Groq desde el browser — sin pasar por Docker
+            const responseText = await dashboardChatWithGroq(currentQuery, candidates);
+            setMessages(prev => [...prev, { id: Date.now() + 1, role: 'ai', text: responseText || "No pude generar una respuesta." }]);
         } catch (error) {
             console.error(error);
-            
-            // Si el backend rechaza por límite, hacemos ROLLBACK
-            if (error.message && (error.message.includes("Límite") || error.message.includes("403"))) {
-                toast.error(error.message, { icon: '🔒' });
-                
-                // 1. Borramos el mensaje del usuario (fue rechazado)
-                setMessages(prev => prev.filter(m => m.id !== newMsgUser.id));
-                // 2. Restamos el contador que subimos optimistamente
-                setUsageCount(prev => Math.max(0, prev - 1));
-            
-            } else {
-                const msg = error.message === 'Sesión expirada' ? "⚠️ Sesión expirada." : "Error de conexión.";
-                setMessages(prev => [...prev, { id: Date.now() + 1, role: 'ai', text: msg }]);
-            }
+            setMessages(prev => [...prev, { id: Date.now() + 1, role: 'ai', text: "Error de conexión con la IA." }]);
         } finally {
             setIsThinking(false);
         }

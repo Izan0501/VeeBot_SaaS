@@ -25,3 +25,5 @@ client/dist/
 server/uploads/
 uploads/*
 !uploads/.gitkeep
+skills-lock.json
+.agents

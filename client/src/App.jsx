@@ -6,7 +6,6 @@ import { Toaster } from 'react-hot-toast';
 import { useAuth } from './context/AuthContext';
 
 // --- IMPORTS DE UTILS & COMMON ---
-import ThemeController from './components/common/ThemeController';
 import ScrollToTop from './components/common/ScrollToTop';
 import PremiumLock from './components/common/PremiumLock';
 
@@ -45,9 +44,6 @@ function App() {
   return (
     <>
       <ScrollToTop />
-
-      {/* Botón flotante de tema visible en toda la app */}
-      <ThemeController />
 
       <Toaster
         position="top-center"

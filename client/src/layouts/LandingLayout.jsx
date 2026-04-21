@@ -1,6 +1,7 @@
 import React from 'react';
 import Navbar from '../components/common/Navbar';
 import Footer from '../components/common/Footer';
+import ThemeController from '../components/common/ThemeController';
 
 const LandingLayout = ({ children }) => {
   return (
@@ -10,6 +11,8 @@ const LandingLayout = ({ children }) => {
         {children}
       </main>
       <Footer />
+      {/* Switch de tema flotante — solo en zona pública */}
+      <ThemeController />
     </div>
   );
 };
