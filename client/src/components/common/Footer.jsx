@@ -11,7 +11,6 @@ const Footer = () => {
     { to: "/privacy", label: "Privacidad" },
     { to: "/contact", label: "Contacto" },
     { to: "/faq", label: "FAQ" },
-    { to: "/", label: "Inicio" }
   ];
 
   const socialLinks = [

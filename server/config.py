@@ -10,7 +10,7 @@ load_dotenv(dotenv_path=env_path)
 
 #Mongo Config 
 MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017/")
-DB_NAME = os.getenv("DB_NAME", "recruitai_db")
+DB_NAME = os.getenv("DB_NAME", "veebot-db")
 
 #Services Config -- Lemon Squeezy (Payments)
 LEMON_API_KEY = os.getenv("LEMON_API_KEY")
@@ -28,10 +28,12 @@ SMTP_EMAIL = os.getenv("SMTP_EMAIL")
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
 
 # GROQ Config
-GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "").strip()
 
 if not GROQ_API_KEY:
     print("⚠️ ADVERTENCIA: No se encontró GROQ_API_KEY en el archivo .env")
+else:
+    print(f"✅ GROQ_API_KEY cargada correctamente (últimos 4 chars: ...{GROQ_API_KEY[-4:]})")
 
-# Initialize GROQ client
+# Initialize GROQ client (usa la key limpia sin espacios ni saltos de línea)
 groq_client = Groq(api_key=GROQ_API_KEY)

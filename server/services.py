@@ -8,7 +8,7 @@ from sentence_transformers import SentenceTransformer
 from groq import Groq
 
 # Import Locals
-from config import GROQ_API_KEY, PINECONE_API_KEY, PINECONE_INDEX_NAME
+from config import GROQ_API_KEY, PINECONE_API_KEY, PINECONE_INDEX_NAME, groq_client
 from database import candidates_collection
 
 # Services for Vector DB (Pinecone) and AI (GROQ)
@@ -180,13 +180,7 @@ def get_ai_score(text, model_name="llama-3.3-70b-versatile"):
         }
 
 def analyze_candidate_with_groq(query, candidates_context):
-    api_key = os.getenv("GROQ_API_KEY")
-    
-    # --- AGREGA ESTO PARA DEPURAR ---
-    print(f"🔍 DEBUG GROQ KEY EN USO: '{api_key}'") 
-    # (Tranquilo, esto solo sale en tu consola local)
-    
-    if not api_key:
+    if not GROQ_API_KEY:
         print("❌ ERROR: La API Key está vacía o es None")
         return "Error: No hay API Key configurada."
     
@@ -216,9 +210,6 @@ def chat_as_candidate(candidate_name, full_cv_text, user_query):
     """
     Simula ser el candidato usando su CV completo como base de conocimiento.
     """
-    api_key = os.getenv("GROQ_API_KEY", "").strip()
-    client = Groq(api_key=api_key)
-
     # Construimos un System Prompt robusto
     system_prompt = f"""
     Eres {candidate_name}, un candidato en una entrevista.
@@ -238,13 +229,13 @@ def chat_as_candidate(candidate_name, full_cv_text, user_query):
     """
 
     try:
-        chat_completion = client.chat.completions.create(
+        chat_completion = groq_client.chat.completions.create(
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_query}
             ],
-            model="llama-3.3-70b-versatile", # Modelo potente para razonamiento
-            temperature=0.7, # Un poco de creatividad para la conversación
+            model="llama-3.3-70b-versatile",
+            temperature=0.7,
         )
         return chat_completion.choices[0].message.content
     except Exception as e:

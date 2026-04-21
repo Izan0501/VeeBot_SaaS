@@ -125,6 +125,32 @@ def get_candidates(current_user: dict = Depends(get_current_user)):
         print(f"Error DB: {e}")
         raise HTTPException(status_code=500, detail="Error conectando a la base de datos")
 
+@router.get("/candidates/{candidate_id}")
+def get_candidate_detail(candidate_id: str, current_user: dict = Depends(get_current_user)):
+    """
+    Retorna un candidato individual con su texto completo de CV.
+    Necesario para el Digital Twin en el frontend.
+    """
+    user_id = str(current_user["_id"])
+    candidate = candidates_collection.find_one({
+        "_id": ObjectId(candidate_id),
+        "user_id": user_id
+    })
+    if not candidate:
+        raise HTTPException(status_code=404, detail="Candidato no encontrado")
+
+    return {
+        "id": str(candidate["_id"]),
+        "name": candidate.get("name", "Candidato"),
+        "role": candidate.get("role", ""),
+        "score": candidate.get("score", 0),
+        "summary": candidate.get("summary", ""),
+        "skills": candidate.get("skills", []),
+        # text completo del CV — usado por Digital Twin en el frontend
+        "text": candidate.get("text") or candidate.get("summary", "Sin información del CV."),
+    }
+
+
 @router.get("/chat/{candidate_id}")
 def get_chat_history(current_user: dict = Depends(get_current_user)):
     user_id = str(current_user["_id"])
@@ -166,7 +192,9 @@ async def digital_twin_chat(
 ):
     try:
         user_id = str(current_user["_id"])
-        is_premium = current_user.get("is_premium") or current_user.get("isPremium") or False
+        # Verificación correcta: usa el campo 'role' igual que el resto del sistema
+        PREMIUM_ROLES = {"Premium", "Admin", "Reclutador", "Agency", "Agency Pro"}
+        is_premium = current_user.get("role") in PREMIUM_ROLES
         GLOBAL_LIMIT = 2
 
         # 1. VERIFICACIÓN DE LÍMITE GLOBAL (Solo para NO Premium)
@@ -247,7 +275,9 @@ async def chat_with_recruiter(
 ):
     try:
         user_id = str(current_user["_id"])
-        is_premium = current_user.get("is_premium") or current_user.get("isPremium") or False
+        # Verificación correcta: usa el campo 'role' igual que el resto del sistema
+        PREMIUM_ROLES = {"Premium", "Admin", "Reclutador", "Agency", "Agency Pro"}
+        is_premium = current_user.get("role") in PREMIUM_ROLES
         GLOBAL_LIMIT = 5 
 
         # --- 1. LÓGICA DE LÍMITE PROFESIONAL ---

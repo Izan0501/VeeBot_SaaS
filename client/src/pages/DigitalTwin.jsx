@@ -2,9 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
 
 // --- IMPORTS API Y CONTEXTO ---
-import { candidatesAPI } from '../api/candidates'; // Para obtener lista
-import { featuresAPI } from '../api/features';     // Para chatear
-import { useAuth } from '../context/AuthContext';  // Para rol y usuario
+import { candidatesAPI } from '../api/candidates';
+import { digitalTwinChatWithGroq } from '../api/groqClient';
+import { useAuth } from '../context/AuthContext';
 
 // --- IMPORTS COMPONENTES ---
 import CandidateList from '../components/digital-twin/CandidateList';
@@ -21,7 +21,9 @@ const DigitalTwin = () => {
 
     const scrollRef = useRef(null);
     const { user } = useAuth();
-    const isPremium = user?.isPremium;
+    // Verificación correcta usando el campo role
+    const PREMIUM_ROLES = ['Premium', 'Admin', 'Reclutador', 'Agency', 'Agency Pro'];
+    const isPremium = PREMIUM_ROLES.includes(user?.role);
     const FREE_LIMIT = 2;
 
     // --- CARGA DE DATOS ---
@@ -90,24 +92,28 @@ const DigitalTwin = () => {
         try {
             const candidateID = selectedCandidate._id || selectedCandidate.id;
 
-            const data = await candidatesAPI.chatWithCandidate(candidateID, userMsg.content);
+            // 1. Obtenemos el texto completo del CV desde el backend
+            const fullCandidate = await candidatesAPI.getById(candidateID);
+            const cvText = fullCandidate.text || fullCandidate.summary || 'Sin información disponible';
 
-            setMessages(prev => [...prev, { role: "assistant", content: data.response }]);
+            // 2. Llamamos a Groq directamente desde el browser
+            const historyForGroq = messages.map(m => ({
+                role: m.role === 'assistant' ? 'assistant' : 'user',
+                content: m.content
+            }));
+
+            const responseText = await digitalTwinChatWithGroq(
+                selectedCandidate.name,
+                cvText,
+                userMsg.content,
+                historyForGroq
+            );
+
+            setMessages(prev => [...prev, { role: "assistant", content: responseText }]);
         } catch (error) {
             console.error(error);
-
-            // Verificamos si el mensaje de error contiene la palabra "Límite"
-            // Nota: data.detail del backend llega aquí como error.message si lanzaste el Error correctamente en candidates.js
-            if (error.message && error.message.includes("Límite")) {
-                toast.error(error.message, {
-                    duration: 5000,
-                    icon: '🔒',
-                });
-                // Importante: Eliminar el mensaje "optimista" que agregamos visualmente antes
-                setMessages(prev => prev.slice(0, -1));
-            } else {
-                toast.error("Error conectando con el gemelo digital");
-            }
+            toast.error("Error conectando con el gemelo digital");
+            setMessages(prev => prev.slice(0, -1));
         } finally {
             setLoading(false);
         }
