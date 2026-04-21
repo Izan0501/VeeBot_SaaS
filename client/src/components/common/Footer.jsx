@@ -10,7 +10,8 @@ const Footer = () => {
     { to: "/terms", label: "Términos" },
     { to: "/privacy", label: "Privacidad" },
     { to: "/contact", label: "Contacto" },
-    { to: "/faq", label: "FAQ" }
+    { to: "/faq", label: "FAQ" },
+    { to: "/", label: "Inicio" }
   ];
 
   const socialLinks = [
@@ -46,18 +47,32 @@ const Footer = () => {
 
           {/* ==================== COLUMNA 1: LOGO & MISIÓN (4 cols) ==================== */}
           <div className="md:col-span-4 flex flex-col items-center md:items-start text-center md:text-left space-y-4">
-            <Link to="/" className="flex items-center gap-3 group">
-              <div className="relative">
-                <div className="absolute inset-0 bg-indigo-500 rounded-xl blur opacity-20 group-hover:opacity-40 transition-opacity duration-500"></div>
-                <div className="relative bg-gradient-to-br from-white to-slate-100 dark:from-slate-800 dark:to-slate-900 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm group-hover:scale-105 transition-transform duration-300">
-                  <BrainCircuit className="text-indigo-600 dark:text-indigo-400" size={26} />
+            {/* --- LOGO PREMIUM (Image Based + Styled Text) --- */}
+            <div className="flex items-start">
+              <Link
+                to="/"
+                className="flex items-center gap-3 group relative select-none"
+                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+              >
+                <div className="relative">
+                  {/* Glow Trasero sutil */}
+                  <div className="absolute inset-0 bg-indigo-600 rounded-2xl blur-lg opacity-20 group-hover:opacity-40 group-hover:scale-110 transition-all duration-500 ease-out"></div>
+
+                  {/* Contenedor del Icono */}
+                  <div className="w-10 h-10 relative bg-gradient-to-br from-white/80 to-white/40 dark:from-white/10 dark:to-white/5 rounded-xl flex items-center justify-center shadow-lg shadow-black/5 dark:shadow-indigo-500/10 border border-white/20 dark:border-white/10 group-hover:scale-105 transition-transform duration-300 overflow-hidden backdrop-blur-md">
+                    <img
+                      src="/Favicon.png"
+                      alt="VeeBot Logo"
+                      className="w-full h-full object-contain p-1.5 relative z-10 dark:brightness-110 dark:drop-shadow-[0_0_4px_rgba(255,255,255,0.3)] transition-all"
+                    />
+                  </div>
                 </div>
-              </div>
-              <div className="flex flex-col">
-                <span className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">VeeBot AI</span>
-                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">Recruiting OS</span>
-              </div>
-            </Link>
+
+                <span className="text-xl font-bold text-slate-900 dark:text-white tracking-tight flex items-center">
+                  VeeBot<span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-violet-500 to-blue-500 dark:from-indigo-400 dark:via-violet-400 dark:to-blue-400 font-extrabold">.ai</span>
+                </span>
+              </Link>
+            </div>
             <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed max-w-xs">
               Infraestructura de inteligencia artificial para equipos de recursos humanos modernos.
             </p>

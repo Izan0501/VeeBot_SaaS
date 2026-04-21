@@ -8,6 +8,9 @@ import DigitalTwinSection from '../components/landing/DigitalTwinSection';
 import Pricing from '../components/landing/Pricing'; 
 import FAQ from '../components/landing/FAQ';
 
+// --- COMPONENTES UI ---
+import ScrollToTopBtn from '../components/landing/ScrollToTopBtn'; // <--- IMPORTAR
+
 const LandingPage = () => {
   const navigate = useNavigate();
   const [isScrolled, setIsScrolled] = useState(false);
@@ -41,6 +44,9 @@ const LandingPage = () => {
 
       {/* 5. FAQ */}
       <FAQ />
+
+      {/* 6. SCROLL BUTTON (Flotante) */}
+      <ScrollToTopBtn />
     </>
   );
 };

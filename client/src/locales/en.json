@@ -1,0 +1,10 @@
+{
+  "navbar": {
+    "login": "Login",
+    "getStarted": "Get Started",
+    "getStartedFree": "Get Started Free",
+    "digitalTwin": "DigitalTwin",
+    "pricing": "Pricing",
+    "faqs": "FAQ´s"
+  }
+}

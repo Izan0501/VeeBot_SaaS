@@ -28,9 +28,13 @@ const FaqHeader = ({ isPublic, searchTerm, setSearchTerm }) => (
         <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.2 }}
             className="relative max-w-xl mx-auto group"
         >
+            {/* Glow trasero */}
             <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-500"></div>
+
+            {/* Input Container */}
             <div className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-xl flex items-center">
                 <Search className="absolute left-5 text-slate-400 group-focus-within:text-indigo-500 transition-colors" size={22} />
                 <input
@@ -38,7 +42,9 @@ const FaqHeader = ({ isPublic, searchTerm, setSearchTerm }) => (
                     placeholder="Pregunta sobre capacidades, IA, exportación..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className={`w-full py-5 pl-14 pr-6 bg-transparent outline-none text-lg font-medium transition-all rounded-2xl placeholder:text-slate-400 ${isPublic ? 'text-slate-900' : 'text-slate-900 dark:text-white'}`}
+                    // CORRECCIÓN AQUÍ: Eliminamos la condicional de isPublic para los colores de texto.
+                    // Ahora siempre aplicará "text-slate-900" en light y "dark:text-white" en dark.
+                    className="w-full py-5 pl-14 pr-6 bg-transparent outline-none text-lg font-medium transition-all rounded-2xl placeholder:text-slate-400 text-slate-900 dark:text-white"
                 />
             </div>
         </motion.div>

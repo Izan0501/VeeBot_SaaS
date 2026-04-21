@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
     Users, UploadCloud, BarChart3, Settings, LogOut,
     BrainCircuit, Menu, X, Sun, Moon, Crown, Zap, Sparkles,
-    FileText, ShieldCheck, Bot, Swords, Mail, LifeBuoy, ChevronRight, Download
+    FileText, ShieldCheck, Bot, Swords, Mail, LifeBuoy, ChevronRight, ChevronLeft, Download
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -12,6 +12,7 @@ const Sidebar = ({ onOpenModal, toggleTheme, currentTheme, userRole }) => {
     const navigate = useNavigate();
     const [userEmail, setUserEmail] = useState("Usuario");
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [isCollapsed, setIsCollapsed] = useState(false);
 
     // Estado para el modal de Logout
     const [showLogoutModal, setShowLogoutModal] = useState(false);
@@ -128,28 +129,37 @@ const Sidebar = ({ onOpenModal, toggleTheme, currentTheme, userRole }) => {
             <div className={`fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-40 md:hidden transition-opacity duration-300 ${isMobileMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`} onClick={() => setIsMobileMenuOpen(false)} />
 
             {/* --- SIDEBAR --- */}
-            <aside className={`
-                fixed md:sticky top-0 left-0 h-screen w-72 flex flex-col z-50
+            <aside className={`group/sidebar
+                fixed md:sticky top-0 left-0 h-screen flex flex-col z-50
                 transition-all duration-300 ease-in-out shadow-2xl md:shadow-none
-                ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 md:flex
-                
+                ${isMobileMenuOpen ? 'translate-x-0 w-72' : '-translate-x-full w-72'} md:translate-x-0 md:flex
+                ${isCollapsed ? 'md:w-[88px] is-collapsed' : 'md:w-72'}
                 bg-slate-950 text-white border-r border-slate-800
                 dark:bg-white dark:text-slate-800 dark:border-slate-200
             `}>
 
                 {/* Header Sidebar */}
-                <div className="p-6 h-24 flex justify-between items-center relative">
-                    <div className="absolute top-0 left-10 w-32 h-32 bg-indigo-500/10 blur-[50px] rounded-full pointer-events-none dark:hidden"></div>
+                <div className="p-6 h-24 flex justify-between items-center relative transition-all duration-300">
+                    <div className="absolute top-0 left-10 w-32 h-32 bg-indigo-500/10 blur-[50px] rounded-full pointer-events-none dark:hidden group-[.is-collapsed]/sidebar:hidden"></div>
 
-                    <div className="flex items-center gap-3 relative z-10">
-                        <div className="bg-gradient-to-br from-indigo-500 to-violet-600 p-2.5 rounded-2xl text-white shadow-lg shadow-indigo-500/20 ring-1 ring-white/10 dark:ring-black/5">
+                    <div className="flex items-center gap-3 relative z-10 group-[.is-collapsed]/sidebar:mx-auto">
+                        <div className="bg-gradient-to-br from-indigo-500 to-violet-600 p-2.5 rounded-2xl text-white shadow-lg shadow-indigo-500/20 ring-1 ring-white/10 dark:ring-black/5 flex-shrink-0">
                             <BrainCircuit size={26} />
                         </div>
-                        <div>
+                        <div className="group-[.is-collapsed]/sidebar:hidden overflow-hidden whitespace-nowrap">
                             <h1 className="text-xl font-bold tracking-tight leading-none text-white dark:text-slate-900">VeeBot AI</h1>
                             <span className="text-[10px] text-slate-400 dark:text-slate-500 font-bold tracking-widest uppercase opacity-70">Recruiter OS</span>
                         </div>
                     </div>
+
+                    {/* Botón Plegar Sidebar (Desktop) */}
+                    <button 
+                        onClick={() => setIsCollapsed(!isCollapsed)} 
+                        className={`hidden md:flex absolute -right-3 top-10 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-indigo-600 rounded-full p-1 shadow-md z-50 transition-transform duration-300 ${isCollapsed ? 'rotate-180' : ''}`}
+                    >
+                        <ChevronLeft size={14} />
+                    </button>
+
                     <button onClick={() => setIsMobileMenuOpen(false)} className="md:hidden text-slate-400 hover:text-white transition-colors p-1"><X size={22} /></button>
                 </div>
 
@@ -158,7 +168,7 @@ const Sidebar = ({ onOpenModal, toggleTheme, currentTheme, userRole }) => {
 
                     {/* SECCIÓN 1: DASHBOARD */}
                     <div>
-                        <p className="px-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-3">Dashboard</p>
+                        <p className="px-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-3 group-[.is-collapsed]/sidebar:hidden">Dashboard</p>
                         <div className="space-y-1">
                             <NavItem
                                 to="/import"
@@ -174,7 +184,7 @@ const Sidebar = ({ onOpenModal, toggleTheme, currentTheme, userRole }) => {
 
                     {/* SECCIÓN 2: HERRAMIENTAS */}
                     <div>
-                        <p className="px-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-3">Herramientas</p>
+                        <p className="px-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-3 group-[.is-collapsed]/sidebar:hidden">Herramientas</p>
                         <div className="space-y-1">
                             <NavItem
                                 to="/digital-twin"
@@ -191,7 +201,7 @@ const Sidebar = ({ onOpenModal, toggleTheme, currentTheme, userRole }) => {
                     {/* SECCIÓN 3: Premium */}
                     {userRole !== 'Premium' && userRole !== 'Agency' && (
                         <div>
-                            <p className="px-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-3">Premium</p>
+                            <p className="px-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-3 group-[.is-collapsed]/sidebar:hidden">Premium</p>
                             <div className="space-y-1">
                                 <Link to="/upgrade">
                                     <motion.div
@@ -217,7 +227,7 @@ const Sidebar = ({ onOpenModal, toggleTheme, currentTheme, userRole }) => {
                                             </div>
 
                                             {/* Textos (Alineados y compactos) */}
-                                            <div className="flex flex-col flex-1 min-w-0 justify-center">
+                                            <div className="flex flex-col flex-1 min-w-0 justify-center group-[.is-collapsed]/sidebar:hidden">
                                                 <span className="text-[9px] font-extrabold uppercase tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-pink-600 leading-tight">
                                                     Upgrade
                                                 </span>
@@ -227,7 +237,7 @@ const Sidebar = ({ onOpenModal, toggleTheme, currentTheme, userRole }) => {
                                             </div>
 
                                             {/* Flecha (Sutil y pequeña) */}
-                                            <div className="text-slate-300 group-hover:text-indigo-500 group-hover:translate-x-0.5 transition-all duration-300">
+                                            <div className="text-slate-300 group-hover:text-indigo-500 group-hover:translate-x-0.5 transition-all duration-300 group-[.is-collapsed]/sidebar:hidden">
                                                 <ChevronRight size={14} />
                                             </div>
                                         </div>
@@ -239,7 +249,7 @@ const Sidebar = ({ onOpenModal, toggleTheme, currentTheme, userRole }) => {
 
                     {/* SECCIÓN 4: LEGAL & SOPORTE */}
                     <div>
-                        <p className="px-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-3">Soporte</p>
+                        <p className="px-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-3 group-[.is-collapsed]/sidebar:hidden">Soporte</p>
                         <div className="space-y-1">
 
                             {/* FAQ - Ruta Interna */}
@@ -274,7 +284,7 @@ const Sidebar = ({ onOpenModal, toggleTheme, currentTheme, userRole }) => {
                         {isPremium && <div className="absolute -inset-0.5 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl opacity-10 group-hover:opacity-20 transition duration-500 blur dark:opacity-0"></div>}
 
                         <div className="relative z-10">
-                            <div className="flex items-center gap-3 mb-3">
+                            <div className="flex flex-col md:flex-row md:group-[.is-collapsed]/sidebar:flex-col items-center gap-3 mb-3">
                                 <div className={`relative w-10 h-10 rounded-full flex items-center justify-center text-sm font-extrabold flex-shrink-0 shadow-lg
                                     ${isPremium
                                         ? "bg-gradient-to-tr from-amber-300 via-orange-400 to-rose-500 text-white"
@@ -285,7 +295,7 @@ const Sidebar = ({ onOpenModal, toggleTheme, currentTheme, userRole }) => {
                                     <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-[2px] border-slate-900 dark:border-white rounded-full"></span>
                                 </div>
 
-                                <div className="flex-1 min-w-0">
+                                <div className="flex-1 min-w-0 md:group-[.is-collapsed]/sidebar:hidden">
                                     <p className="text-sm font-bold truncate text-white tracking-tight dark:text-slate-900">
                                         {userEmail.split('@')[0]}
                                     </p>
@@ -296,7 +306,7 @@ const Sidebar = ({ onOpenModal, toggleTheme, currentTheme, userRole }) => {
 
                                 <button
                                     onClick={toggleTheme}
-                                    className="p-1.5 rounded-lg bg-slate-800/50 text-slate-400 hover:bg-slate-700 hover:text-white transition-colors dark:bg-slate-100 dark:text-slate-500 dark:hover:bg-slate-200 dark:hover:text-indigo-600"
+                                    className="p-1.5 rounded-lg bg-slate-800/50 text-slate-400 hover:bg-slate-700 hover:text-white transition-colors dark:bg-slate-100 dark:text-slate-500 dark:hover:bg-slate-200 dark:hover:text-indigo-600 md:group-[.is-collapsed]/sidebar:hidden"
                                     title="Cambiar Tema"
                                 >
                                     {currentTheme === 'dark' ? <Moon size={14} /> : <Sun size={14} />}
@@ -304,7 +314,7 @@ const Sidebar = ({ onOpenModal, toggleTheme, currentTheme, userRole }) => {
                             </div>
                             {/* BOTÓN DE UPGRADE - SOLO PARA USUARIOS NO PREMIUM */}
 
-                            <div className="flex items-center justify-between gap-2 mt-2 pt-3 border-t border-white/5 dark:border-slate-100">
+                            <div className="flex items-center justify-between gap-2 mt-2 pt-3 border-t border-white/5 dark:border-slate-100 md:group-[.is-collapsed]/sidebar:hidden">
                                 <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border ${planConfig.bgStyle} ${planConfig.border} ${planConfig.glow}`}>
                                     {planConfig.icon}
                                     <span className={`text-[10px] font-bold tracking-wider uppercase ${planConfig.textStyle}`}>
@@ -330,7 +340,7 @@ const Sidebar = ({ onOpenModal, toggleTheme, currentTheme, userRole }) => {
 
 // NavItem Personalizado
 const NavItem = ({ to, icon, text, active }) => (
-    <Link to={to} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group relative overflow-hidden
+    <Link to={to} title={text} className={`flex items-center group-[.is-collapsed]/sidebar:justify-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group relative overflow-hidden
         ${active
             ? 'text-white shadow-[0_0_20px_rgba(99,102,241,0.15)] dark:text-white dark:shadow-indigo-500/20'
             : 'text-slate-400 hover:text-white dark:text-slate-500 dark:hover:text-indigo-700'
@@ -351,9 +361,9 @@ const NavItem = ({ to, icon, text, active }) => (
             {icon}
         </span>
 
-        <span className="relative z-10">{text}</span>
+        <span className="relative z-10 overflow-hidden whitespace-nowrap group-[.is-collapsed]/sidebar:w-0 group-[.is-collapsed]/sidebar:opacity-0 transition-all duration-300 transform origin-left">{text}</span>
 
-        {active && <div className="absolute right-3 w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_10px_white]"></div>}
+        {active && <div className="absolute right-3 group-[.is-collapsed]/sidebar:right-1 w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_10px_white]"></div>}
     </Link>
 );
 
