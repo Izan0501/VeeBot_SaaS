@@ -193,9 +193,8 @@ const Sidebar = ({ onOpenModal, toggleTheme, currentTheme, userRole }) => {
                                 transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut" }}
                                 variants={{
                                     hover: {
-                                        scale: 1.15,
                                         filter: "drop-shadow(0 0 14px rgba(139,92,246,0.85)) drop-shadow(0 4px 12px rgba(0,0,0,0.5)) brightness(1.18)",
-                                        transition: { type: "spring", stiffness: 380, damping: 16 },
+                                        transition: { duration: 0.2 },
                                     },
                                 }}
                             />
