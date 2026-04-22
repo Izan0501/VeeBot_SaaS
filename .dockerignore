@@ -5,7 +5,11 @@ client/node_modules/
 
 # Environment files
 .env
+<<<<<<< HEAD
 .env.*
 
 .agents/
 skills-lock.json
+=======
+.env.*
+>>>>>>> 8bf5007d0c5e9e4281ad9c782c4f75def9cc12a1
