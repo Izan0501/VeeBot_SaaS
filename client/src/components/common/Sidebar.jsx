@@ -142,19 +142,117 @@ const Sidebar = ({ onOpenModal, toggleTheme, currentTheme, userRole }) => {
                 <div className="p-6 h-24 flex justify-between items-center relative transition-all duration-300">
                     <div className="absolute top-0 left-10 w-32 h-32 bg-indigo-500/10 blur-[50px] rounded-full pointer-events-none dark:hidden group-[.is-collapsed]/sidebar:hidden"></div>
 
-                    <div className="flex items-center gap-3 relative z-10 group-[.is-collapsed]/sidebar:mx-auto">
-                        <div className="bg-gradient-to-br from-indigo-500 to-violet-600 p-2.5 rounded-2xl text-white shadow-lg shadow-indigo-500/20 ring-1 ring-white/10 dark:ring-black/5 flex-shrink-0">
-                            <BrainCircuit size={26} />
-                        </div>
-                        <div className="group-[.is-collapsed]/sidebar:hidden overflow-hidden whitespace-nowrap">
-                            <h1 className="text-xl font-bold tracking-tight leading-none text-white dark:text-slate-900">VeeBot AI</h1>
-                            <span className="text-[10px] text-slate-400 dark:text-slate-500 font-bold tracking-widest uppercase opacity-70">Recruiter OS</span>
-                        </div>
+                    {/* ── LOGO + WORDMARK ── */}
+                    <style>{`@import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&display=swap');`}</style>
+                    <div className="flex items-center gap-3 min-w-0">
+
+                        {/* Icono animado */}
+                        <motion.div
+                            className="relative flex-shrink-0 cursor-default"
+                            style={{ width: 44, height: 44 }}
+                            initial={{ opacity: 0, scale: 0.5, rotate: -15 }}
+                            animate={{ opacity: 1, scale: 1, rotate: 0 }}
+                            transition={{ type: "spring", stiffness: 240, damping: 16, delay: 0.05 }}
+                            whileHover="hover"
+                        >
+                            <motion.div
+                                className="absolute pointer-events-none"
+                                style={{
+                                    inset: "-10px",
+                                    background: "radial-gradient(ellipse at 50% 60%, rgba(99,102,241,0.55) 0%, rgba(139,92,246,0.2) 45%, transparent 72%)",
+                                    filter: "blur(10px)",
+                                }}
+                                animate={{ opacity: [0.4, 0.85, 0.4] }}
+                                transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                            />
+                            <motion.div
+                                className="absolute pointer-events-none"
+                                style={{
+                                    inset: "-8px",
+                                    borderRadius: "50%",
+                                    border: "1px solid transparent",
+                                    background: "conic-gradient(from 0deg, transparent 55%, rgba(167,139,250,0.7) 75%, transparent 100%) border-box",
+                                    WebkitMask: "linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0)",
+                                    WebkitMaskComposite: "destination-out",
+                                    maskComposite: "exclude",
+                                }}
+                                animate={{ rotate: 360 }}
+                                transition={{ duration: 5, repeat: Infinity, ease: "linear" }}
+                            />
+                            <motion.img
+                                src="/Favicon.png"
+                                alt="VeeBot Logo"
+                                className="relative z-10 object-contain w-full h-full"
+                                animate={{
+                                    filter: [
+                                        "drop-shadow(0 0 4px rgba(99,102,241,0.3)) drop-shadow(0 2px 8px rgba(0,0,0,0.4)) brightness(1)",
+                                        "drop-shadow(0 0 10px rgba(139,92,246,0.65)) drop-shadow(0 2px 8px rgba(0,0,0,0.4)) brightness(1.12)",
+                                        "drop-shadow(0 0 4px rgba(99,102,241,0.3)) drop-shadow(0 2px 8px rgba(0,0,0,0.4)) brightness(1)",
+                                    ],
+                                }}
+                                transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut" }}
+                                variants={{
+                                    hover: {
+                                        scale: 1.15,
+                                        filter: "drop-shadow(0 0 14px rgba(139,92,246,0.85)) drop-shadow(0 4px 12px rgba(0,0,0,0.5)) brightness(1.18)",
+                                        transition: { type: "spring", stiffness: 380, damping: 16 },
+                                    },
+                                }}
+                            />
+                        </motion.div>
+
+                        {/* Wordmark — visible solo cuando el sidebar está desplegado */}
+                        <AnimatePresence>
+                            {!isCollapsed && (
+                                <motion.div
+                                    className="overflow-hidden whitespace-nowrap flex-shrink-0"
+                                    initial={{ opacity: 0, x: -10, width: 0 }}
+                                    animate={{ opacity: 1, x: 0, width: "auto" }}
+                                    exit={{ opacity: 0, x: -10, width: 0 }}
+                                    transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
+                                >
+                                    <div className="leading-none">
+                                        <span
+                                            style={{
+                                                fontFamily: "'Syne', sans-serif",
+                                                fontWeight: 800,
+                                                fontSize: "1.35rem",
+                                                letterSpacing: "-0.02em",
+                                                background: "linear-gradient(125deg, #ffffff 0%, #a5b4fc 45%, #c084fc 100%)",
+                                                WebkitBackgroundClip: "text",
+                                                WebkitTextFillColor: "transparent",
+                                                backgroundClip: "text",
+                                                display: "block",
+                                                lineHeight: 1.1,
+                                            }}
+                                        >
+                                            VeeBot
+                                        </span>
+                                        <span
+                                            style={{
+                                                fontFamily: "'Syne', sans-serif",
+                                                fontWeight: 700,
+                                                fontSize: "0.58rem",
+                                                letterSpacing: "0.22em",
+                                                textTransform: "uppercase",
+                                                color: "rgba(167,139,250,0.6)",
+                                                display: "block",
+                                                lineHeight: 1,
+                                                marginTop: "2px",
+                                            }}
+                                        >
+                                            AI Recruiter
+                                        </span>
+                                    </div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+
                     </div>
 
                     {/* Botón Plegar Sidebar (Desktop) */}
-                    <button 
-                        onClick={() => setIsCollapsed(!isCollapsed)} 
+                    <button
+                        onClick={() => setIsCollapsed(!isCollapsed)}
                         className={`hidden md:flex absolute -right-3 top-10 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-indigo-600 rounded-full p-1 shadow-md z-50 transition-transform duration-300 ${isCollapsed ? 'rotate-180' : ''}`}
                     >
                         <ChevronLeft size={14} />
