@@ -5,7 +5,8 @@ import { useNavigate } from 'react-router-dom';
 import HeroSection from '../components/landing/HeroSection';
 import DataIntelligence from '../components/landing/DataIntelligence';
 import DigitalTwinSection from '../components/landing/DigitalTwinSection';
-import Pricing from '../components/landing/Pricing'; 
+import ComparatorSection from '../components/landing/ComparatorSection';
+import Pricing from '../components/landing/Pricing';
 import FAQ from '../components/landing/FAQ';
 
 // --- COMPONENTES UI ---
@@ -20,7 +21,7 @@ const LandingPage = () => {
     const handleScrollListener = () => {
       setIsScrolled(window.scrollY > 20);
     };
-    window.addEventListener('scroll', handleScrollListener);
+    window.addEventListener('scroll', handleScrollListener, { passive: true });
     return () => window.removeEventListener('scroll', handleScrollListener);
   }, []);
 
@@ -36,10 +37,13 @@ const LandingPage = () => {
       {/* 2. DATA INTELLIGENCE */}
       <DataIntelligence />
 
-      {/* 3. DIGITAL TWIN */}
+      {/* 3. COMPARATOR — VERSUS AI */}
+      <ComparatorSection />
+
+      {/* 4. DIGITAL TWIN */}
       <DigitalTwinSection />
 
-      {/* 4. PRICING */}
+      {/* 5. PRICING */}
       <Pricing />
 
       {/* 5. FAQ */}
