@@ -4,17 +4,25 @@ import asyncio
 import unicodedata
 from typing import List
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Depends
+from pydantic import BaseModel
 from bson import ObjectId
 from datetime import datetime
 
 # Import Local Modules
 from database import candidates_collection, usage_collection, insert_candidate, get_all_candidates_from_db, chats_collection
 from security import get_current_user
-from services import analyze_candidate_with_groq,  process_and_store_cv, chat_as_candidate, get_ai_score, index
+from services import analyze_candidate_with_groq, process_and_store_cv, chat_as_candidate, index
 from utils import robust_extract
 
 
 router = APIRouter()
+
+# ── Pydantic schema para el resultado de análisis IA del frontend ───────────────
+class AnalysisResult(BaseModel):
+    role: str
+    score: int
+    skills: List[str]
+    summary: str
 
 # --- FUNCIÓN AUXILIAR PARA PINECONE (ASCII FIX) ---
 def sanitize_id(text: str) -> str:
@@ -24,97 +32,116 @@ def sanitize_id(text: str) -> str:
     clean_text = re.sub(r'[^a-zA-Z0-9_-]', '', ascii_text.replace(' ', '_'))
     return clean_text
 
-# Candidate Routes
 @router.post("/upload")
 async def upload_cvs(
-    files: List[UploadFile] = File(...), 
+    files: List[UploadFile] = File(...),
     current_user: dict = Depends(get_current_user)
 ):
+    """
+    Extrae texto de PDFs y los guarda en MongoDB con status 'pending_analysis'.
+    El análisis IA (Groq) lo realiza el FRONTEND para evitar bloqueos de red.
+    Retorna la lista de candidatos creados con {id, name, text} para que el
+    frontend llame a PATCH /candidates/{id}/analysis con el resultado.
+    """
     user_id = str(current_user["_id"])
-    user_settings = current_user.get("settings", {"min_score": 70, "auto_reject": False})
-    threshold = user_settings.get("min_score", 70)
-    auto_reject = user_settings.get("auto_reject", False)
-    selected_model = "llama-3.3-70b-versatile"
+
+    if not files:
+        raise HTTPException(status_code=400, detail="No se enviaron archivos.")
 
     os.makedirs("uploads", exist_ok=True)
-    
-    sem = asyncio.Semaphore(10) 
 
-    async def process_single_file(file):
+    # Semaphore: 20 concurrent porque es solo I/O + CPU (sin red)
+    sem = asyncio.Semaphore(20)
+
+    async def process_single_file(file: UploadFile):
         async with sem:
             try:
+                content = await file.read()
+
+                # Guardar archivo en disco (referencia)
                 safe_filename = f"{user_id}_{file.filename}"
                 file_location = f"uploads/{safe_filename}"
-                
-                content = await file.read()
-                
-                with open(file_location, "wb") as buffer:
-                    buffer.write(content)
-                
-                # 1. Text Extraction
+                with open(file_location, "wb") as buf:
+                    buf.write(content)
+
+                # 1. Extraer texto del PDF
                 text = await asyncio.to_thread(robust_extract, content)
 
-                # 2. Email Extraction
-                email_pattern = r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}'
-                found_emails = re.findall(email_pattern, text)
+                # Si el PDF no tiene texto extraible (escaneado/imagen) aún guardamos
+                # el candidato para que el frontend pueda intentar el análisis
+                # con el nombre del archivo como contexto mínimo.
+                effective_text = text.strip() if text else ""
+
+                # 2. Extraer email si existe en el texto
+                found_emails = re.findall(
+                    r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}',
+                    effective_text
+                )
                 extracted_email = found_emails[0] if found_emails else None
-                
-                # Preparamos nombres e IDs
-                candidate_name = file.filename.replace(".pdf", "").replace("_", " ").title()
+
+                # 3. Nombre e ID de vector
+                candidate_name = (
+                    file.filename
+                    .replace(".pdf", "")
+                    .replace(".PDF", "")
+                    .replace("_", " ")
+                    .strip()
+                    .title()
+                )
                 vector_id = sanitize_id(candidate_name)
 
-                print(f"🤖 Analizando: {candidate_name} (ID Vector: {vector_id})...")
-                
-                # 3. AI ANALYSIS
-                ai_analysis = await asyncio.to_thread(get_ai_score, text, selected_model)
-                
-                score_val = ai_analysis.get("score", 0)
-                status_final = "Bajo Potencial"
-                if score_val >= threshold:
-                    status_final = "Alto Potencial"
-                elif score_val >= (threshold - 20):
-                    status_final = "Medio Potencial"
-                else:
-                    status_final = "Rechazado Automático" if auto_reject else "Bajo Potencial"
-
-                # 4. Save to MongoDB
+                # 4. Guardar en MongoDB con status pending (sin IA aún)
                 mongo_id = insert_candidate(
-                    file.filename, 
-                    candidate_name, 
-                    text, 
+                    file.filename,
+                    candidate_name,
+                    effective_text,
                     {
-                        **ai_analysis, 
-                        "status": status_final,
+                        "role": "Pendiente de análisis",
+                        "score": 0,
+                        "skills": [],
+                        "summary": "",
+                        "status": "pending_analysis",
                         "email": extracted_email,
-                        "vector_id": vector_id # Guardamos referencia del ID usado en Pinecone
+                        "vector_id": vector_id,
                     },
                     user_id
-                ) 
-                
-                # 5. Pinecone Upsert
-                # Se asume que esta función usa user_id como namespace
-                process_and_store_cv(text, mongo_id, vector_id, user_id)
+                )
 
-                return {"file": file.filename, "status": "success"}
+                # 5. Pinecone (solo si hay texto útil)
+                if effective_text:
+                    process_and_store_cv(effective_text, mongo_id, vector_id, user_id)
+
+                print(f"✅ Guardado (pendiente): {candidate_name} [{mongo_id}]")
+
+                return {
+                    "id": str(mongo_id),
+                    "name": candidate_name,
+                    "text": effective_text,   # Frontend necesita el texto para Groq
+                    "status": "pending_analysis",
+                }
 
             except Exception as e:
                 print(f"❌ Error en {file.filename}: {e}")
                 return {"file": file.filename, "status": "error", "msg": str(e)}
 
-    print(f"🚀 Procesando {len(files)} archivos...")
-    tasks = [process_single_file(file) for file in files]
+    print(f"🚀 Procesando {len(files)} archivos (extracción solo)...")
+    tasks = [process_single_file(f) for f in files]
     results = await asyncio.gather(*tasks)
-    
-    success_count = sum(1 for r in results if r["status"] == "success")
-    errors = [r["file"] for r in results if r["status"] == "error"]
 
-    if success_count == 0 and len(errors) > 0:
-         raise HTTPException(status_code=500, detail=f"Falló el procesamiento. Errores: {results[0].get('msg')}")
+    ok = [r for r in results if r.get("status") != "error"]
+    errors = [r for r in results if r.get("status") == "error"]
+
+    if not ok and errors:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Todos los archivos fallaron. Primer error: {errors[0].get('msg')}"
+        )
 
     return {
-        "status": "success", 
-        "message": f"Procesados {success_count}/{len(files)} CVs.",
-        "errors": errors
+        "status": "success",
+        "message": f"Texto extraído de {len(ok)}/{len(files)} CVs. Listo para análisis IA.",
+        "candidates": ok,    # [{id, name, text, status}, ...]
+        "errors": errors,
     }
 
 @router.get("/candidates")
@@ -148,6 +175,65 @@ def get_candidate_detail(candidate_id: str, current_user: dict = Depends(get_cur
         "skills": candidate.get("skills", []),
         # text completo del CV — usado por Digital Twin en el frontend
         "text": candidate.get("text") or candidate.get("summary", "Sin información del CV."),
+    }
+
+
+@router.patch("/candidates/{candidate_id}/analysis")
+def save_candidate_analysis(
+    candidate_id: str,
+    result: AnalysisResult,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    El frontend llama este endpoint después de analizar el CV con Groq.
+    Persiste role, score, skills y summary en MongoDB y calcula el status
+    final basándose en el threshold configurado por el usuario.
+    """
+    user_id = str(current_user["_id"])
+
+    # Validar propiedad del candidato
+    try:
+        candidate = candidates_collection.find_one({
+            "_id": ObjectId(candidate_id),
+            "user_id": user_id,
+        })
+    except Exception:
+        raise HTTPException(status_code=400, detail="ID de candidato inválido")
+
+    if not candidate:
+        raise HTTPException(status_code=404, detail="Candidato no encontrado")
+
+    # Calcular status según threshold del usuario
+    user_settings = current_user.get("settings", {"min_score": 70, "auto_reject": False})
+    threshold = user_settings.get("min_score", 70)
+    auto_reject = user_settings.get("auto_reject", False)
+
+    score = result.score
+    if score >= threshold:
+        status_final = "Alto Potencial"
+    elif score >= (threshold - 20):
+        status_final = "Medio Potencial"
+    else:
+        status_final = "Rechazado Automático" if auto_reject else "Bajo Potencial"
+
+    candidates_collection.update_one(
+        {"_id": ObjectId(candidate_id)},
+        {"$set": {
+            "role":    result.role,
+            "score":   score,
+            "skills":  result.skills,
+            "summary": result.summary,
+            "status":  status_final,
+            "analysis_date": datetime.utcnow(),
+        }}
+    )
+
+    print(f"✅ Análisis guardado: {candidate.get('name')} — score {score} → {status_final}")
+
+    return {
+        "id": candidate_id,
+        "status": status_final,
+        "score": score,
     }
 
 

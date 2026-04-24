@@ -77,15 +77,11 @@ export const candidatesAPI = {
         return data;
     },
 
-    upload: async (files) => {
-        const formData = new FormData();
-        files.forEach((file) => {
-            formData.append('files', file);
-        });
-
+    // Acepta FormData directamente (ya construido en ImportData)
+    upload: async (formData) => {
         const res = await fetch(`${API_URL}/upload`, {
             method: 'POST',
-            headers: getHeaders(true),
+            headers: getHeaders(true), // omite Content-Type para que el browser setee el boundary
             body: formData,
         });
 
@@ -93,9 +89,27 @@ export const candidatesAPI = {
         const data = text ? JSON.parse(text) : {};
 
         if (!res.ok) {
-            throw new Error(data.detail || "Error al subir archivos");
+            throw new Error(data.detail || 'Error al subir archivos');
         }
 
-        return data;
-    }
+        return data; // { status, message, candidates: [{id, name, text}], errors }
+    },
+
+    // Persiste el resultado del análisis IA del frontend
+    saveAnalysis: async (candidateId, analysis) => {
+        const res = await fetch(`${API_URL}/candidates/${candidateId}/analysis`, {
+            method: 'PATCH',
+            headers: { ...getHeaders(), 'Content-Type': 'application/json' },
+            body: JSON.stringify(analysis),
+        });
+
+        const text = await res.text();
+        const data = text ? JSON.parse(text) : {};
+
+        if (!res.ok) {
+            throw new Error(data.detail || 'Error al guardar análisis');
+        }
+
+        return data; // { id, status, score }
+    },
 };

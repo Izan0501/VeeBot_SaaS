@@ -1,36 +1,38 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
-import { useNavigate } from 'react-router-dom'; // Hook para redirección
+import { useNavigate } from 'react-router-dom';
 
 // --- IMPORTS API Y COMPONENTES ---
 import { candidatesAPI } from '../api/candidates';
+import { analyzeCVWithGroq } from '../api/groqClient';
 import ImportHeader from '../components/import/ImportHeader';
 import DragDropZone from '../components/import/DragDropZone';
 import FileList from '../components/import/FileList';
 import UploadStatus from '../components/import/UploadStatus';
 
 const ImportData = () => {
-    const navigate = useNavigate(); // Inicializamos el hook
+    const navigate = useNavigate();
     const [dragActive, setDragActive] = useState(false);
     const [files, setFiles] = useState([]);
     const [isUploading, setIsUploading] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0);
+    const [statusMsg, setStatusMsg] = useState('');
 
     // --- MANEJO DE ARCHIVOS ---
     const handleDrag = (e) => {
         e.preventDefault();
         e.stopPropagation();
-        if (e.type === "dragenter" || e.type === "dragover") {
+        if (e.type === 'dragenter' || e.type === 'dragover') {
             setDragActive(true);
-        } else if (e.type === "dragleave") {
+        } else if (e.type === 'dragleave') {
             setDragActive(false);
         }
     };
 
     const addFiles = (newFiles) => {
-        const pdfFiles = Array.from(newFiles).filter(file => file.type === "application/pdf");
-        if (pdfFiles.length !== newFiles.length) toast.error("Solo se permiten archivos PDF");
+        const pdfFiles = Array.from(newFiles).filter(f => f.type === 'application/pdf');
+        if (pdfFiles.length !== newFiles.length) toast.error('Solo se permiten archivos PDF');
         setFiles(prev => [...prev, ...pdfFiles]);
     };
 
@@ -38,60 +40,121 @@ const ImportData = () => {
         e.preventDefault();
         e.stopPropagation();
         setDragActive(false);
-        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-            addFiles(e.dataTransfer.files);
-        }
+        if (e.dataTransfer.files?.length) addFiles(e.dataTransfer.files);
     };
 
     const handleChange = (e) => {
         e.preventDefault();
-        if (e.target.files && e.target.files[0]) {
-            addFiles(e.target.files);
-        }
+        if (e.target.files?.length) addFiles(e.target.files);
     };
 
     const removeFile = (idx) => {
         setFiles(prev => prev.filter((_, i) => i !== idx));
     };
 
-    // --- LÓGICA DE SUBIDA (API) ---
+    // ─── FLUJO DE UPLOAD EN 3 PASOS ────────────────────────────────────────────
+    // 1. Backend extrae texto PDF         (sin IA, sin red externa)
+    // 2. Frontend analiza con Groq        (en paralelo, pool de 5)
+    // 3. Frontend guarda resultado        (PATCH /candidates/{id}/analysis)
+    // ───────────────────────────────────────────────────────────────────────────
     const handleUpload = async () => {
         if (files.length === 0) return;
+
         setIsUploading(true);
-        setUploadProgress(10);
+        setUploadProgress(5);
+        setStatusMsg('Subiendo archivos…');
 
         const formData = new FormData();
-        files.forEach(file => formData.append("files", file));
+        files.forEach(f => formData.append('files', f));
+
+        let pendingCandidates = [];
 
         try {
-            // Simulación visual de progreso
-            const interval = setInterval(() => {
-                setUploadProgress(prev => Math.min(prev + 10, 90));
-            }, 500);
+            // ── PASO 1: Upload + extracción de texto ──────────────────────────
+            const uploadRes = await candidatesAPI.upload(formData);
+            pendingCandidates = uploadRes.candidates ?? [];
 
-            // Llamada a la API
-            await candidatesAPI.upload(formData);
+            if (pendingCandidates.length === 0) {
+                throw new Error('No se pudieron procesar los archivos.');
+            }
 
-            clearInterval(interval);
+            setUploadProgress(20);
+            setStatusMsg(`Analizando ${pendingCandidates.length} CVs con IA…`);
+
+            // ── PASO 2: Análisis Groq en paralelo (pool de 5) ─────────────────
+            // async-parallel: Promise.allSettled para que un fallo no bloquee el resto
+            const CONCURRENCY = 5;
+            let analyzed = 0;
+
+            // Dividir en batches de CONCURRENCY
+            for (let i = 0; i < pendingCandidates.length; i += CONCURRENCY) {
+                const batch = pendingCandidates.slice(i, i + CONCURRENCY);
+
+                const batchResults = await Promise.allSettled(
+                    batch.map(async (candidate) => {
+                        // Si el backend no pudo extraer texto, enviamos el nombre como contexto
+                        const text = candidate.text || `Candidato: ${candidate.name}. Sin texto disponible.`;
+                        const analysis = await analyzeCVWithGroq(text);
+                        return { candidate, analysis };
+                    })
+                );
+
+                // ── PASO 3: Guardar resultados en backend ─────────────────────
+                await Promise.allSettled(
+                    batchResults.map(async (result) => {
+                        if (result.status === 'rejected') {
+                            console.error('Análisis fallido para un candidato:', result.reason);
+                            toast.error(`Fallo IA: ${result.reason?.message || result.reason}`);
+                            return;
+                        }
+                        const { candidate, analysis } = result.value;
+                        
+                        // Validar tipos para evitar HTTP 422 en el backend
+                        const safeSkills = Array.isArray(analysis.skills) 
+                            ? analysis.skills 
+                            : (typeof analysis.skills === 'string' ? [analysis.skills] : []);
+
+                        const safeScore = parseInt(analysis.score) || 0;
+
+                        try {
+                            await candidatesAPI.saveAnalysis(candidate.id, {
+                                role:    String(analysis.role || 'Sin definir'),
+                                score:   safeScore,
+                                skills:  safeSkills,
+                                summary: String(analysis.summary || ''),
+                            });
+                        } catch (saveErr) {
+                            console.error(`No se pudo guardar análisis de ${candidate.name}:`, saveErr);
+                            toast.error(`Error al guardar: ${saveErr.message || 'Error desconocido'}`);
+                        }
+                    })
+                );
+
+                analyzed += batch.length;
+                // Progreso real: 20% base + 80% por candidatos procesados
+                const progress = 20 + Math.round((analyzed / pendingCandidates.length) * 80);
+                setUploadProgress(progress);
+                setStatusMsg(`Analizados ${analyzed}/${pendingCandidates.length} CVs…`);
+            }
+
             setUploadProgress(100);
+            setStatusMsg('¡Completado!');
 
-            // Esperar animación y REDIRIGIR
             setTimeout(() => {
-                toast.success(`¡${files.length} CVs procesados con éxito!`);
+                toast.success(`✅ ${analyzed} CVs procesados correctamente.`);
                 setFiles([]);
                 setIsUploading(false);
                 setUploadProgress(0);
-
-                // Redirección al Dashboard
+                setStatusMsg('');
                 navigate('/dashboard');
-
             }, 800);
 
         } catch (error) {
             console.error(error);
-            toast.error(error.message || "Error al subir archivos");
+            toast.error(error.message || 'Error al subir archivos');
             setIsUploading(false);
             setUploadProgress(0);
+            setStatusMsg('');
         }
     };
 
