@@ -8,6 +8,7 @@ mongo_client = MongoClient(MONGO_URI)
 db = mongo_client[DB_NAME]
 
 # Collections
+tenants_collection = db["tenants"]
 candidates_collection = db["candidates"]
 users_collection = db["users"]
 chats_collection = db["chats"]

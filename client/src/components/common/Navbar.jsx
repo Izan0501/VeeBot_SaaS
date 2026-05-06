@@ -195,7 +195,7 @@ const Navbar = () => {
                 {t('navbar.login', 'Login')}
               </Link>
               <Link
-                to="/register"
+                to="/onboarding"
                 className="group relative px-5 py-2.5 bg-slate-900 dark:bg-white text-white dark:text-slate-950 text-sm font-bold rounded-xl overflow-hidden shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40 transition-all hover:scale-105 active:scale-95"
               >
                 <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-[length:200%_auto] animate-gradient-x"></div>
@@ -284,7 +284,7 @@ const Navbar = () => {
                   {t('navbar.login', 'Log In')}
                 </Link>
                 <Link
-                  to="/register"
+                  to="/onboarding"
                   className="w-full py-3.5 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-bold text-center shadow-lg shadow-indigo-500/25 active:scale-95 transition-transform relative overflow-hidden group"
                 >
                   <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>

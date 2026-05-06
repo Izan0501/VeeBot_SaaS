@@ -8,6 +8,9 @@ import { motion } from 'framer-motion';
 import { authAPI } from '../api/auth';
 import { useAuth } from '../context/AuthContext';
 
+// --- DOMAIN UTILS (cross-origin redirect) ---
+import { getTenantOrigin } from '../utils/domain';
+
 // --- IMPORTS COMPONENTES ---
 import LoginVisuals from '../components/auth/LoginVisuals';
 import { InputGroup } from '../components/auth/AuthInputs';
@@ -25,16 +28,51 @@ const Login = () => {
         setLoading(true);
 
         try {
+            // 1. Authenticate — backend returns { access_token, token_type, subdomain }
             const data = await authAPI.login(email, password);
-            login(data.access_token);
-            toast.success("¡Bienvenido de nuevo!");
-            navigate('/dashboard');
+
+            toast.success('¡Bienvenido de nuevo!', { duration: 1000 });
+
+            if (data.subdomain) {
+                // 2a. TENANT USER — Token Handoff pattern.
+                //
+                //     WHY NOT cookies?
+                //     Browsers treat "localhost" and "*.localhost" as separate sites.
+                //     Chrome/Firefox block or ignore "Domain=localhost" cookies,
+                //     so saveSessionCookie() doesn't reliably work in dev.
+                //
+                //     WHY NOT window.location.replace(subdomain + '/dashboard')?
+                //     The browser navigates to the new origin with empty localStorage.
+                //     The cookie we set doesn't arrive. AuthContext finds no token.
+                //     Result: redirect to /login on the subdomain (double login).
+                //
+                //     THE FIX — Token Handoff:
+                //     We encode the JWT in the URL and send the browser to a
+                //     dedicated /auth/handoff route ON the tenant subdomain.
+                //     That component runs under the subdomain's origin, writes
+                //     the token to ITS localStorage, then redirects to /dashboard.
+                //     The token is in the URL for <100ms and is immediately
+                //     purged from browser history by the handoff component.
+                const handoffUrl = new URL(
+                    `${getTenantOrigin(data.subdomain)}/auth/handoff`
+                );
+                handoffUrl.searchParams.set('token', data.access_token);
+
+                // Hard replace — this page leaves history so back button
+                // goes to the landing page, not back to login.
+                window.location.replace(handoffUrl.toString());
+            } else {
+                // 2b. NO TENANT — platform super-admin stays at root.
+                //     Safe to use login() + navigate() since we stay same-origin.
+                login(data.access_token);
+                navigate('/dashboard');
+            }
         } catch (error) {
-            console.error("Login Error:", error);
-            toast.error(error.message || "Error de conexión. Revisa que el Backend esté encendido.");
-        } finally {
+            console.error('Login Error:', error);
+            toast.error(error.message || 'Error de conexión. Revisa que el Backend esté encendido.');
             setLoading(false);
         }
+
     };
 
     return (
@@ -108,7 +146,7 @@ const Login = () => {
                                     </label>
                                     <button
                                         type="button"
-                                        onClick={() => navigate('/register', { state: { initialView: 'forgot_email' } })}
+                                        onClick={() => navigate('/contact')}
                                         className="text-xs text-indigo-300 lg:text-indigo-600 dark:lg:text-indigo-400 font-bold hover:text-white lg:hover:text-indigo-800 dark:lg:hover:text-indigo-300 transition-colors"
                                     >
                                         ¿Olvidaste tu clave?
@@ -165,7 +203,7 @@ const Login = () => {
                         <p className="text-sm text-slate-400 lg:text-slate-500 dark:lg:text-slate-400">
                             ¿Aún no tienes cuenta?
                             <span
-                                onClick={() => navigate('/register')}
+                                onClick={() => navigate('/onboarding')}
                                 className="text-white lg:text-indigo-600 dark:lg:text-indigo-400 font-bold cursor-pointer hover:underline ml-1"
                             >
                                 Crear cuenta gratis

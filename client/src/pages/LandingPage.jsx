@@ -37,19 +37,19 @@ const LandingPage = () => {
       {/* 2. DATA INTELLIGENCE */}
       <DataIntelligence />
 
-      {/* 3. COMPARATOR — VERSUS AI */}
-      <ComparatorSection />
-
-      {/* 4. DIGITAL TWIN */}
+      {/* 3. DIGITAL TWIN */}
       <DigitalTwinSection />
 
-      {/* 5. PRICING */}
-      <Pricing />
+      {/* 4. COMPARATOR — VERSUS AI */}
+      <ComparatorSection />
 
       {/* 5. FAQ */}
       <FAQ />
 
-      {/* 6. SCROLL BUTTON (Flotante) */}
+      {/* 6. PRICING */}
+      <Pricing />
+
+      {/* 7. SCROLL BUTTON (Flotante) */}
       <ScrollToTopBtn />
     </>
   );

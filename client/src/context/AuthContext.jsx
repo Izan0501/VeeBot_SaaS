@@ -1,5 +1,6 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
-import { authAPI } from '../api/auth'; // <--- NEW IMPORT
+import { authAPI } from '../api/auth';
+import { logoutAndRedirect } from '../utils/domain';
 
 const AuthContext = createContext();
 
@@ -21,7 +22,14 @@ export const AuthProvider = ({ children }) => {
             const userData = await authAPI.getMe();
 
             // Check if the role grants premium features
-            const isPremiumRole = ['Premium', 'Admin', 'Reclutador', 'Agency'].includes(userData.role);
+            const isPremiumRole = ['Premium', 'Admin', 'Reclutador', 'Agency', 'tenant_admin'].includes(userData.role);
+
+            // Inyección Global de Branding (CSS Variables)
+            if (userData.tenant_config && userData.tenant_config.branding) {
+                const { primary_color, secondary_color } = userData.tenant_config.branding;
+                if (primary_color) document.documentElement.style.setProperty('--color-primary', primary_color);
+                if (secondary_color) document.documentElement.style.setProperty('--color-secondary', secondary_color);
+            }
 
             setUser({
                 ...userData,
@@ -38,16 +46,34 @@ export const AuthProvider = ({ children }) => {
     };
 
     /**
-     * Check for an existing token on mount
+     * Check for an existing token on mount.
+     * Priority: localStorage (same-origin) → cookie (cross-origin, set by saveSessionCookie).
+     * The cookie fallback is the key that makes cross-subdomain navigation work:
+     * when the browser lands on sysloco.localhost after redirect from localhost,
+     * localStorage is empty but the shared cookie is still present.
      */
     useEffect(() => {
-        const token = localStorage.getItem('token');
+        // Helper to read a cookie by name
+        const getCookie = (name) => {
+            const match = document.cookie
+                .split('; ')
+                .find((row) => row.startsWith(`${name}=`));
+            return match ? decodeURIComponent(match.split('=')[1]) : null;
+        };
+
+        const token = localStorage.getItem('token') || getCookie('token');
+
         if (token) {
+            // Back-fill localStorage so same-origin reads work going forward
+            if (!localStorage.getItem('token')) {
+                localStorage.setItem('token', token);
+            }
             verifyToken(token);
         } else {
             setLoading(false);
         }
     }, []);
+
 
     /**
      * Login Action
@@ -61,11 +87,23 @@ export const AuthProvider = ({ children }) => {
 
     /**
      * Logout Action
+     *
+     * Delegates to logoutAndRedirect() (utils/domain.js) which:
+     *  1. Clears localStorage token + any auth cookies
+     *  2. Dynamically strips the subdomain from the current hostname
+     *  3. Calls window.location.replace(rootOrigin) — a true cross-origin
+     *     hard redirect that also removes the entry from browser history.
+     *
+     * Per `rerender-move-effect-to-event`: logout is an event handler action,
+     * NOT a side-effect that belongs in useEffect.
      */
     const logout = () => {
-        localStorage.removeItem('token');
+        // Reset React state so any pending renders see a clean slate
         setUser(null);
         setLoading(false);
+
+        // Hand off to the utility — it handles storage + redirect
+        logoutAndRedirect();
     };
 
     return (

@@ -2,7 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from datetime import datetime
 
 # Import Local Modules
-from database import users_collection, get_all_candidates_from_db, delete_full_user_data
+from database import users_collection, get_all_candidates_from_db, delete_full_user_data, tenants_collection
+from bson import ObjectId
 from security import get_password_hash, verify_password, create_access_token, get_current_user
 from schemas import UserAuth, Token, UserProfileUpdate, PasswordChange, EmailRequest, DirectResetRequest
 from services import index  # Necesario para borrar vectores en Pinecone al eliminar cuenta
@@ -39,18 +40,50 @@ async def login_for_access_token(user: UserAuth):
             detail="Email o contraseña incorrectos",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    access_token = create_access_token(data={"sub": user.email})
-    return {"access_token": access_token, "token_type": "bearer"}
+
+    # Resolve the tenant subdomain so the frontend can redirect immediately
+    # without a second round-trip to /auth/me (eliminates async waterfall).
+    subdomain = None
+    tenant_id = db_user.get("tenant_id")
+    if tenant_id:
+        tenant = tenants_collection.find_one(
+            {"_id": ObjectId(tenant_id)},
+            projection={"subdomain": 1}  # minimal projection — security best practice
+        )
+        if tenant:
+            subdomain = tenant.get("subdomain")
+
+    access_token = create_access_token(data={
+        "sub": user.email,
+        "tenant_id": tenant_id,
+        "role": db_user.get("role", "Free")
+    })
+    return {"access_token": access_token, "token_type": "bearer", "subdomain": subdomain}
+
 
 @router.get("/auth/me")
 def get_current_user_profile(current_user: dict = Depends(get_current_user)):
     settings = current_user.get("settings", {})
+    tenant_id = current_user.get("tenant_id")
+    tenant_config = None
+    
+    if tenant_id:
+        tenant = tenants_collection.find_one({"_id": ObjectId(tenant_id)})
+        if tenant:
+            tenant_config = {
+                "company_name": tenant.get("name"),
+                "subdomain": tenant.get("subdomain"),
+                "branding": tenant.get("branding"),
+                "ai_niche": tenant.get("ai_niche")
+            }
+            
     return {
         "email": current_user.get("email"),
         "name": current_user.get("name", "Usuario"),
         "role": current_user.get("role", "Free"),
         "min_score": settings.get("min_score", 70),
-        "auto_reject": settings.get("auto_reject", False)
+        "auto_reject": settings.get("auto_reject", False),
+        "tenant_config": tenant_config
     }
 
 @router.put("/auth/me")

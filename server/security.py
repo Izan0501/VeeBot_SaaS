@@ -61,4 +61,18 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
     user = users_collection.find_one({"email": email})
     if user is None:
         raise credentials_exception
+    
+    # Check if the user belongs to a tenant (superadmins might not, but let's be flexible)
+    # The user dict will now naturally contain 'tenant_id' if they are bound to a tenant.
     return user
+
+# Dependency to ensure the current action is executed within a valid Tenant context
+async def get_current_tenant(current_user: dict = Depends(get_current_user)):
+    tenant_id = current_user.get("tenant_id")
+    if not tenant_id:
+        # Si el usuario no tiene tenant asignado, no puede operar en endpoints B2B
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="El usuario no pertenece a ningún Tenant (Agencia)."
+        )
+    return str(tenant_id)

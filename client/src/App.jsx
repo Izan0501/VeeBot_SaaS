@@ -5,6 +5,9 @@ import { Toaster } from 'react-hot-toast';
 // --- IMPORTS DE CONTEXTO ---
 import { useAuth } from './context/AuthContext';
 
+// --- DOMAIN UTILS ---
+import { getTenantOrigin } from './utils/domain';
+
 // --- IMPORTS DE UTILS & COMMON ---
 import ScrollToTop from './components/common/ScrollToTop';
 import PremiumLock from './components/common/PremiumLock';
@@ -28,7 +31,8 @@ import Upgrade from './pages/Upgrade';
 // --- IMPORTS PÁGINAS (Public & Auth) ---
 import LandingPage from './pages/LandingPage';
 import Login from './pages/Login';
-import Register from './pages/Register';
+import AuthHandoff from './pages/AuthHandoff';
+import Onboarding from './pages/Onboarding';
 import Contact from './pages/Contact';
 import Faq from './pages/Faq';
 import Terms from './pages/Terms';
@@ -67,19 +71,31 @@ function App() {
         {/* =================================================================
             2. ZONA STANDALONE (SimpleLayout -> Lienzo Limpio)
            ================================================================= */}
+        {/* /login: if user is already authenticated, send them to the right place.
+            IMPORTANT: must redirect tenant users to their SUBDOMAIN, not root /dashboard.
+            Sending a tenant user to root /dashboard causes the ghost-session loop:
+              1. AuthContext reads cookie at root
+              2. App.jsx sends to /dashboard (root)
+              3. ProtectedLayout has no subdomain → shows default branding or re-redirects */}
         <Route path="/login" element={
-          user ? <Navigate to="/dashboard" replace /> : (
-            <SimpleLayout>
-              <Login />
-            </SimpleLayout>
-          )
+          <LoginGate>
+            <SimpleLayout><Login /></SimpleLayout>
+          </LoginGate>
         } />
 
-        <Route path="/register" element={
+        {/* /register is deprecated — redirects to the OOBE Wizard */}
+        <Route path="/register" element={<Navigate to="/onboarding" replace />} />
+
+        {/* /auth/handoff — Token Handoff endpoint (cross-origin SSO).
+            Receives the JWT as a URL param from root login/onboarding,
+            writes it to subdomain localStorage, then redirects to /dashboard.
+            Must be PUBLIC (no auth guard) since the user has no token yet
+            at the moment this route is hit. */}
+        <Route path="/auth/handoff" element={<AuthHandoff />} />
+
+        <Route path="/onboarding" element={
           user ? <Navigate to="/dashboard" replace /> : (
-            <SimpleLayout>
-              <Register />
-            </SimpleLayout>
+            <Onboarding />
           )
         } />
 
@@ -165,3 +181,34 @@ function App() {
 }
 
 export default App;
+
+// ─── LoginGate ────────────────────────────────────────────────────────────────
+// Handles the authenticated redirect from /login correctly:
+//   - User has tenant  → hard redirect to subdomain dashboard (cross-origin)
+//   - User has no tenant → soft navigate to /dashboard (same-origin)
+//   - No user          → render children (show the login form)
+//
+// This component is defined OUTSIDE App to satisfy `rerender-no-inline-components`
+// and to prevent it from re-creating on every App render.
+function LoginGate({ children }) {
+  const { user, loading } = useAuth();
+
+  // While AuthContext is resolving the token, render nothing to prevent flash
+  if (loading) return null;
+
+  if (user) {
+    const subdomain = user?.tenant_config?.subdomain;
+    if (subdomain) {
+      // Cross-origin redirect — must be a hard navigation, not React Router
+      // Use useEffect to avoid render-phase side effects (React strict mode safe)
+      // Per `rendering-hydration-no-flicker`: immediate imperative redirect
+      window.location.replace(`${getTenantOrigin(subdomain)}/dashboard`);
+      // Return null while browser processes the redirect
+      return null;
+    }
+    // No tenant (platform super-admin) — safe to stay at root
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return children;
+}

@@ -2,11 +2,25 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Tenant Brand Defaults (overridden by TenantProvider at runtime) ──────── */
+/* These ensure Tailwind classes like bg-brand resolve immediately on first     */
+/* paint, before the async branding fetch completes.                            */
+:root {
+  --color-primary:   #0F172A;
+  --color-secondary: #3B82F6;
+}
+
 @layer base {
   body {
     @apply bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-300;
   }
 }
+
+/* ── Scrollbar utility (used by Sidebar nav) ─────────────────────────────── */
+.custom-scrollbar::-webkit-scrollbar        { width: 4px; }
+.custom-scrollbar::-webkit-scrollbar-track  { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb  { background: rgba(255,255,255,0.08); border-radius: 4px; }
+.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.15); }
 
 @keyframes shine {
   0% { left: -100%; }

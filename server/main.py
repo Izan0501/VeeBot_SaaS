@@ -6,7 +6,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from services import cleanup_expired_candidates
 
 # import Routes
-from routes import auth, candidates, features, payments, communications
+from routes import auth, candidates, features, payments, communications, onboarding
 
 # ── App Initialization ──────────────────────────────────────────────────────
 # max_request_body_size: 500 MB — soporta hasta ~100 PDFs por carga
@@ -19,7 +19,13 @@ app = FastAPI(
 # ── CORS ─────────────────────────────────────────────────────────────────────
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:3000"],
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:3000",
+    ],
+    # Covers any *.localhost:5173 origin (tenant subdomains in local dev)
+    allow_origin_regex=r"http://[a-z0-9\-]+\.localhost:5173",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -47,6 +53,7 @@ async def stop_scheduler():
 
 # ── Route Inclusions ──────────────────────────────────────────────────────────
 app.include_router(auth.router, tags=["Auth"])
+app.include_router(onboarding.router, tags=["Onboarding"])
 app.include_router(candidates.router, tags=["Candidates"])
 app.include_router(features.router, tags=["Features"])
 app.include_router(payments.router, tags=["Payments"])

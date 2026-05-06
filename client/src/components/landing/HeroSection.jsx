@@ -109,7 +109,7 @@ const HeroSection = () => {
                     {/* Botones */}
                     <motion.div variants={itemVariants} className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 sm:gap-5 w-full">
                         <button
-                            onClick={() => navigate('/register')}
+                            onClick={() => navigate('/onboarding')}
                             className="group relative w-full sm:w-auto transform-gpu"
                         >
                             <div className="absolute -inset-1 bg-gradient-to-r from-indigo-600 to-pink-600 rounded-2xl blur-md opacity-40 group-hover:opacity-80 transition-all duration-500 scale-95 group-hover:scale-100"></div>
