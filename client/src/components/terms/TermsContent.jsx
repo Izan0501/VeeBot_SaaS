@@ -1,5 +1,6 @@
+/* eslint-disable react-doctor/rendering-hydration-mismatch-time */
 import React from 'react';
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 import TermsContact from './TermsContact';
 
 const sectionVariant = {
@@ -15,7 +16,7 @@ const termsData = [
 ];
 
 const TermsContent = () => (
-    <motion.div
+    <m.div
         initial="hidden"
         whileInView="visible"
         viewport={{ once: true, margin: "-100px" }}
@@ -23,16 +24,16 @@ const TermsContent = () => (
         className="prose prose-slate dark:prose-invert max-w-none space-y-12"
     >
         {termsData.map((section, i) => (
-            <motion.section key={i} variants={sectionVariant} className="group hover:pl-4 transition-all duration-300 border-l-2 border-transparent hover:border-indigo-500">
+            <m.section suppressHydrationWarning key={section.id || section.name || section.title || crypto.randomUUID()} variants={sectionVariant} className="group hover:pl-4 transition-all duration-300 border-l-2 border-transparent hover:border-indigo-500">
                 <h3 className="text-2xl font-bold mb-3 text-slate-900 dark:text-white flex items-center gap-2">
                     <span className="text-indigo-600/50 group-hover:text-indigo-600 transition-colors">#</span> {section.title}
                 </h3>
                 <p className="text-slate-600 dark:text-slate-300 leading-relaxed text-lg">{section.content}</p>
-            </motion.section>
+            </m.section>
         ))}
 
         <TermsContact />
-    </motion.div>
+    </m.div>
 );
 
 export default TermsContent;

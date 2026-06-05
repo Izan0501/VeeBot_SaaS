@@ -1,55 +1,45 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React from 'react';
 
-// --- SECCIONES DE LA LANDING ---
-import HeroSection from '../components/landing/HeroSection';
+// ── Landing Sections ────────────────────────────────────────────────────────
+import HeroSection      from '../components/landing/HeroSection';
 import DataIntelligence from '../components/landing/DataIntelligence';
 import DigitalTwinSection from '../components/landing/DigitalTwinSection';
-import ComparatorSection from '../components/landing/ComparatorSection';
-import Pricing from '../components/landing/Pricing';
-import FAQ from '../components/landing/FAQ';
+import ComparatorSection  from '../components/landing/ComparatorSection';
+import Pricing            from '../components/landing/Pricing';
+import FaqSection         from '../components/landing/FAQ';
+import ScrollToTopBtn     from '../components/landing/ScrollToTopBtn';
 
-// --- COMPONENTES UI ---
-import ScrollToTopBtn from '../components/landing/ScrollToTopBtn'; // <--- IMPORTAR
-
+/**
+ * LandingPage
+ *
+ * Performance notes:
+ * - Removed the redundant `scroll` event listener (was only used to derive
+ *   `isScrolled`, which is now handled by the Navbar's useActiveSection hook
+ *   via IntersectionObserver — zero raw scroll listeners on the landing page).
+ * - `useNavigate` removed (was unused after handleNavigation cleanup).
+ */
 const LandingPage = () => {
-  const navigate = useNavigate();
-  const [isScrolled, setIsScrolled] = useState(false);
-
-  // Scroll listener para efectos visuales (opcional)
-  useEffect(() => {
-    const handleScrollListener = () => {
-      setIsScrolled(window.scrollY > 20);
-    };
-    window.addEventListener('scroll', handleScrollListener, { passive: true });
-    return () => window.removeEventListener('scroll', handleScrollListener);
-  }, []);
-
-  const handleNavigation = (path) => {
-    navigate(path);
-  };
-
   return (
     <>
-      {/* 1. HERO SECTION */}
-      <HeroSection onNavigate={handleNavigation} isScrolled={isScrolled} />
+      {/* 1. Hero */}
+      <HeroSection />
 
-      {/* 2. DATA INTELLIGENCE */}
-      <DataIntelligence />
-
-      {/* 3. DIGITAL TWIN */}
-      <DigitalTwinSection />
-
-      {/* 4. COMPARATOR — VERSUS AI */}
+      {/* 2. Comparator — Versus AI */}
       <ComparatorSection />
 
-      {/* 5. FAQ */}
-      <FAQ />
+      {/* 3. Digital Twin */}
+      <DigitalTwinSection />
 
-      {/* 6. PRICING */}
+      {/* 4. Data Intelligence */}
+      <DataIntelligence />
+
+      {/* 5. FAQ */}
+      <FaqSection />
+
+      {/* 6. Pricing */}
       <Pricing />
 
-      {/* 7. SCROLL BUTTON (Flotante) */}
+      {/* 7. Scroll-to-top (Floating) */}
       <ScrollToTopBtn />
     </>
   );

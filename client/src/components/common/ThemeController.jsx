@@ -1,5 +1,5 @@
 import React from 'react';
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 import { Sun, Moon } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext'; // <--- Conexión al contexto
 
@@ -8,7 +8,7 @@ const ThemeController = () => {
     const { isDarkMode, toggleTheme } = useTheme();
 
     return (
-        <motion.button
+        <m.button
             onClick={toggleTheme}
             // Animaciones de entrada y hover
             initial={{ opacity: 0, scale: 0.8 }}
@@ -23,7 +23,7 @@ const ThemeController = () => {
             title={isDarkMode ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
         >
             {/* Animación suave entre iconos */}
-            <motion.div
+            <m.div
                 key={isDarkMode ? 'moon' : 'sun'}
                 initial={{ rotate: -90, opacity: 0 }}
                 animate={{ rotate: 0, opacity: 1 }}
@@ -31,8 +31,8 @@ const ThemeController = () => {
                 transition={{ duration: 0.2 }}
             >
                 {isDarkMode ? <Sun size={24} className="animate-spin-slow" /> : <Moon size={24} />}
-            </motion.div>
-        </motion.button>
+            </m.div>
+        </m.button>
     );
 };
 

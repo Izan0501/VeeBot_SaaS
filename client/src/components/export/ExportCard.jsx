@@ -1,5 +1,5 @@
 import React from 'react';
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 import { Loader2, CheckCircle, FileSpreadsheet, FileJson, Download, ShieldCheck } from 'lucide-react';
 import HologramVisual from './HologramVisual';
 
@@ -16,7 +16,7 @@ const ExportCard = ({
 
             {/* Progress Bar Superior */}
             <div className="absolute top-0 left-0 w-full h-1 bg-slate-100 dark:bg-slate-800">
-                <motion.div
+                <m.div
                     className="h-full bg-gradient-to-r from-emerald-500 to-cyan-500"
                     initial={{ width: 0 }}
                     animate={{ width: exporting ? "100%" : "0%" }}
@@ -47,9 +47,10 @@ const ExportCard = ({
 
                     {/* Selector de Formato */}
                     <div className="space-y-3">
-                        <label className="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">Formato de Salida</label>
+                        {/* eslint-disable-next-line react-doctor/label-has-associated-control */}
+<label className="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">Formato de Salida</label>
                         <div className="grid grid-cols-2 gap-4">
-                            <button
+                            <button aria-label="Interactive control" type="button"
                                 onClick={() => setSelectedFormat('csv')}
                                 className={`p-4 rounded-2xl border-2 transition-all flex items-center gap-3 relative overflow-hidden ${selectedFormat === 'csv' ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' : 'border-slate-200 dark:border-slate-800 hover:border-emerald-200 dark:hover:border-slate-600'}`}
                             >
@@ -60,10 +61,10 @@ const ExportCard = ({
                                     <p className={`font-bold ${selectedFormat === 'csv' ? 'text-emerald-900 dark:text-white' : 'text-slate-600 dark:text-slate-300'}`}>Excel / CSV</p>
                                     <p className="text-[10px] text-slate-400">Para hojas de cálculo</p>
                                 </div>
-                                {selectedFormat === 'csv' && <motion.div layoutId="check" className="absolute top-2 right-2 text-emerald-500"><CheckCircle size={16} /></motion.div>}
+                                {selectedFormat === 'csv' && <m.div layoutId="check" className="absolute top-2 right-2 text-emerald-500"><CheckCircle size={16} /></m.div>}
                             </button>
 
-                            <button
+                            <button aria-label="Interactive control" type="button"
                                 onClick={() => setSelectedFormat('json')}
                                 className={`p-4 rounded-2xl border-2 transition-all flex items-center gap-3 relative overflow-hidden ${selectedFormat === 'json' ? 'border-cyan-500 bg-cyan-50 dark:bg-cyan-900/20' : 'border-slate-200 dark:border-slate-800 hover:border-cyan-200 dark:hover:border-slate-600'}`}
                             >
@@ -74,13 +75,13 @@ const ExportCard = ({
                                     <p className={`font-bold ${selectedFormat === 'json' ? 'text-cyan-900 dark:text-white' : 'text-slate-600 dark:text-slate-300'}`}>JSON Raw</p>
                                     <p className="text-[10px] text-slate-400">Para desarrolladores</p>
                                 </div>
-                                {selectedFormat === 'json' && <motion.div layoutId="check" className="absolute top-2 right-2 text-cyan-500"><CheckCircle size={16} /></motion.div>}
+                                {selectedFormat === 'json' && <m.div layoutId="check" className="absolute top-2 right-2 text-cyan-500"><CheckCircle size={16} /></m.div>}
                             </button>
                         </div>
                     </div>
 
                     {/* Botón de Acción Principal */}
-                    <button
+                    <button aria-label="Interactive control" type="button"
                         onClick={onExport}
                         disabled={exporting || loading || candidatesCount === 0}
                         className="w-full py-5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl font-black text-lg hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-emerald-500/20 flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed group"
@@ -88,11 +89,11 @@ const ExportCard = ({
                         {exporting ? (
                             <>
                                 <Loader2 size={22} className="animate-spin" />
-                                Generando archivo...
+                                Generando archivo…
                             </>
                         ) : (
                             <>
-                                <Download size={22} className="group-hover:animate-bounce" />
+                                <Download size={22} className="group-hover:" />
                                 Descargar Base de Datos
                             </>
                         )}

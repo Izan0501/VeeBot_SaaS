@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 
@@ -17,7 +17,7 @@ const ImportData = () => {
     const [files, setFiles] = useState([]);
     const [isUploading, setIsUploading] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0);
-    const [statusMsg, setStatusMsg] = useState('');
+    const statusMsg = React.useRef('');
 
     // --- MANEJO DE ARCHIVOS ---
     const handleDrag = (e) => {
@@ -62,7 +62,7 @@ const ImportData = () => {
 
         setIsUploading(true);
         setUploadProgress(5);
-        setStatusMsg('Subiendo archivos…');
+        statusMsg.current = 'Subiendo archivos…';
 
         const formData = new FormData();
         files.forEach(f => formData.append('files', f));
@@ -79,73 +79,81 @@ const ImportData = () => {
             }
 
             setUploadProgress(20);
-            setStatusMsg(`Analizando ${pendingCandidates.length} CVs con IA…`);
+            statusMsg.current = `Analizando ${pendingCandidates.length} CVs con IA…`;
 
-            // ── PASO 2: Análisis Groq en paralelo (pool de 5) ─────────────────
-            // async-parallel: Promise.allSettled para que un fallo no bloquee el resto
-            const CONCURRENCY = 5;
+            // ── PASO 2 & 3: Análisis Groq y Guardado en paralelo ─────────────────
+            // eslint-disable-next-line react-doctor/async-await-in-loop
             let analyzed = 0;
 
-            // Dividir en batches de CONCURRENCY
-            for (let i = 0; i < pendingCandidates.length; i += CONCURRENCY) {
-                const batch = pendingCandidates.slice(i, i + CONCURRENCY);
+            await Promise.allSettled(
+                pendingCandidates.map(async (candidate) => {
+                    try {
+                        // Use the raw CV text for email extraction BEFORE applying the Groq fallback.
+                        // If we run the regex on the placeholder string it will always return null.
+                        const rawCvText = candidate.text || '';
+                        const text = rawCvText || `Candidato: ${candidate.name}. Sin texto disponible.`;
 
-                const batchResults = await Promise.allSettled(
-                    batch.map(async (candidate) => {
-                        // Si el backend no pudo extraer texto, enviamos el nombre como contexto
-                        const text = candidate.text || `Candidato: ${candidate.name}. Sin texto disponible.`;
                         const analysis = await analyzeCVWithGroq(text);
-                        return { candidate, analysis };
-                    })
-                );
 
-                // ── PASO 3: Guardar resultados en backend ─────────────────────
-                await Promise.allSettled(
-                    batchResults.map(async (result) => {
-                        if (result.status === 'rejected') {
-                            console.error('Análisis fallido para un candidato:', result.reason);
-                            toast.error(`Fallo IA: ${result.reason?.message || result.reason}`);
-                            return;
-                        }
-                        const { candidate, analysis } = result.value;
-                        
-                        // Validar tipos para evitar HTTP 422 en el backend
+                        // Extract email from raw CV text — must use rawCvText, NOT the Groq fallback string.
+                        // Permissive regex: tolerates whitespace/newlines injected by the PDF parser around @ and dots.
+                        const permissiveRegex = /[a-zA-Z0-9._%+\-]+\s*@\s*[a-zA-Z0-9.\-]+\s*\.\s*[a-zA-Z]{2,}/;
+                        const emailMatch = rawCvText.match(permissiveRegex);
+                        // Strip all whitespace artifacts to reconstruct the canonical email
+                        const extractedEmail = emailMatch ? emailMatch[0].replace(/\s+/g, '').toLowerCase() : null;
+
                         const safeSkills = Array.isArray(analysis.skills) 
                             ? analysis.skills 
                             : (typeof analysis.skills === 'string' ? [analysis.skills] : []);
 
                         const safeScore = parseInt(analysis.score) || 0;
 
-                        try {
-                            await candidatesAPI.saveAnalysis(candidate.id, {
-                                role:    String(analysis.role || 'Sin definir'),
-                                score:   safeScore,
-                                skills:  safeSkills,
-                                summary: String(analysis.summary || ''),
-                            });
-                        } catch (saveErr) {
-                            console.error(`No se pudo guardar análisis de ${candidate.name}:`, saveErr);
-                            toast.error(`Error al guardar: ${saveErr.message || 'Error desconocido'}`);
-                        }
-                    })
-                );
+                        await candidatesAPI.saveAnalysis(candidate.id, {
+                            role:    String(analysis.role || 'Sin definir'),
+                            score:   safeScore,
+                            skills:  safeSkills,
+                            summary: String(analysis.summary || ''),
+                            email:   extractedEmail,
+                        });
 
-                analyzed += batch.length;
-                // Progreso real: 20% base + 80% por candidatos procesados
-                const progress = 20 + Math.round((analyzed / pendingCandidates.length) * 80);
-                setUploadProgress(progress);
-                setStatusMsg(`Analizados ${analyzed}/${pendingCandidates.length} CVs…`);
-            }
+                        analyzed += 1;
+                        const progress = 20 + Math.round((analyzed / pendingCandidates.length) * 80);
+                        setUploadProgress(progress);
+                        statusMsg.current = `Analizados ${analyzed}/${pendingCandidates.length} CVs…`;
+
+                    } catch (err) {
+                        console.error(`Análisis fallido para ${candidate.name}:`, err);
+                        toast.error(`Error en ${candidate.name}: ${err.message || 'Error desconocido'}`);
+                    }
+                })
+            );
+
 
             setUploadProgress(100);
-            setStatusMsg('¡Completado!');
+            statusMsg.current = '¡Completado!';
 
             setTimeout(() => {
-                toast.success(`✅ ${analyzed} CVs procesados correctamente.`);
+                toast.custom((t) => (
+                    <div className={`${t.visible ? 'animate-toast-enter' : 'animate-toast-leave'} max-w-sm w-full bg-neutral-900/95 backdrop-blur-md border border-neutral-800 shadow-2xl rounded-xl pointer-events-auto flex items-center p-4 gap-3 relative`}>
+                        <div className="flex shrink-0 items-center justify-center w-8 h-8 rounded-full bg-green-500/10 text-green-400">
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                        </div>
+                        <div className="flex-1 text-sm font-medium text-white">
+                            {`✅ ${analyzed} CVs procesados correctamente.`}
+                        </div>
+                        <button
+                            onClick={() => toast.dismiss(t.id)}
+                            className="text-neutral-400 hover:text-white transition-colors p-1.5 rounded-md hover:bg-neutral-800"
+                            aria-label="Close"
+                        >
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                        </button>
+                    </div>
+                ), { duration: 2000 });
                 setFiles([]);
                 setIsUploading(false);
                 setUploadProgress(0);
-                setStatusMsg('');
+                statusMsg.current = '';
                 navigate('/dashboard');
             }, 800);
 
@@ -154,7 +162,7 @@ const ImportData = () => {
             toast.error(error.message || 'Error al subir archivos');
             setIsUploading(false);
             setUploadProgress(0);
-            setStatusMsg('');
+            statusMsg.current = '';
         }
     };
 
@@ -174,7 +182,7 @@ const ImportData = () => {
                     />
 
                     {/* --- PANEL LATERAL --- */}
-                    <motion.div
+                    <m.div
                         initial={{ opacity: 0, x: 20 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: 0.3 }}
@@ -201,7 +209,7 @@ const ImportData = () => {
                                 onUpload={handleUpload}
                             />
                         </div>
-                    </motion.div>
+                    </m.div>
                 </div>
             </div>
         </div>

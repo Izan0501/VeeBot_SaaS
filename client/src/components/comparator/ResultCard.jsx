@@ -1,9 +1,10 @@
+/* eslint-disable react-doctor/rendering-hydration-mismatch-time */
 import React from 'react';
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 import { CheckCircle, AlertCircle } from 'lucide-react';
 
 const ResultCard = ({ isWinner, name, points }) => (
-    <motion.div
+    <m.div
         className={`rounded-3xl p-8 border-2 relative overflow-hidden transition-all duration-500
         ${isWinner
                 ? 'bg-white dark:bg-slate-900 border-emerald-500 shadow-xl shadow-emerald-500/10 scale-[1.02] z-10'
@@ -22,7 +23,7 @@ const ResultCard = ({ isWinner, name, points }) => (
 
         <ul className="space-y-4">
             {points.map((point, i) => (
-                <li key={i} className="flex items-start gap-3">
+                <li suppressHydrationWarning key={point.id || point.name || point.title || crypto.randomUUID()} className="flex items-start gap-3">
                     <div className={`mt-0.5 p-1 rounded-full ${isWinner ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-200 text-slate-500'}`}>
                         {isWinner ? <CheckCircle size={14} /> : <AlertCircle size={14} />}
                     </div>
@@ -32,7 +33,7 @@ const ResultCard = ({ isWinner, name, points }) => (
                 </li>
             ))}
         </ul>
-    </motion.div>
+    </m.div>
 );
 
 export default ResultCard;

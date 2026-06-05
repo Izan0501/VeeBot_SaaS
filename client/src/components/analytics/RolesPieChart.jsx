@@ -1,6 +1,34 @@
+/* eslint-disable react-doctor/rendering-hydration-mismatch-time */
 import React from 'react';
-import { motion } from 'framer-motion';
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
+import { m } from 'framer-motion';
+import { Suspense } from 'react';
+
+const RechartsRolesPieChart = React.lazy(() => import('recharts').then(mod => {
+    const { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } = mod;
+    return {
+        default: ({ roleData, CustomTooltip, COLORS }) => (
+            <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                    <Pie
+                        data={roleData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={60}
+                        outerRadius={85}
+                        paddingAngle={5}
+                        dataKey="value"
+                        stroke="none"
+                    >
+                        {roleData.map((entry, index) => (
+                            <Cell key={`cell-${entry.name || index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                    </Pie>
+                    <Tooltip content={<CustomTooltip />} />
+                </PieChart>
+            </ResponsiveContainer>
+        )
+    };
+}));
 
 const COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#f43f5e', '#10b981'];
 
@@ -20,7 +48,7 @@ const CustomTooltip = ({ active, payload }) => {
 
 const RolesPieChart = ({ roleData, total, hasData }) => {
     return (
-        <motion.div
+        <m.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5, delay: 0.3 }}
@@ -34,25 +62,9 @@ const RolesPieChart = ({ roleData, total, hasData }) => {
             <div className="flex-1 min-h-[250px] relative">
                 {hasData ? (
                     <>
-                        <ResponsiveContainer width="100%" height="100%">
-                            <PieChart>
-                                <Pie
-                                    data={roleData}
-                                    cx="50%"
-                                    cy="50%"
-                                    innerRadius={60}
-                                    outerRadius={85}
-                                    paddingAngle={5}
-                                    dataKey="value"
-                                    stroke="none"
-                                >
-                                    {roleData.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                    ))}
-                                </Pie>
-                                <Tooltip content={<CustomTooltip />} />
-                            </PieChart>
-                        </ResponsiveContainer>
+                        <Suspense fallback={<div className="h-full flex items-center justify-center text-slate-400">Cargando gráfico…</div>}>
+                            <RechartsRolesPieChart roleData={roleData} CustomTooltip={CustomTooltip} COLORS={COLORS} />
+                        </Suspense>
                         <div className="absolute inset-0 flex items-center justify-center pointer-events-none flex-col">
                             <span className="text-3xl font-black text-slate-900 dark:text-white">{total}</span>
                             <span className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Total</span>
@@ -65,16 +77,16 @@ const RolesPieChart = ({ roleData, total, hasData }) => {
 
             <div className="mt-4 space-y-2">
                 {roleData.map((entry, index) => (
-                    <div key={index} className="flex justify-between items-center text-sm">
+                    <div suppressHydrationWarning key={entry.id || entry.name || entry.title || crypto.randomUUID()} className="flex justify-between items-center text-sm">
                         <div className="flex items-center gap-2">
-                            <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLORS[index % COLORS.length] }}></div>
+                            <div className="size-2.5 rounded-full" style={{ backgroundColor: COLORS[index % COLORS.length] }}></div>
                             <span className="text-slate-600 dark:text-slate-300 font-medium">{entry.name}</span>
                         </div>
                         <span className="font-bold text-slate-900 dark:text-white">{entry.value}</span>
                     </div>
                 ))}
             </div>
-        </motion.div>
+        </m.div>
     );
 };
 

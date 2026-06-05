@@ -1,9 +1,9 @@
 import React from 'react';
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 
 const AnalyticsHeader = ({ timeRange, setTimeRange }) => {
     return (
-        <motion.div
+        <m.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
@@ -11,7 +11,7 @@ const AnalyticsHeader = ({ timeRange, setTimeRange }) => {
         >
             <div>
                 <h1 className="text-3xl md:text-4xl font-black text-slate-900 dark:text-white tracking-tight mb-2">
-                    Panel de Control <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 to-purple-500">IA</span>
+                    Panel de Control <span className=" text-indigo-600 dark:text-indigo-400">IA</span>
                 </h1>
                 <p className="text-slate-500 dark:text-slate-400 text-sm md:text-base max-w-lg">
                     Métricas en tiempo real sobre tu proceso de selección.
@@ -21,7 +21,7 @@ const AnalyticsHeader = ({ timeRange, setTimeRange }) => {
             <div className="flex gap-3">
                 <div className="hidden md:flex bg-white dark:bg-slate-900 p-1 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
                     {['7d', '30d', 'All'].map(range => (
-                        <button
+                        <button aria-label="Interactive control" type="button"
                             key={range}
                             onClick={() => setTimeRange(range)}
                             className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${timeRange === range ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-500 hover:text-indigo-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
@@ -31,7 +31,7 @@ const AnalyticsHeader = ({ timeRange, setTimeRange }) => {
                     ))}
                 </div>
             </div>
-        </motion.div>
+        </m.div>
     );
 };
 

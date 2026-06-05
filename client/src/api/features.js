@@ -14,10 +14,9 @@ export const featuresAPI = {
 
         if (res.status === 401) throw new Error('Sesión expirada');
 
+        if (!res.ok) throw new Error('Error en IA');
         const text = await res.text();
         const data = text ? JSON.parse(text) : {};
-
-        if (!res.ok) throw new Error('Error en IA');
         return data;
     },
 
@@ -39,14 +38,19 @@ export const featuresAPI = {
         return await res.json();
     },
 
-    sendEmail: async (candidateId, templateType) => {
+    sendEmail: async (candidateId, candidateEmail, newStatus, templateType) => {
+        const payloadData = {
+            candidate_id: candidateId,
+            email: candidateEmail,
+            status: newStatus,
+            template_type: templateType
+        };
+        console.log("🚀 Payload a enviar al backend:", payloadData);
+        
         const res = await fetch(`${API_URL}/email/send-candidate`, {
             method: 'POST',
-            headers: getHeaders(),
-            body: JSON.stringify({
-                candidate_id: candidateId,
-                template_type: templateType
-            })
+            headers: { ...getHeaders(), 'Content-Type': 'application/json' },
+            body: JSON.stringify(payloadData)
         });
 
         if (!res.ok) throw new Error('Error enviando email');

@@ -1,6 +1,27 @@
 import React from 'react';
-import { motion } from 'framer-motion';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { m } from 'framer-motion';
+import { Suspense } from 'react';
+
+const RechartsQualityBarChart = React.lazy(() => import('recharts').then(mod => {
+    const { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } = mod;
+    return {
+        default: ({ distributionData, CustomTooltip }) => (
+            <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={distributionData} barSize={60}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" strokeOpacity={0.3} />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12, fontWeight: 600 }} dy={10} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} />
+                    <Tooltip content={<CustomTooltip />} cursor={{ fill: 'transparent' }} />
+                    <Bar dataKey="count" radius={[8, 8, 0, 0]}>
+                        {distributionData.map((entry) => (
+                            <Cell key={`cell-${entry.name}`} fill={entry.color} />
+                        ))}
+                    </Bar>
+                </BarChart>
+            </ResponsiveContainer>
+        )
+    };
+}));
 import { Lightbulb } from 'lucide-react';
 
 const CustomTooltip = ({ active, payload, label }) => {
@@ -19,7 +40,7 @@ const CustomTooltip = ({ active, payload, label }) => {
 
 const QualityBarChart = ({ distributionData, topCandidates, threshold, hasData }) => {
     return (
-        <motion.div
+        <m.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.4 }}
@@ -41,24 +62,14 @@ const QualityBarChart = ({ distributionData, topCandidates, threshold, hasData }
 
             <div className="h-64 w-full">
                 {hasData ? (
-                    <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={distributionData} barSize={60}>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" strokeOpacity={0.3} />
-                            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12, fontWeight: 600 }} dy={10} />
-                            <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} />
-                            <Tooltip content={<CustomTooltip />} cursor={{ fill: 'transparent' }} />
-                            <Bar dataKey="count" radius={[8, 8, 0, 0]}>
-                                {distributionData.map((entry, index) => (
-                                    <Cell key={`cell-${index}`} fill={entry.color} />
-                                ))}
-                            </Bar>
-                        </BarChart>
-                    </ResponsiveContainer>
+                    <Suspense fallback={<div className="h-full flex items-center justify-center text-slate-400">Cargando gráfico…</div>}>
+                        <RechartsQualityBarChart distributionData={distributionData} CustomTooltip={CustomTooltip} />
+                    </Suspense>
                 ) : (
                     <div className="h-full flex items-center justify-center text-slate-400">Sin datos para graficar.</div>
                 )}
             </div>
-        </motion.div>
+        </m.div>
     );
 };
 

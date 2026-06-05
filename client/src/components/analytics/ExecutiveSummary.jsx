@@ -1,5 +1,5 @@
 import React from 'react';
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { BrainCircuit, Sparkles, Download } from 'lucide-react';
 
@@ -7,7 +7,7 @@ const ExecutiveSummary = ({ stats, roleData }) => {
     const navigate = useNavigate();
 
     return (
-        <motion.div
+        <m.div
             initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.15 }}
             className="mb-10 bg-gradient-to-r from-indigo-900 to-violet-900 rounded-3xl p-1 shadow-xl shadow-indigo-900/20"
         >
@@ -27,7 +27,7 @@ const ExecutiveSummary = ({ stats, roleData }) => {
                     </p>
                 </div>
                 <div className="hidden md:block">
-                    <button
+                    <button aria-label="Interactive control" type="button"
                         onClick={() => navigate('/export')}
                         className="px-5 py-2 bg-white/10 hover:bg-white/20 text-white text-xs font-bold rounded-full transition-colors border border-white/10 flex items-center gap-2"
                     >
@@ -35,7 +35,7 @@ const ExecutiveSummary = ({ stats, roleData }) => {
                     </button>
                 </div>
             </div>
-        </motion.div>
+        </m.div>
     );
 };
 

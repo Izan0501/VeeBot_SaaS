@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { m, AnimatePresence } from 'framer-motion';
 import { BrainCircuit, Bot, Zap, Shield, MessageSquare, ChevronDown } from 'lucide-react';
 
 const FAQ = () => {
@@ -13,23 +13,23 @@ const FAQ = () => {
 
             <div className="max-w-4xl mx-auto px-6 relative z-10">
                 <div className="text-center mb-20">
-                    <motion.div
+                    <m.div
                         initial={{ opacity: 0, y: 10 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
                         className="inline-block px-3 py-1 mb-4 text-xs font-bold tracking-widest text-indigo-500 dark:text-indigo-400 uppercase bg-white dark:bg-slate-900 border border-indigo-100 dark:border-indigo-900 rounded-full shadow-sm"
                     >
                         Resolver Dudas
-                    </motion.div>
-                    <motion.h2
+                    </m.div>
+                    <m.h2
                         initial={{ opacity: 0, y: 20 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
                         transition={{ delay: 0.1 }}
                         className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white mb-6 tracking-tight"
                     >
-                        Preguntas <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400">Frecuentes</span>
-                    </motion.h2>
+                        Preguntas <span className="dark: dark: text-indigo-600 dark:text-indigo-400">Frecuentes</span>
+                    </m.h2>
                     <p className="text-slate-500 dark:text-slate-400 text-lg bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm inline-block rounded-lg px-2">Todo lo que necesitas saber sobre tu nuevo asistente de reclutamiento.</p>
                 </div>
 
@@ -61,15 +61,15 @@ const FAQ = () => {
                             a: "Sí. El sistema extrae automáticamente el email del candidato y genera borradores hiper-personalizados para invitar a entrevistas o enviar rechazos amables, ahorrándote horas de redacción manual."
                         }
                     ].map((item, i) => (
-                        <motion.div
-                            key={i}
+                        <m.div
+                            key={item.q}
                             initial={{ opacity: 0, y: 20 }}
                             whileInView={{ opacity: 1, y: 0 }}
                             viewport={{ once: true }}
                             transition={{ delay: i * 0.1 }}
                             className={`group rounded-2xl border transition-all duration-300 overflow-hidden ${openFaq === i ? 'bg-white dark:bg-slate-900 border-indigo-500 shadow-xl shadow-indigo-500/10' : 'bg-white/80 dark:bg-slate-900/80 border-slate-200 dark:border-slate-800 hover:border-indigo-300 dark:hover:border-indigo-700'}`}
                         >
-                            <button
+                            <button aria-label="Interactive control" type="button"
                                 onClick={() => setOpenFaq(openFaq === i ? null : i)}
                                 className="w-full flex justify-between items-center p-6 text-left focus:outline-none"
                             >
@@ -88,7 +88,7 @@ const FAQ = () => {
 
                             <AnimatePresence>
                                 {openFaq === i && (
-                                    <motion.div
+                                    <m.div
                                         initial={{ height: 0, opacity: 0 }}
                                         animate={{ height: "auto", opacity: 1 }}
                                         exit={{ height: 0, opacity: 0 }}
@@ -99,10 +99,10 @@ const FAQ = () => {
                                                 {item.a}
                                             </p>
                                         </div>
-                                    </motion.div>
+                                    </m.div>
                                 )}
                             </AnimatePresence>
-                        </motion.div>
+                        </m.div>
                     ))}
                 </div>
             </div>

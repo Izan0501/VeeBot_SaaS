@@ -1,9 +1,43 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import {
-    AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Brush, ReferenceLine
-} from 'recharts';
+import { m } from 'framer-motion';
+import { Suspense } from 'react';
 import { Activity, TrendingUp, Calendar } from 'lucide-react';
+
+const RechartsTrendChart = React.lazy(() => import('recharts').then(mod => {
+    const { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Brush, ReferenceLine } = mod;
+    return {
+        default: ({ trendData, averageScore, CustomTooltip, CustomActiveDot }) => (
+            <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={trendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                    <defs>
+                        <linearGradient id="colorScore" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#6366f1" stopOpacity={0.4} />
+                            <stop offset="95%" stopColor="#6366f1" stopOpacity={0.02} />
+                        </linearGradient>
+                        <filter id="glow" height="300%" width="300%" x="-100%" y="-100%">
+                            <feGaussianBlur stdDeviation="4" result="coloredBlur" />
+                            <feMerge>
+                                <feMergeNode in="coloredBlur" />
+                                <feMergeNode in="SourceGraphic" />
+                            </feMerge>
+                        </filter>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#64748b" strokeOpacity={0.1} />
+                    <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 600 }} dy={15} minTickGap={30} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11 }} domain={[0, 100]} />
+                    <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#6366f1', strokeWidth: 1, strokeDasharray: '4 4' }} />
+                    <ReferenceLine y={averageScore} stroke="#10b981" strokeDasharray="3 3" strokeOpacity={0.5} />
+                    <Area type="monotone" dataKey="score" stroke="#6366f1" strokeWidth={3} fillOpacity={1} fill="url(#colorScore)" filter="url(#glow)" activeDot={CustomActiveDot} animationDuration={1500} />
+                    <Brush dataKey="day" height={40} y={340} stroke="transparent" fill="transparent" travellerWidth={50} tickFormatter={() => ""} alwaysShowText={false}>
+                        <AreaChart>
+                            <Area type="monotone" dataKey="score" stroke="#818cf8" strokeWidth={1} fill="#818cf8" fillOpacity={0.2} />
+                        </AreaChart>
+                    </Brush>
+                </AreaChart>
+            </ResponsiveContainer>
+        )
+    };
+}));
 
 // --- TOOLTIP ULTRA-PREMIUM ---
 const CustomTooltip = ({ active, payload, label }) => {
@@ -17,7 +51,7 @@ const CustomTooltip = ({ active, payload, label }) => {
             <div className="bg-white/95 dark:bg-[#0f111a]/95 backdrop-blur-xl p-4 border border-slate-100 dark:border-slate-800 shadow-2xl rounded-2xl min-w-[180px] animate-in zoom-in-95 duration-200 ring-1 ring-black/5 dark:ring-white/10">
                 <div className="flex justify-between items-center mb-3 pb-2 border-b border-slate-100 dark:border-slate-800">
                     <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">{label}</p>
-                    <div className={`w-2 h-2 rounded-full ${bgStatus} shadow-[0_0_8px_currentColor]`}></div>
+                    <div className={`size-2 rounded-full ${bgStatus} shadow-[0_0_8px_currentColor]`}></div>
                 </div>
                 <div className="flex flex-col">
                     <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase">Puntaje Promedio</span>
@@ -55,14 +89,14 @@ const TrendChart = ({ trendData, hasData }) => {
         : 0;
 
     return (
-        <motion.div
+        <m.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
             className="lg:col-span-2 relative overflow-hidden bg-white dark:bg-[#0f111a] p-6 md:p-8 rounded-[32px] border border-slate-200/60 dark:border-slate-800/60 shadow-2xl shadow-slate-200/40 dark:shadow-none"
         >
             {/* Fondo decorativo sutil */}
-            <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none -mr-16 -mt-16"></div>
+            <div className="absolute top-0 right-0 size-64 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none -mr-16 -mt-16"></div>
 
             {/* HEADER */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-10 relative z-10 gap-4">
@@ -94,83 +128,11 @@ const TrendChart = ({ trendData, hasData }) => {
             {/* GRÁFICO */}
             <div className="h-[380px] w-full relative z-10">
                 {hasData ? (
-                    <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={trendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-
-                            {/* Definiciones de Gradientes y Filtros */}
-                            <defs>
-                                <linearGradient id="colorScore" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#6366f1" stopOpacity={0.4} />
-                                    <stop offset="95%" stopColor="#6366f1" stopOpacity={0.02} />
-                                </linearGradient>
-                                {/* Filtro de resplandor para la línea */}
-                                <filter id="glow" height="300%" width="300%" x="-100%" y="-100%">
-                                    <feGaussianBlur stdDeviation="4" result="coloredBlur" />
-                                    <feMerge>
-                                        <feMergeNode in="coloredBlur" />
-                                        <feMergeNode in="SourceGraphic" />
-                                    </feMerge>
-                                </filter>
-                            </defs>
-
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#64748b" strokeOpacity={0.1} />
-
-                            <XAxis
-                                dataKey="day"
-                                axisLine={false}
-                                tickLine={false}
-                                tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 600 }}
-                                dy={15}
-                                minTickGap={30}
-                            />
-
-                            <YAxis
-                                axisLine={false}
-                                tickLine={false}
-                                tick={{ fill: '#94a3b8', fontSize: 11 }}
-                                domain={[0, 100]}
-                            />
-
-                            <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#6366f1', strokeWidth: 1, strokeDasharray: '4 4' }} />
-
-                            {/* Línea de Promedio */}
-                            <ReferenceLine y={averageScore} stroke="#10b981" strokeDasharray="3 3" strokeOpacity={0.5} />
-
-                            <Area
-                                type="monotone"
-                                dataKey="score"
-                                stroke="#6366f1"
-                                strokeWidth={3}
-                                fillOpacity={1}
-                                fill="url(#colorScore)"
-                                filter="url(#glow)" // Aplica el resplandor
-                                activeDot={<CustomActiveDot />} // Punto animado custom
-                                animationDuration={1500}
-                            />
-
-                            {/* --- EL BRUSH REINVENTADO (Scrollbar Ultra-Pro) --- */}
-                            <Brush
-                                dataKey="day"
-                                height={40}
-                                y={340} // Posición en la parte inferior
-                                stroke="transparent" // Ocultar borde feo
-                                fill="transparent" // Fondo transparente
-                                travellerWidth={50} // Ancho del "mango"
-                                tickFormatter={() => ""} // Ocultar texto dentro del brush
-                                alwaysShowText={false}
-                            >
-                                {/* Estilizamos el 'slider' interno con SVGs o CSS global si fuera necesario, 
-                                    pero Recharts permite estilizar el fill del seleccionador */}
-                                <AreaChart>
-                                    {/* Mini gráfico dentro del scrollbar */}
-                                    <Area type="monotone" dataKey="score" stroke="#818cf8" strokeWidth={1} fill="#818cf8" fillOpacity={0.2} />
-                                </AreaChart>
-                            </Brush>
-
-                        </AreaChart>
-                    </ResponsiveContainer>
+                    <Suspense fallback={<div className="h-full flex items-center justify-center text-slate-400">Cargando gráfico…</div>}>
+                        <RechartsTrendChart trendData={trendData} averageScore={averageScore} CustomTooltip={CustomTooltip} CustomActiveDot={CustomActiveDot} />
+                    </Suspense>
                 ) : (
-                    <div className="h-full w-full flex flex-col items-center justify-center text-slate-400 border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-3xl bg-slate-50/50 dark:bg-slate-900/50">
+                    <div className="size-full flex flex-col items-center justify-center text-slate-400 border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-3xl bg-slate-50/50 dark:bg-slate-900/50">
                         <Calendar size={48} className="mb-4 opacity-50" />
                         <p className="font-medium">No hay datos suficientes para mostrar tendencias.</p>
                     </div>
@@ -197,7 +159,7 @@ const TrendChart = ({ trendData, hasData }) => {
                     filter: drop-shadow(0px 4px 10px rgba(99, 102, 241, 0.3));
                 }
             `}</style>
-        </motion.div>
+        </m.div>
     );
 };
 

@@ -2,7 +2,7 @@ import os
 import re
 import asyncio
 import unicodedata
-from typing import List
+from typing import List, Optional
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Depends
 from pydantic import BaseModel
 from bson import ObjectId
@@ -23,6 +23,7 @@ class AnalysisResult(BaseModel):
     score: int
     skills: List[str]
     summary: str
+    email: Optional[str] = None
 
 # --- FUNCIÓN AUXILIAR PARA PINECONE (ASCII FIX) ---
 def sanitize_id(text: str) -> str:
@@ -216,16 +217,22 @@ def save_candidate_analysis(
     else:
         status_final = "Rechazado Automático" if auto_reject else "Bajo Potencial"
 
+    update_fields = {
+        "role":    result.role,
+        "score":   score,
+        "skills":  result.skills,
+        "summary": result.summary,
+        "status":  status_final,
+        "analysis_date": datetime.utcnow(),
+    }
+    # Persist email if the frontend extracted one AND the DB record is still empty
+    if result.email and not candidate.get("email"):
+        update_fields["email"] = result.email
+        print(f"📧 Email rescatado desde frontend: {result.email}")
+
     candidates_collection.update_one(
         {"_id": ObjectId(candidate_id)},
-        {"$set": {
-            "role":    result.role,
-            "score":   score,
-            "skills":  result.skills,
-            "summary": result.summary,
-            "status":  status_final,
-            "analysis_date": datetime.utcnow(),
-        }}
+        {"$set": update_fields}
     )
 
     print(f"✅ Análisis guardado: {candidate.get('name')} — score {score} → {status_final}")

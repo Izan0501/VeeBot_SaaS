@@ -1,5 +1,5 @@
 import React from 'react';
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 import { Sparkles } from 'lucide-react';
 
 const UploadStatus = ({ isUploading, progress, hasFiles, onUpload }) => {
@@ -8,11 +8,11 @@ const UploadStatus = ({ isUploading, progress, hasFiles, onUpload }) => {
             {isUploading ? (
                 <div className="space-y-2">
                     <div className="flex justify-between text-xs font-bold text-slate-500 dark:text-slate-400">
-                        <span>Procesando con IA...</span>
+                        <span>Procesando con IA…</span>
                         <span>{progress}%</span>
                     </div>
                     <div className="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                        <motion.div
+                        <m.div
                             className="h-full bg-gradient-to-r from-indigo-500 to-purple-500"
                             initial={{ width: 0 }}
                             animate={{ width: `${progress}%` }}
@@ -20,7 +20,7 @@ const UploadStatus = ({ isUploading, progress, hasFiles, onUpload }) => {
                     </div>
                 </div>
             ) : (
-                <button
+                <button aria-label="Interactive control" type="button"
                     onClick={onUpload}
                     disabled={!hasFiles}
                     className={`w-full py-4 rounded-xl font-bold text-white shadow-lg flex items-center justify-center gap-2 transition-all

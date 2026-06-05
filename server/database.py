@@ -58,7 +58,8 @@ def get_all_candidates_from_db(user_id):
             "status": doc.get("status", "Pendiente"),
             "date": doc.get("upload_date", datetime.now()).strftime("%d/%m %H:%M"),
             "summary": doc.get("summary", "Sin información disponible"),
-            "skills": skills
+            "skills": skills,
+            "email": doc.get("email")
         })
     
     return candidates

@@ -27,3 +27,4 @@ uploads/*
 !uploads/.gitkeep
 skills-lock.json
 .agents
+.antigravitycli

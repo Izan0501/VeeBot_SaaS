@@ -1,10 +1,10 @@
 import React from 'react';
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 import { Fingerprint } from 'lucide-react';
 
 const SkillsList = ({ topSkillsData, total }) => {
     return (
-        <motion.div
+        <m.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.5 }}
@@ -20,13 +20,13 @@ const SkillsList = ({ topSkillsData, total }) => {
             </div>
             <div className="space-y-4">
                 {topSkillsData.length > 0 ? topSkillsData.map((item, index) => (
-                    <div key={index} className="group">
+                    <div key={item.name} className="group">
                         <div className="flex justify-between text-sm mb-1">
                             <span className="font-semibold text-slate-700 dark:text-slate-300">{item.name}</span>
                             <span className="text-slate-400 text-xs">{item.count}</span>
                         </div>
                         <div className="h-2.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                            <motion.div
+                            <m.div
                                 initial={{ width: 0 }}
                                 animate={{ width: `${(item.count / (total || 1)) * 100}%` }}
                                 transition={{ duration: 1, delay: 0.5 + (index * 0.1) }}
@@ -36,7 +36,7 @@ const SkillsList = ({ topSkillsData, total }) => {
                     </div>
                 )) : <div className="h-40 flex items-center justify-center text-slate-400 italic">Insuficientes datos de skills.</div>}
             </div>
-        </motion.div>
+        </m.div>
     );
 };
 

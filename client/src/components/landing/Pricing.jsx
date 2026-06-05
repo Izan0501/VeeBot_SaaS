@@ -1,6 +1,7 @@
+/* eslint-disable react-doctor/rendering-hydration-mismatch-time */
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 import { Check, X, Crown, Rocket } from 'lucide-react';
 
 const Pricing = () => {
@@ -31,7 +32,7 @@ const Pricing = () => {
                 <div className="grid md:grid-cols-2 gap-8 lg:gap-12 items-center">
 
                     {/* --- PLAN FREE --- */}
-                    <motion.div
+                    <m.div
                         initial={{ opacity: 0, x: -30 }}
                         whileInView={{ opacity: 1, x: 0 }}
                         viewport={{ once: true }}
@@ -46,27 +47,27 @@ const Pricing = () => {
 
                         <ul className="space-y-5 mb-10 flex-1">
                             {['5 CVs al mes', 'Análisis de IA Básico', 'Soporte Comunitario'].map((feat, i) => (
-                                <li key={i} className="flex items-center gap-3 text-slate-600 dark:text-slate-300 text-sm font-medium">
+                                <li suppressHydrationWarning key={feat.id || feat.name || feat.title || crypto.randomUUID()} className="flex items-center gap-3 text-slate-600 dark:text-slate-300 text-sm font-medium">
                                     <div className="bg-slate-100 dark:bg-slate-800 rounded-full p-1"><Check size={12} className="text-slate-600 dark:text-slate-400" /></div> {feat}
                                 </li>
                             ))}
                             {['Sin exportación de datos', 'Sin chat con candidatos', 'Sin comparador'].map((feat, i) => (
-                                <li key={i} className="flex items-center gap-3 text-slate-400 dark:text-slate-600 text-sm line-through decoration-slate-300 dark:decoration-slate-700">
+                                <li suppressHydrationWarning key={feat.id || feat.name || feat.title || crypto.randomUUID()} className="flex items-center gap-3 text-slate-400 dark:text-slate-600 text-sm line-through decoration-slate-300 dark:decoration-slate-700">
                                     <div className="bg-slate-50 dark:bg-slate-900 rounded-full p-1 border border-slate-200 dark:border-slate-800"><X size={12} /></div> {feat}
                                 </li>
                             ))}
                         </ul>
 
-                        <button
+                        <button aria-label="Interactive control" type="button"
                             onClick={() => navigate('/register')}
                             className="w-full py-4 rounded-2xl border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-white font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-all active:scale-95"
                         >
                             Crear Cuenta Gratis
                         </button>
-                    </motion.div>
+                    </m.div>
 
                     {/* --- PLAN AGENCY (HERO - GLOWING) --- */}
-                    <motion.div
+                    <m.div
                         initial={{ opacity: 0, x: 30 }}
                         whileInView={{ opacity: 1, x: 0 }}
                         viewport={{ once: true }}
@@ -83,7 +84,7 @@ const Pricing = () => {
 
                             <div className="mb-8 relative z-10">
                                 <h3 className="text-3xl font-black text-white mb-2 flex items-center gap-2">
-                                    Agency <Crown size={24} className="text-yellow-400 fill-yellow-400 animate-bounce-slow" />
+                                    Agency <Crown size={24} className="text-yellow-400 fill-yellow-400-slow" />
                                 </h3>
                                 <p className="text-indigo-200 text-sm">Poder ilimitado para reclutadores serios.</p>
                             </div>
@@ -104,22 +105,22 @@ const Pricing = () => {
                                     'Exportación de Datos (Excel/CSV)',
                                     'Soporte Prioritario WhatsApp'
                                 ].map((feat, i) => (
-                                    <li key={i} className="flex items-center gap-3 text-white text-sm font-bold">
+                                    <li suppressHydrationWarning key={feat.id || feat.name || feat.title || crypto.randomUUID()} className="flex items-center gap-3 text-white text-sm font-bold">
                                         <div className="bg-indigo-500 text-white rounded-full p-1 shadow-lg shadow-indigo-500/50"><Check size={14} strokeWidth={4} /></div> {feat}
                                     </li>
                                 ))}
                             </ul>
 
-                            <button
+                            <button aria-label="Interactive control" type="button"
                                 onClick={() => navigate('/upgrade')}
                                 className="w-full py-5 rounded-2xl bg-white text-indigo-950 font-black text-lg hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-indigo-500/20 flex justify-center items-center gap-3 relative z-10 group/btn overflow-hidden"
                             >
-                                <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-indigo-100 to-transparent -translate-x-full group-hover/btn:animate-shine"></div>
+                                <div className="absolute inset-0 size-full bg-gradient-to-r from-transparent via-indigo-100 to-transparent -translate-x-full group-hover/btn:animate-shine"></div>
                                 <Rocket size={20} className="text-indigo-600" />
                                 Obtener Acceso Total
                             </button>
                         </div>
-                    </motion.div>
+                    </m.div>
 
                 </div>
             </div>

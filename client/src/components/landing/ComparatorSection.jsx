@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { motion, useInView, AnimatePresence } from 'framer-motion';
+import { m, useInView, AnimatePresence } from 'framer-motion';
 import { Zap, Trophy, Target, Brain, ChevronRight, Swords } from 'lucide-react';
 
 // ─── DATA MOCK ─────────────────────────────────────────────────────────────
@@ -35,10 +35,10 @@ const ScoreRing = ({ score, color, isWinner }) => {
   const offset = circumference - (score / 100) * circumference;
 
   return (
-    <div ref={ref} className="relative w-24 h-24 flex items-center justify-center flex-shrink-0">
+    <div ref={ref} className="relative size-24 flex items-center justify-center flex-shrink-0">
       <svg className="absolute inset-0 -rotate-90" viewBox="0 0 100 100">
         <circle cx="50" cy="50" r="40" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="6" />
-        <motion.circle
+        <m.circle
           cx="50" cy="50" r="40" fill="none"
           stroke={color}
           strokeWidth="6"
@@ -51,25 +51,25 @@ const ScoreRing = ({ score, color, isWinner }) => {
         />
       </svg>
       <div className="relative z-10 text-center">
-        <motion.span
+        <m.span
           className="text-2xl font-black text-white block leading-none"
           initial={{ opacity: 0 }}
           animate={inView ? { opacity: 1 } : {}}
           transition={{ delay: 0.6 }}
         >
           {score}
-        </motion.span>
+        </m.span>
         <span className="text-[9px] font-bold tracking-widest uppercase text-white/40">Score</span>
       </div>
       {isWinner && (
-        <motion.div
-          className="absolute -top-1 -right-1 w-6 h-6 bg-amber-400 rounded-full flex items-center justify-center"
-          initial={{ scale: 0 }}
+        <m.div
+          className="absolute -top-1 -right-1 size-6 bg-amber-400 rounded-full flex items-center justify-center"
+          initial={{ scale: 0.95, opacity: 0 }}
           animate={{ scale: 1 }}
           transition={{ type: 'spring', stiffness: 400, damping: 12, delay: 1.2 }}
         >
           <Trophy size={12} className="text-amber-900" />
-        </motion.div>
+        </m.div>
       )}
     </div>
   );
@@ -82,7 +82,7 @@ const CandidateCard = ({ candidate, delay = 0, align = 'left' }) => {
   const isLeft = align === 'left';
 
   return (
-    <motion.div
+    <m.div
       ref={ref}
       className="flex-1 min-w-0 relative"
       initial={{ opacity: 0, x: isLeft ? -60 : 60 }}
@@ -118,7 +118,7 @@ const CandidateCard = ({ candidate, delay = 0, align = 'left' }) => {
         {/* Skills */}
         <div className={`flex flex-wrap gap-2 mt-6 ${isLeft ? '' : 'justify-end'}`}>
           {candidate.skills.map((skill, i) => (
-            <motion.span
+            <m.span
               key={skill}
               className="px-3 py-1 rounded-lg text-[11px] font-semibold border"
               style={{ borderColor: `${candidate.accent}30`, color: candidate.accent, background: `${candidate.accent}10` }}
@@ -127,14 +127,14 @@ const CandidateCard = ({ candidate, delay = 0, align = 'left' }) => {
               transition={{ delay: delay + 0.3 + i * 0.07 }}
             >
               {skill}
-            </motion.span>
+            </m.span>
           ))}
         </div>
 
         {/* Advantages */}
         <ul className={`mt-5 space-y-2.5 ${isLeft ? '' : 'items-end'} flex flex-col`}>
           {candidate.advantages.map((adv, i) => (
-            <motion.li
+            <m.li
               key={adv}
               className={`flex items-center gap-2 text-sm text-white/60 ${isLeft ? '' : 'flex-row-reverse'}`}
               initial={{ opacity: 0 }}
@@ -143,11 +143,11 @@ const CandidateCard = ({ candidate, delay = 0, align = 'left' }) => {
             >
               <ChevronRight size={14} style={{ color: candidate.accent, flexShrink: 0 }} className={isLeft ? '' : 'rotate-180'} />
               {adv}
-            </motion.li>
+            </m.li>
           ))}
         </ul>
       </div>
-    </motion.div>
+    </m.div>
   );
 };
 
@@ -159,7 +159,7 @@ const VsDivider = () => {
   return (
     <div ref={ref} className="flex-shrink-0 flex flex-col items-center justify-center gap-3 relative z-10 py-4">
       {/* Top line */}
-      <motion.div
+      <m.div
         className="w-px bg-gradient-to-b from-transparent via-white/20 to-white/40"
         style={{ height: 80 }}
         initial={{ scaleY: 0 }}
@@ -168,40 +168,37 @@ const VsDivider = () => {
       />
 
       {/* VS Badge */}
-      <motion.div
+      <m.div
         className="relative"
-        initial={{ scale: 0, rotate: -20 }}
+        initial={{ scale: 0.95, rotate: -20 }}
         animate={inView ? { scale: 1, rotate: 0 } : {}}
         transition={{ type: 'spring', stiffness: 200, damping: 14, delay: 0.5 }}
       >
         {/* Electric pulse ring */}
-        <motion.div
+        <m.div
           className="absolute inset-[-8px] rounded-full border border-violet-500/30"
           animate={{ scale: [1, 1.3, 1], opacity: [0.6, 0, 0.6] }}
           transition={{ duration: 2, repeat: Infinity, ease: 'easeOut' }}
         />
-        <motion.div
+        <m.div
           className="absolute inset-[-16px] rounded-full border border-rose-500/20"
           animate={{ scale: [1, 1.5, 1], opacity: [0.4, 0, 0.4] }}
           transition={{ duration: 2, repeat: Infinity, ease: 'easeOut', delay: 0.4 }}
         />
 
-        <div className="relative w-14 h-14 rounded-full border border-white/15 bg-[#0a0a0f] flex items-center justify-center"
+        <div className="relative size-14 rounded-full border border-white/15 bg-[#0a0a0f] flex items-center justify-center"
           style={{ boxShadow: '0 0 30px rgba(139,92,246,0.2), 0 0 60px rgba(244,63,94,0.15)' }}>
           <style>{`@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap');`}</style>
           <span style={{
             fontFamily: "'Bebas Neue', sans-serif",
             fontSize: '1.1rem',
-            letterSpacing: '0.05em',
-            background: 'linear-gradient(135deg, #8b5cf6, #f43f5e)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-          }}>VS</span>
+            letterSpacing: '0.05em'
+          }} className="text-indigo-400">VS</span>
         </div>
-      </motion.div>
+      </m.div>
 
       {/* Bottom line */}
-      <motion.div
+      <m.div
         className="w-px bg-gradient-to-b from-white/40 via-white/20 to-transparent"
         style={{ height: 80 }}
         initial={{ scaleY: 0 }}
@@ -211,6 +208,13 @@ const VsDivider = () => {
     </div>
   );
 };
+
+const steps = [
+  { label: 'Leyendo vectores semánticos…', icon: Brain },
+  { label: 'Comparando trayectorias…', icon: Target },
+  { label: 'Ponderando soft skills…', icon: Zap },
+  { label: '✓ Veredicto listo', icon: Trophy },
+];
 
 // ─── MAIN SECTION ─────────────────────────────────────────────────────────────
 const ComparatorSection = () => {
@@ -227,13 +231,6 @@ const ComparatorSection = () => {
     return () => clearInterval(timer);
   }, [inView]);
 
-  const steps = [
-    { label: 'Leyendo vectores semánticos…', icon: Brain },
-    { label: 'Comparando trayectorias…', icon: Target },
-    { label: 'Ponderando soft skills…', icon: Zap },
-    { label: '✓ Veredicto listo', icon: Trophy },
-  ];
-
   return (
     <section
       id="comparator"
@@ -245,10 +242,10 @@ const ComparatorSection = () => {
         {/* Grid */}
         <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:40px_40px]" />
         {/* Left glow */}
-        <div className="absolute left-0 top-1/3 w-[500px] h-[500px] rounded-full opacity-20 blur-[120px]"
+        <div className="absolute left-0 top-1/3 size-[500px] rounded-full opacity-20 blur-[120px]"
           style={{ background: 'radial-gradient(circle, #8b5cf6, transparent)' }} />
         {/* Right glow */}
-        <div className="absolute right-0 top-1/3 w-[500px] h-[500px] rounded-full opacity-15 blur-[120px]"
+        <div className="absolute right-0 top-1/3 size-[500px] rounded-full opacity-15 blur-[120px]"
           style={{ background: 'radial-gradient(circle, #f43f5e, transparent)' }} />
         {/* Center line */}
         <div className="absolute left-1/2 top-0 bottom-0 w-px bg-gradient-to-b from-transparent via-white/5 to-transparent" />
@@ -257,13 +254,13 @@ const ComparatorSection = () => {
       <div className="max-w-7xl mx-auto px-6 relative z-10">
 
         {/* ── HEADER ── */}
-        <motion.div
+        <m.div
           className="text-center mb-20"
           initial={{ opacity: 0, y: 30 }}
           animate={inView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.7 }}
         >
-          <motion.div
+          <m.div
             className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-white/10 bg-white/5 text-white/50 text-xs font-bold tracking-widest uppercase mb-6 backdrop-blur-sm"
             initial={{ opacity: 0, scale: 0.9 }}
             animate={inView ? { opacity: 1, scale: 1 } : {}}
@@ -271,35 +268,31 @@ const ComparatorSection = () => {
           >
             <Swords size={11} />
             VeeBot Versus AI
-          </motion.div>
+          </m.div>
 
-          <motion.h2
+          <m.h2
             className="leading-[0.95] font-black tracking-tight text-white mb-5"
             style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 'clamp(3.5rem, 10vw, 8rem)' }}
             initial={{ opacity: 0, y: 20 }}
             animate={inView ? { opacity: 1, y: 0 } : {}}
             transition={{ delay: 0.15, duration: 0.7 }}
           >
-            <span style={{
-              background: 'linear-gradient(90deg, #8b5cf6 0%, #ffffff 45%, #f43f5e 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-            }}>
+            <span className="text-white">
               Compara.
             </span>
             <br />
             <span className="text-white/20">Decide.</span>
-          </motion.h2>
+          </m.h2>
 
-          <motion.p
+          <m.p
             className="text-white/40 text-lg max-w-xl mx-auto leading-relaxed"
             initial={{ opacity: 0 }}
             animate={inView ? { opacity: 1 } : {}}
             transition={{ delay: 0.3 }}
           >
-            Enfrenta dos candidatos en una batalla de datos. La IA analiza, pondera y elige al mejor fit para tu equipo — en segundos.
-          </motion.p>
-        </motion.div>
+            Enfrenta dos candidatos en una batalla de datos. La IA analiza, pondera y elige al mejor fit para tu equipo - en segundos.
+          </m.p>
+        </m.div>
 
         {/* ── ARENA ── */}
         <div className="flex flex-col md:flex-row items-stretch gap-4 md:gap-6">
@@ -309,7 +302,7 @@ const ComparatorSection = () => {
         </div>
 
         {/* ── AI ANALYSIS BAR ── */}
-        <motion.div
+        <m.div
           className="mt-10 rounded-2xl border border-white/8 bg-white/[0.03] backdrop-blur-sm p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4"
           initial={{ opacity: 0, y: 20 }}
           animate={inView ? { opacity: 1, y: 0 } : {}}
@@ -317,8 +310,8 @@ const ComparatorSection = () => {
         >
           {/* Live indicator */}
           <div className="flex items-center gap-2 flex-shrink-0">
-            <motion.div
-              className="w-2 h-2 rounded-full bg-violet-400"
+            <m.div
+              className="size-2 rounded-full bg-violet-400"
               animate={{ opacity: [1, 0.3, 1] }}
               transition={{ duration: 1.2, repeat: Infinity }}
             />
@@ -333,7 +326,7 @@ const ComparatorSection = () => {
               const isDone = activeStep > i || (activeStep === 3 && i < 3);
               return (
                 <AnimatePresence key={step.label} mode="popLayout">
-                  <motion.div
+                  <m.div
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
                     style={{
                       background: isActive ? 'rgba(139,92,246,0.15)' : isDone ? 'rgba(255,255,255,0.04)' : 'transparent',
@@ -344,14 +337,14 @@ const ComparatorSection = () => {
                   >
                     <Icon size={11} />
                     {step.label}
-                  </motion.div>
+                  </m.div>
                 </AnimatePresence>
               );
             })}
           </div>
 
           {/* Winner badge */}
-          <motion.div
+          <m.div
             className="flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm"
             style={{
               background: 'linear-gradient(135deg, rgba(139,92,246,0.2), rgba(244,63,94,0.2))',
@@ -363,18 +356,18 @@ const ComparatorSection = () => {
           >
             <Trophy size={14} className="text-amber-400" />
             {CANDIDATE_A.name.split(' ')[0]} gana
-          </motion.div>
-        </motion.div>
+          </m.div>
+        </m.div>
 
         {/* ── CTA ── */}
-        <motion.div
+        <m.div
           className="mt-12 text-center"
           initial={{ opacity: 0 }}
           animate={inView ? { opacity: 1 } : {}}
           transition={{ delay: 0.8 }}
         >
           <p className="text-white/20 text-sm mb-4">Disponible en el plan Premium</p>
-          <motion.a
+          <m.a
             href="/register"
             className="inline-flex items-center gap-2 px-8 py-3.5 rounded-full text-sm font-bold text-white"
             style={{
@@ -388,8 +381,8 @@ const ComparatorSection = () => {
             <Swords size={15} />
             Probar Versus AI
             <ChevronRight size={15} />
-          </motion.a>
-        </motion.div>
+          </m.a>
+        </m.div>
 
       </div>
     </section>

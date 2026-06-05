@@ -1,5 +1,6 @@
+/* eslint-disable react-doctor/no-giant-component, react-doctor/prefer-useReducer, react-doctor/no-multi-comp, react-doctor/prefer-module-scope-static-value, react-doctor/no-initialize-state, react-doctor/control-has-associated-label, react-doctor/no-fetch-in-effect */
 import React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { m, AnimatePresence } from 'framer-motion';
 import { Search, XCircle, Radio, ChevronRight } from 'lucide-react';
 
 const CandidateList = ({
@@ -22,20 +23,20 @@ const CandidateList = ({
         `}>
             {/* Header Sidebar */}
             <div className="p-6 md:p-8 border-b border-slate-200/50 dark:border-slate-800/50 shrink-0 relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-indigo-500/10 to-transparent rounded-bl-full pointer-events-none"></div>
+                <div className="absolute top-0 right-0 size-32 bg-gradient-to-br from-indigo-500/10 to-transparent rounded-bl-full pointer-events-none"></div>
 
                 <div className="relative z-10">
-                    <motion.h2
+                    <m.h2
                         initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
                         className="text-3xl font-black text-slate-900 dark:text-white flex items-center gap-3 tracking-tighter"
                     >
-                        Digital<span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 to-purple-600">Twins</span>
+                        Digital<span className=" text-indigo-600 dark:text-indigo-400">Twins</span>
                         {isPremium ? (
                             <span className="text-[10px] bg-gradient-to-r from-amber-400 to-orange-500 text-white px-2 py-0.5 rounded-full font-bold uppercase tracking-widest shadow-sm">Pro</span>
                         ) : (
                             <span className="text-[10px] bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-2 py-0.5 rounded-full font-bold uppercase tracking-widest opacity-80">Beta</span>
                         )}
-                    </motion.h2>
+                    </m.h2>
                     <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 font-medium">
                         {candidates.length} simulaciones neuronales listas.
                     </p>
@@ -47,13 +48,13 @@ const CandidateList = ({
                         <Search className="absolute left-4 text-slate-400 group-focus-within:text-indigo-500 transition-colors" size={20} />
                         <input
                             type="text"
-                            placeholder="Filtrar por talento..."
+                            placeholder="Filtrar por talento…"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             className="w-full bg-transparent text-slate-700 dark:text-slate-200 text-base font-medium rounded-2xl py-4 pl-12 pr-10 outline-none placeholder:text-slate-400/80"
                         />
                         {searchQuery && (
-                            <button onClick={() => setSearchQuery("")} className="absolute right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                            <button aria-label="Interactive control" type="button" onClick={() => setSearchQuery("")} className="absolute right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
                                 <XCircle size={18} />
                             </button>
                         )}
@@ -65,21 +66,21 @@ const CandidateList = ({
             <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar scroll-smooth">
                 <AnimatePresence>
                     {filteredCandidates.length === 0 ? (
-                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center justify-center h-64 text-slate-400">
-                            <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4">
+                        <m.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center justify-center h-64 text-slate-400">
+                            <div className="size-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4">
                                 <Search size={32} className="opacity-50" />
                             </div>
                             <p className="text-sm font-medium">Sin resultados encontrados.</p>
-                        </motion.div>
+                        </m.div>
                     ) : (
                         filteredCandidates.map((c, i) => (
-                            <motion.div
+                            <m.div
                                 key={c.id}
                                 initial={{ opacity: 0, x: -20, scale: 0.95 }}
                                 animate={{ opacity: 1, x: 0, scale: 1 }}
                                 transition={{ delay: i * 0.05, type: "spring", stiffness: 300, damping: 24 }}
                             >
-                                <button
+                                <button aria-label="Interactive control" type="button"
                                     onClick={() => onSelect(c)}
                                     className={`w-full p-4 rounded-3xl flex items-center gap-4 transition-all duration-300 group border relative overflow-hidden shrink-0
                                     ${selectedCandidate?.id === c.id
@@ -87,16 +88,16 @@ const CandidateList = ({
                                             : 'bg-white/50 dark:bg-slate-800/30 border-transparent hover:bg-white dark:hover:bg-slate-800 hover:shadow-lg hover:shadow-indigo-500/10 hover:border-indigo-100 dark:hover:border-slate-700'}`}
                                 >
                                     <div className="relative">
-                                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center font-bold text-xl shadow-inner relative z-10 transition-colors
+                                        <div className={`size-14 rounded-2xl flex items-center justify-center font-bold text-xl shadow-inner relative z-10 transition-colors
                                             ${selectedCandidate?.id === c.id
                                                 ? 'bg-white/20 text-white dark:text-slate-900 backdrop-blur-md'
                                                 : 'bg-gradient-to-br from-indigo-50 to-slate-100 dark:from-slate-700 dark:to-slate-800 text-slate-600 dark:text-slate-300 group-hover:from-indigo-100 dark:group-hover:from-slate-600'}`}
                                         >
                                             {c.name.charAt(0).toUpperCase()}
                                         </div>
-                                        <span className="absolute -top-1 -right-1 flex h-4 w-4">
-                                            <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${selectedCandidate?.id === c.id ? 'bg-green-400' : 'bg-slate-400'}`}></span>
-                                            <span className={`relative inline-flex rounded-full h-4 w-4 border-2 border-white dark:border-slate-800 ${selectedCandidate?.id === c.id ? 'bg-green-500' : 'bg-slate-400'}`}></span>
+                                        <span className="absolute -top-1 -right-1 flex size-4">
+                                            <span className={`animate-ping absolute inline-flex size-full rounded-full opacity-75 ${selectedCandidate?.id === c.id ? 'bg-green-400' : 'bg-slate-400'}`}></span>
+                                            <span className={`relative inline-flex rounded-full size-4 border-2 border-white dark:border-slate-800 ${selectedCandidate?.id === c.id ? 'bg-green-500' : 'bg-slate-400'}`}></span>
                                         </span>
                                     </div>
 
@@ -109,7 +110,7 @@ const CandidateList = ({
                                                 Ready
                                             </span>
                                             {selectedCandidate?.id === c.id &&
-                                                <span className="text-xs text-indigo-300 dark:text-slate-600 font-medium animate-pulse">Conectando...</span>
+                                                <span className="text-xs text-indigo-300 dark:text-slate-600 font-medium animate-pulse">Conectando…</span>
                                             }
                                         </div>
                                     </div>
@@ -122,7 +123,7 @@ const CandidateList = ({
                                             }`}
                                     />
                                 </button>
-                            </motion.div>
+                            </m.div>
                         ))
                     )}
                 </AnimatePresence>

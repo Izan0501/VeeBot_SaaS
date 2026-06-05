@@ -5,7 +5,7 @@ import {
     BrainCircuit, Menu, X, Sun, Moon, Crown, Zap, Sparkles,
     FileText, ShieldCheck, Bot, Swords, Mail, LifeBuoy, ChevronRight, ChevronLeft, Download
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { m, AnimatePresence } from 'framer-motion';
 
 // ─── Tenant Context ───────────────────────────────────────────────────────────
 // useTenant is a lightweight context read — does NOT cause extra re-renders
@@ -68,7 +68,7 @@ const TenantLogo = memo(function TenantLogo({ logoUrl, companyName, size = 44 })
 
 // ─── Sidebar ──────────────────────────────────────────────────────────────────
 const Sidebar = ({ onOpenModal, toggleTheme, currentTheme, userRole }) => {
-    const location = useLocation();
+    const routerLocation = useLocation();
 
     // ── Auth — canonical logout (cross-origin redirect via utils/domain.js) ──
     const { logout } = useAuth();
@@ -78,7 +78,16 @@ const Sidebar = ({ onOpenModal, toggleTheme, currentTheme, userRole }) => {
     // use. But since useTenant returns a memo'd object, this is already safe.
     const { tenant } = useTenant();
 
-    const [userEmail, setUserEmail]         = useState('Usuario');
+    const [userEmail, setUserEmail] = useState(() => {
+        const token = localStorage.getItem('token');
+        if (!token) return 'Usuario';
+        try {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            return payload.sub || 'Usuario';
+        } catch (e) {
+            return 'Usuario';
+        }
+    });
     const [isMobileMenuOpen, setIsMobile]   = useState(false);
     const [isCollapsed, setIsCollapsed]     = useState(false);
     const [showLogoutModal, setShowLogout]  = useState(false);
@@ -101,24 +110,12 @@ const Sidebar = ({ onOpenModal, toggleTheme, currentTheme, userRole }) => {
     };
 
     const isActive = useCallback(
-        (path) => location.pathname === path,
-        [location.pathname],
+        (path) => routerLocation.pathname === path,
+        [routerLocation.pathname],
     );
 
-    // Decode JWT once on mount to get user email
-    useEffect(() => {
-        const token = localStorage.getItem('token');
-        if (!token) return;
-        try {
-            const payload = JSON.parse(atob(token.split('.')[1]));
-            if (payload.sub) setUserEmail(payload.sub);
-        } catch (e) {
-            console.error('Token decode error:', e);
-        }
-    }, []);
-
     // Close mobile menu on navigation
-    useEffect(() => { setIsMobile(false); }, [location.pathname]);
+    useEffect(() => { setIsMobile(false); }, [routerLocation.pathname]);
 
     const handleLogoutClick = useCallback(() => setShowLogout(true), []);
     const cancelLogout      = useCallback(() => setShowLogout(false), []);
@@ -132,23 +129,28 @@ const Sidebar = ({ onOpenModal, toggleTheme, currentTheme, userRole }) => {
             {/* ── Logout confirmation modal ─────────────────────────────── */}
             <AnimatePresence>
                 {showLogoutModal && (
-                    <motion.div
+                    <m.div
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') cancelLogout(); }}
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4"
                         onClick={cancelLogout}
                     >
-                        <motion.div
+                        <m.div
+                            role="presentation"
                             initial={{ scale: 0.95, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.95, opacity: 0 }}
                             onClick={(e) => e.stopPropagation()}
+                            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') e.stopPropagation(); }}
                             className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-700 max-w-sm w-full relative overflow-hidden"
                         >
-                            <div className="absolute top-0 right-0 w-24 h-24 bg-red-500/10 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none" />
+                            <div className="absolute top-0 right-0 size-24 bg-red-500/10 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none" />
                             <div className="flex flex-col items-center text-center">
-                                <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mb-4 text-red-600 dark:text-red-500">
+                                <div className="size-12 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mb-4 text-red-600 dark:text-red-500">
                                     <LogOut size={24} className="ml-1" />
                                 </div>
                                 <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">¿Cerrar Sesión?</h3>
@@ -156,13 +158,13 @@ const Sidebar = ({ onOpenModal, toggleTheme, currentTheme, userRole }) => {
                                     Tendrás que volver a ingresar tus credenciales para acceder al dashboard.
                                 </p>
                                 <div className="flex gap-3 w-full">
-                                    <button
+                                    <button aria-label="Interactive control" type="button"
                                         onClick={cancelLogout}
                                         className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-bold text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
                                     >
                                         Cancelar
                                     </button>
-                                    <button
+                                    <button aria-label="Interactive control" type="button"
                                         onClick={confirmLogout}
                                         className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-sm shadow-lg shadow-red-200/50 dark:shadow-none transition-colors"
                                     >
@@ -170,15 +172,15 @@ const Sidebar = ({ onOpenModal, toggleTheme, currentTheme, userRole }) => {
                                     </button>
                                 </div>
                             </div>
-                        </motion.div>
-                    </motion.div>
+                        </m.div>
+                    </m.div>
                 )}
             </AnimatePresence>
 
             {/* ── Mobile header bar ─────────────────────────────────────── */}
             <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 z-50 flex items-center justify-between px-4 transition-colors duration-300">
                 <div className="flex items-center gap-3">
-                    <button
+                    <button aria-label="Interactive control" type="button"
                         onClick={() => setIsMobile(true)}
                         className="p-2 -ml-2 text-slate-600 dark:text-slate-300 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                     >
@@ -195,7 +197,8 @@ const Sidebar = ({ onOpenModal, toggleTheme, currentTheme, userRole }) => {
             </div>
 
             {/* ── Mobile backdrop ───────────────────────────────────────── */}
-            <div
+            <button type="button"
+                aria-label="Cerrar menú móvil"
                 className={`fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-40 md:hidden transition-opacity duration-300 ${
                     isMobileMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
                 }`}
@@ -203,7 +206,7 @@ const Sidebar = ({ onOpenModal, toggleTheme, currentTheme, userRole }) => {
             />
 
             {/* ── Sidebar ───────────────────────────────────────────────── */}
-            <aside className={`group/sidebar
+            <aside aria-label="Interactive control" className={`group/sidebar
                 fixed md:sticky top-0 left-0 h-screen flex flex-col z-50
                 transition-all duration-300 ease-in-out shadow-2xl md:shadow-none
                 ${isMobileMenuOpen ? 'translate-x-0 w-72' : '-translate-x-full w-72'} md:translate-x-0 md:flex
@@ -217,13 +220,13 @@ const Sidebar = ({ onOpenModal, toggleTheme, currentTheme, userRole }) => {
                     {SyneFont}
 
                     {/* Ambient glow — uses brand color via Tailwind shadow token */}
-                    <div className="absolute top-0 left-10 w-32 h-32 bg-brand/10 blur-[50px] rounded-full pointer-events-none dark:hidden group-[.is-collapsed]/sidebar:hidden" />
+                    <div className="absolute top-0 left-10 size-32 bg-brand/10 blur-[50px] rounded-full pointer-events-none dark:hidden group-[.is-collapsed]/sidebar:hidden" />
 
                     {/* ── Logo + Wordmark ───────────────────────────────── */}
                     <div className="flex items-center gap-3 min-w-0">
 
                         {/* Animated logo container */}
-                        <motion.div
+                        <m.div
                             className="relative flex-shrink-0 cursor-default"
                             style={{ width: 44, height: 44 }}
                             initial={{ opacity: 0, scale: 0.5, rotate: -15 }}
@@ -232,7 +235,7 @@ const Sidebar = ({ onOpenModal, toggleTheme, currentTheme, userRole }) => {
                             whileHover="hover"
                         >
                             {/* Pulsing ambient ring — brand secondary color */}
-                            <motion.div
+                            <m.div
                                 className="absolute pointer-events-none"
                                 style={{
                                     inset: '-10px',
@@ -243,7 +246,7 @@ const Sidebar = ({ onOpenModal, toggleTheme, currentTheme, userRole }) => {
                                 transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
                             />
                             {/* Spinning conic border */}
-                            <motion.div
+                            <m.div
                                 className="absolute pointer-events-none"
                                 style={{
                                     inset: '-8px',
@@ -264,12 +267,12 @@ const Sidebar = ({ onOpenModal, toggleTheme, currentTheme, userRole }) => {
                                 companyName={tenant.company_name}
                                 size={44}
                             />
-                        </motion.div>
+                        </m.div>
 
                         {/* Wordmark — visible when sidebar is expanded */}
                         <AnimatePresence>
                             {!isCollapsed && (
-                                <motion.div
+                                <m.div
                                     className="overflow-hidden whitespace-nowrap flex-shrink-0"
                                     initial={{ opacity: 0, x: -10, width: 0 }}
                                     animate={{ opacity: 1, x: 0, width: 'auto' }}
@@ -289,20 +292,20 @@ const Sidebar = ({ onOpenModal, toggleTheme, currentTheme, userRole }) => {
                                             AI Recruiter
                                         </span>
                                     </div>
-                                </motion.div>
+                                </m.div>
                             )}
                         </AnimatePresence>
                     </div>
 
                     {/* Collapse toggle (desktop) */}
-                    <button
+                    <button aria-label="Interactive control" type="button"
                         onClick={() => setIsCollapsed((c) => !c)}
                         className={`hidden md:flex absolute -right-3 top-10 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-brand rounded-full p-1 shadow-md z-50 transition-transform duration-300 ${isCollapsed ? 'rotate-180' : ''}`}
                     >
                         <ChevronLeft size={14} />
                     </button>
 
-                    <button onClick={() => setIsMobile(false)} className="md:hidden text-slate-400 hover:text-white transition-colors p-1">
+                    <button aria-label="Interactive control" type="button" onClick={() => setIsMobile(false)} className="md:hidden text-slate-400 hover:text-white transition-colors p-1">
                         <X size={22} />
                     </button>
                 </div>
@@ -336,7 +339,7 @@ const Sidebar = ({ onOpenModal, toggleTheme, currentTheme, userRole }) => {
                             <p className="px-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-3 group-[.is-collapsed]/sidebar:hidden">Premium</p>
                             <div className="space-y-1">
                                 <Link to="/upgrade">
-                                    <motion.div
+                                    <m.div
                                         whileHover={{ scale: 1.02 }}
                                         whileTap={{ scale: 0.98 }}
                                         className="group relative w-full rounded-xl p-[1px] overflow-hidden cursor-pointer"
@@ -344,11 +347,11 @@ const Sidebar = ({ onOpenModal, toggleTheme, currentTheme, userRole }) => {
                                         <div className="absolute inset-0 bg-gradient-to-r from-brand via-brand-secondary to-pink-500 opacity-70 group-hover:opacity-100 transition-opacity duration-500 animate-gradient-xy" />
                                         <div className="absolute inset-0 bg-gradient-to-r from-brand via-brand-secondary to-pink-500 opacity-0 blur-md group-hover:opacity-30 transition-opacity duration-500" />
                                         <div className="relative h-full bg-white dark:bg-slate-950 rounded-[11px] px-3 py-2.5 flex items-center gap-2.5 transition-colors group-hover:bg-slate-50 dark:group-hover:bg-slate-900">
-                                            <div className="shrink-0 w-8 h-8 rounded-lg bg-brand/10 flex items-center justify-center border border-brand/20 group-hover:border-brand/40 transition-colors">
+                                            <div className="shrink-0 size-8 rounded-lg bg-brand/10 flex items-center justify-center border border-brand/20 group-hover:border-brand/40 transition-colors">
                                                 <Sparkles size={16} className="text-brand group-hover:text-brand-secondary transition-colors duration-300 animate-pulse" />
                                             </div>
                                             <div className="flex flex-col flex-1 min-w-0 justify-center group-[.is-collapsed]/sidebar:hidden">
-                                                <span className="text-[9px] font-extrabold uppercase tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-brand to-brand-secondary leading-tight">
+                                                <span className="text-[9px] font-extrabold uppercase tracking-widest from-brand to-brand-secondary leading-tight text-indigo-600 dark:text-indigo-400">
                                                     Upgrade
                                                 </span>
                                                 <span className="text-xs font-bold text-slate-700 dark:text-slate-200 truncate group-hover:text-brand dark:group-hover:text-brand-secondary transition-colors leading-tight">
@@ -359,7 +362,7 @@ const Sidebar = ({ onOpenModal, toggleTheme, currentTheme, userRole }) => {
                                                 <ChevronRight size={14} />
                                             </div>
                                         </div>
-                                    </motion.div>
+                                    </m.div>
                                 </Link>
                             </div>
                         </div>
@@ -389,14 +392,14 @@ const Sidebar = ({ onOpenModal, toggleTheme, currentTheme, userRole }) => {
                         <div className="relative z-10">
                             <div className="flex flex-col md:flex-row md:group-[.is-collapsed]/sidebar:flex-col items-center gap-3 mb-3">
                                 {/* User avatar — initial from email */}
-                                <div className={`relative w-10 h-10 rounded-full flex items-center justify-center text-sm font-extrabold flex-shrink-0 shadow-lg
+                                <div className={`relative size-10 rounded-full flex items-center justify-center text-sm font-extrabold flex-shrink-0 shadow-lg
                                     ${isPremium
                                         ? 'bg-gradient-to-tr from-amber-300 via-orange-400 to-rose-500 text-white'
                                         : 'bg-slate-800 text-slate-300 dark:bg-slate-100 dark:text-slate-600'
                                     }`}
                                 >
                                     {userEmail.charAt(0).toUpperCase()}
-                                    <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-[2px] border-slate-900 dark:border-white rounded-full" />
+                                    <span className="absolute -bottom-0.5 -right-0.5 size-3 bg-emerald-500 border-[2px] border-slate-900 dark:border-white rounded-full" />
                                 </div>
 
                                 <div className="flex-1 min-w-0 md:group-[.is-collapsed]/sidebar:hidden">
@@ -408,7 +411,7 @@ const Sidebar = ({ onOpenModal, toggleTheme, currentTheme, userRole }) => {
                                     </p>
                                 </div>
 
-                                <button
+                                <button aria-label="Interactive control" type="button"
                                     onClick={toggleTheme}
                                     className="p-1.5 rounded-lg bg-slate-800/50 text-slate-400 hover:bg-slate-700 hover:text-white transition-colors dark:bg-slate-100 dark:text-slate-500 dark:hover:bg-slate-200 dark:hover:text-brand md:group-[.is-collapsed]/sidebar:hidden"
                                     title="Cambiar Tema"
@@ -425,7 +428,7 @@ const Sidebar = ({ onOpenModal, toggleTheme, currentTheme, userRole }) => {
                                     </span>
                                 </div>
 
-                                <button
+                                <button aria-label="Interactive control" type="button"
                                     onClick={handleLogoutClick}
                                     className="text-xs font-medium text-slate-500 hover:text-red-400 transition-colors flex items-center gap-1 pl-2 dark:text-slate-400 dark:hover:text-red-500"
                                 >
@@ -479,7 +482,7 @@ const NavItem = memo(function NavItem({ to, icon, text, active }) {
 
             {/* Active indicator dot */}
             {active && (
-                <div className="absolute right-3 group-[.is-collapsed]/sidebar:right-1 w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_10px_white]" />
+                <div className="absolute right-3 group-[.is-collapsed]/sidebar:right-1 size-1.5 rounded-full bg-white shadow-[0_0_10px_white]" />
             )}
         </Link>
     );

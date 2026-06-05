@@ -45,7 +45,8 @@ const ProtectedLayout = ({ children, isModalOpen, setIsModalOpen }) => {
         if (mainContentRef.current) {
             mainContentRef.current.scrollTo(0, 0);
         }
-    }, [location.pathname]);
+      // eslint-disable-next-line react-doctor/no-mutable-in-deps
+  }, [location.pathname]);
 
     // ── 1. Loading state ──────────────────────────────────────────────────────
     // Per `rendering-hydration-no-flicker`: show a full-screen spinner while

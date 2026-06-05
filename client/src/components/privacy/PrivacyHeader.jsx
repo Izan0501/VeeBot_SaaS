@@ -1,9 +1,9 @@
 import React from 'react';
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 import { Shield } from 'lucide-react';
 
 const PrivacyHeader = () => (
-    <motion.div 
+    <m.div 
         initial={{ opacity: 0, y: -20 }} 
         animate={{ opacity: 1, y: 0 }} 
         transition={{ duration: 0.8 }} 
@@ -18,7 +18,7 @@ const PrivacyHeader = () => (
         <p className="text-lg text-slate-500 dark:text-slate-400 max-w-xl mx-auto leading-relaxed">
             Tu privacidad es nuestra prioridad. Te explicamos claramente qué hacemos (y qué no hacemos) con tu información.
         </p>
-    </motion.div>
+    </m.div>
 );
 
 export default PrivacyHeader;

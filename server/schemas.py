@@ -78,6 +78,8 @@ class EmailTemplateUpdate(BaseModel):
 class SendTemplateRequest(BaseModel):
     candidate_id: str
     template_type: str
+    email: Optional[str] = None
+    status: Optional[str] = None
 
 class ContactFormRequest(BaseModel):
     firstName: str

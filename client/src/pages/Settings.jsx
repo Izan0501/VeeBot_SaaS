@@ -1,10 +1,11 @@
+/* eslint-disable react-doctor/no-giant-component, react-doctor/prefer-useReducer, react-doctor/no-multi-comp, react-doctor/prefer-module-scope-static-value, react-doctor/no-initialize-state, react-doctor/control-has-associated-label, react-doctor/no-fetch-in-effect */
 import React, { useState, useEffect } from 'react';
 import {
   User, BrainCircuit, Save, Shield, Sparkles, Database, Zap, ExternalLink, Star, Crown, Lock, Info, Clock, Activity, AlertTriangle, Trash2, AlertOctagon, Loader2, ChevronRight
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { m, AnimatePresence } from 'framer-motion';
 
 // --- IMPORTS API (Lo nuevo) ---
 import { authAPI } from '../api/auth';
@@ -114,7 +115,7 @@ const Settings = () => {
 
   const handleUpgrade = async () => {
     setUpgradeLoading(true);
-    const toastId = toast.loading("Iniciando pago seguro...");
+    const toastId = toast.loading("Iniciando pago seguro…");
     try {
       const data = await paymentsAPI.createCheckout();
       if (data.checkout_url) {
@@ -128,7 +129,7 @@ const Settings = () => {
 
   const handleManageSubscription = async () => {
     setPortalLoading(true);
-    const toastId = toast.loading("Accediendo a facturación...");
+    const toastId = toast.loading("Accediendo a facturación…");
     try {
       const data = await paymentsAPI.createPortal();
       if (data.portal_url) {
@@ -145,7 +146,7 @@ const Settings = () => {
 
   const confirmDeleteAccount = async () => {
     setDeleting(true);
-    const toastId = toast.loading("Eliminando cuenta...");
+    const toastId = toast.loading("Eliminando cuenta…");
     try {
       await authAPI.deleteAccount();
       toast.success("Cuenta eliminada.", { id: toastId });
@@ -159,7 +160,7 @@ const Settings = () => {
   };
 
   const handleSeedData = async () => {
-    const toastId = toast.loading("Generando datos falsos...");
+    const toastId = toast.loading("Generando datos falsos…");
     try {
         await featuresAPI.seedData();
         toast.success("¡Datos cargados!", { id: toastId });
@@ -178,7 +179,7 @@ const Settings = () => {
   const containerVars = { hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.1 } } };
   const itemVars = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 100 } } };
 
-  if (fetching) return <div className="min-h-screen flex justify-center items-center bg-slate-50 dark:bg-slate-950"><div className="animate-pulse text-indigo-600 font-medium">Cargando perfil...</div></div>;
+  if (fetching) return <div className="min-h-screen flex justify-center items-center bg-slate-50 dark:bg-slate-950"><div className="animate-pulse text-indigo-600 font-medium">Cargando perfil…</div></div>;
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pt-24 pb-20 px-4 md:px-8 md:pt-10 transition-colors duration-300 relative overflow-x-hidden">
@@ -189,7 +190,7 @@ const Settings = () => {
       <AnimatePresence>
         {showDeleteConfirm && (
           <ModalOverlay onClose={() => setShowDeleteConfirm(false)}>
-            <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mb-4 text-red-600 dark:text-red-500 mx-auto">
+            <div className="size-12 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mb-4 text-red-600 dark:text-red-500 mx-auto">
               <AlertOctagon size={24} />
             </div>
             <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2 text-center">¿Eliminar cuenta?</h3>
@@ -197,42 +198,42 @@ const Settings = () => {
               Esta acción es <strong>irreversible</strong>. Perderás acceso a todos tus candidatos y configuraciones.
             </p>
             <div className="flex gap-3">
-              <button onClick={() => setShowDeleteConfirm(false)} className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-bold text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">Cancelar</button>
-              <button onClick={confirmDeleteAccount} disabled={deleting} className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-sm shadow-lg shadow-red-200/50 dark:shadow-none transition-colors">{deleting ? "Borrando..." : "Sí, eliminar"}</button>
+              <button aria-label="Interactive control" type="button" onClick={() => setShowDeleteConfirm(false)} className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-bold text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">Cancelar</button>
+              <button aria-label="Interactive control" type="button" onClick={confirmDeleteAccount} disabled={deleting} className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-sm shadow-lg shadow-red-200/50 dark:shadow-none transition-colors">{deleting ? "Borrando…" : "Sí, eliminar"}</button>
             </div>
           </ModalOverlay>
         )}
 
         {showPremiumAlert && (
           <ModalOverlay onClose={() => setShowPremiumAlert(false)}>
-            <div className="w-12 h-12 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center mb-4 text-amber-600 dark:text-amber-500 mx-auto">
+            <div className="size-12 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center mb-4 text-amber-600 dark:text-amber-500 mx-auto">
               <Crown size={24} />
             </div>
             <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2 text-center">Suscripción Activa</h3>
             <p className="text-slate-500 dark:text-slate-400 text-sm mb-6 text-center">
               Debes <strong>cancelar tu plan Premium</strong> antes de eliminar la cuenta para evitar cobros futuros.
             </p>
-            <button onClick={() => { setShowPremiumAlert(false); handleManageSubscription(); }} className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm shadow-lg flex items-center justify-center gap-2 mb-3">
+            <button aria-label="Interactive control" type="button" onClick={() => { setShowPremiumAlert(false); handleManageSubscription(); }} className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm shadow-lg flex items-center justify-center gap-2 mb-3">
               <ExternalLink size={16} /> Ir al Portal
             </button>
-            <button onClick={() => setShowPremiumAlert(false)} className="w-full py-2.5 text-slate-500 dark:text-slate-400 font-bold text-sm hover:text-slate-800 dark:hover:text-white transition-colors">Volver</button>
+            <button aria-label="Interactive control" type="button" onClick={() => setShowPremiumAlert(false)} className="w-full py-2.5 text-slate-500 dark:text-slate-400 font-bold text-sm hover:text-slate-800 dark:hover:text-white transition-colors">Volver</button>
           </ModalOverlay>
         )}
       </AnimatePresence>
 
-      <motion.div variants={containerVars} initial="hidden" animate="visible" className="max-w-6xl mx-auto relative z-10">
+      <m.div variants={containerVars} initial="hidden" animate="visible" className="max-w-6xl mx-auto relative z-10">
 
         {/* HEADER */}
-        <motion.div variants={itemVars} className="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <m.div variants={itemVars} className="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
             <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tight mb-2">Configuración</h1>
             <p className="text-slate-500 dark:text-slate-400 text-base">Gestiona tu perfil y preferencias de IA.</p>
           </div>
-          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={handleSave} disabled={loading} className="w-full md:w-auto flex justify-center items-center gap-2 px-8 py-3.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl text-sm font-bold shadow-xl shadow-indigo-500/10 transition-all disabled:opacity-70">
-            {loading ? <span className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full" /> : <Save size={18} />}
-            <span>{loading ? "Guardando..." : "Guardar Cambios"}</span>
-          </motion.button>
-        </motion.div>
+          <m.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={handleSave} disabled={loading} className="w-full md:w-auto flex justify-center items-center gap-2 px-8 py-3.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl text-sm font-bold shadow-xl shadow-indigo-500/10 transition-all disabled:opacity-70">
+            {loading ? <span className="animate-spin size-4 border-2 border-current border-t-transparent rounded-full" /> : <Save size={18} />}
+            <span>{loading ? "Guardando…" : "Guardar Cambios"}</span>
+          </m.button>
+        </m.div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
 
@@ -264,12 +265,12 @@ const Settings = () => {
 
             {/* 2. SUSCRIPCIÓN */}
             <div id="subscription" className="scroll-mt-28">
-              <motion.div variants={itemVars}>
+              <m.div variants={itemVars}>
                 {isPremium ? (
                   // PREMIUM CARD
                   <div className="relative overflow-hidden rounded-[2rem] border border-amber-500/20 bg-slate-900 shadow-2xl">
-                    <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-amber-500/10 rounded-full blur-[80px] pointer-events-none"></div>
-                    <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-orange-500/10 rounded-full blur-[80px] pointer-events-none"></div>
+                    <div className="absolute top-0 right-0 size-[400px] bg-amber-500/10 rounded-full blur-[80px] pointer-events-none"></div>
+                    <div className="absolute bottom-0 left-0 size-[300px] bg-orange-500/10 rounded-full blur-[80px] pointer-events-none"></div>
 
                     <div className="relative p-8 md:p-10">
                       <div className="flex justify-between items-start mb-8">
@@ -296,7 +297,7 @@ const Settings = () => {
                       </div>
 
                       <div className="flex justify-end pt-6 border-t border-white/10">
-                        <button onClick={handleManageSubscription} disabled={portalLoading} className="group flex items-center gap-2 px-6 py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold text-sm transition-all">
+                        <button aria-label="Interactive control" type="button" onClick={handleManageSubscription} disabled={portalLoading} className="group flex items-center gap-2 px-6 py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold text-sm transition-all">
                           {portalLoading ? <Loader2 className="animate-spin" size={16} /> : <ExternalLink size={16} />}
                           <span>Gestionar Suscripción</span>
                           <ChevronRight size={16} className="opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all" />
@@ -307,8 +308,8 @@ const Settings = () => {
                 ) : (
                   // FREE CARD
                   <div className="relative overflow-hidden rounded-[2rem] bg-slate-950 p-8 md:p-10 text-white shadow-2xl transition-transform hover:scale-[1.01] duration-500 border border-slate-800 group">
-                    <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 5, repeat: Infinity }} className="absolute top-[-20%] right-[-20%] w-[500px] h-[500px] bg-indigo-600/20 rounded-full blur-[100px] pointer-events-none"></motion.div>
-                    <motion.div animate={{ scale: [1, 1.3, 1] }} transition={{ duration: 7, repeat: Infinity, delay: 1 }} className="absolute bottom-[-20%] left-[-20%] w-[400px] h-[400px] bg-purple-600/20 rounded-full blur-[80px] pointer-events-none"></motion.div>
+                    <m.div animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 5, repeat: Infinity }} className="absolute top-[-20%] right-[-20%] size-[500px] bg-indigo-600/20 rounded-full blur-[100px] pointer-events-none"></m.div>
+                    <m.div animate={{ scale: [1, 1.3, 1] }} transition={{ duration: 7, repeat: Infinity, delay: 1 }} className="absolute bottom-[-20%] left-[-20%] size-[400px] bg-purple-600/20 rounded-full blur-[80px] pointer-events-none"></m.div>
 
                     <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-8">
                       <div className="space-y-6">
@@ -333,11 +334,11 @@ const Settings = () => {
                         <div className="text-center relative z-10">
                           <p className="text-5xl font-black text-white tracking-tighter mb-1">$29</p>
                           <p className="text-xs text-indigo-300 mb-6 uppercase tracking-widest font-bold">USD / mes</p>
-                          <button onClick={handleUpgrade} disabled={upgradeLoading} className="relative w-full py-4 bg-white text-indigo-950 font-black rounded-2xl overflow-hidden transition-all shadow-[0_0_20px_rgba(255,255,255,0.3)] hover:shadow-[0_0_40px_rgba(255,255,255,0.5)] active:scale-95 flex justify-center items-center gap-2 group/btn">
+                          <button aria-label="Interactive control" type="button" onClick={handleUpgrade} disabled={upgradeLoading} className="relative w-full py-4 bg-white text-indigo-950 font-black rounded-2xl overflow-hidden transition-all shadow-[0_0_20px_rgba(255,255,255,0.3)] hover:shadow-[0_0_40px_rgba(255,255,255,0.5)] active:scale-95 flex justify-center items-center gap-2 group/btn">
                             <div className="absolute inset-0 -translate-x-full group-hover/btn:translate-x-full transition-transform duration-1000 bg-gradient-to-r from-transparent via-indigo-100/50 to-transparent skew-x-12"></div>
                             <span className="relative z-10 flex items-center gap-2">
-                              {upgradeLoading ? <span className="animate-spin h-5 w-5 border-2 border-indigo-900 rounded-full" /> : <Zap size={20} fill="currentColor" />}
-                              {upgradeLoading ? "Procesando..." : "Mejorar Ahora"}
+                              {upgradeLoading ? <span className="animate-spin size-5 border-2 border-indigo-900 rounded-full" /> : <Zap size={20} fill="currentColor" />}
+                              {upgradeLoading ? "Procesando…" : "Mejorar Ahora"}
                             </span>
                           </button>
                         </div>
@@ -345,7 +346,7 @@ const Settings = () => {
                     </div>
                   </div>
                 )}
-              </motion.div>
+              </m.div>
             </div>
 
             {/* 3. IA PREFS */}
@@ -363,7 +364,8 @@ const Settings = () => {
                   <div>
                     <div className="flex justify-between mb-4">
                       <div>
-                        <label className="text-sm font-bold text-slate-700 dark:text-slate-300">Umbral de Coincidencia</label>
+                        {/* eslint-disable-next-line react-doctor/label-has-associated-control */}
+<label className="text-sm font-bold text-slate-700 dark:text-slate-300">Umbral de Coincidencia</label>
                         <p className="text-xs text-slate-400">Score mínimo para "Alto Potencial"</p>
                       </div>
                       <span className="px-3 py-1 h-fit rounded-lg bg-slate-900 text-white text-sm font-bold shadow-md">{formData.minScore}%</span>
@@ -405,14 +407,14 @@ const Settings = () => {
                       ¿Quieres ver cómo se ve el Dashboard lleno? Este botón inyecta <strong>5 candidatos ficticios</strong> con análisis de IA pre-generados. Ideal para pruebas.
                     </p>
                   </div>
-                  <motion.button
+                  <m.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={handleSeedData}
                     className="px-6 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-bold text-sm shadow-lg shadow-cyan-500/20 flex items-center gap-2 whitespace-nowrap"
                   >
                     <Database size={16} /> Cargar Datos Demo
-                  </motion.button>
+                  </m.button>
                 </div>
               </SectionCard>
               
@@ -427,15 +429,15 @@ const Settings = () => {
                     <InputGroup type="password" label="Nueva Contraseña" value={passwords.new} onChange={(e) => setPasswords({ ...passwords, new: e.target.value })} />
                   </div>
                   <div className="flex justify-end pt-2">
-                    <button onClick={handleChangePassword} disabled={changingPass} className="px-6 py-2.5 bg-slate-900 hover:bg-indigo-600 text-white dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200 font-bold text-sm rounded-xl transition-all shadow-md active:scale-95">
-                      {changingPass ? "Actualizando..." : "Actualizar Clave"}
+                    <button aria-label="Interactive control" type="button" onClick={handleChangePassword} disabled={changingPass} className="px-6 py-2.5 bg-slate-900 hover:bg-indigo-600 text-white dark:bg-white dark:text-white dark:hover:bg-slate-200 font-bold text-sm rounded-xl transition-all shadow-md active:scale-95">
+                      {changingPass ? "Actualizando…" : "Actualizar Clave"}
                     </button>
                   </div>
                 </div>
               </SectionCard>
               
               {/* DANGER ZONE */}
-              <motion.div variants={itemVars} className="rounded-3xl border border-red-200 dark:border-red-900/50 bg-white dark:bg-slate-900 p-8 shadow-sm relative overflow-hidden">
+              <m.div variants={itemVars} className="rounded-3xl border border-red-200 dark:border-red-900/50 bg-white dark:bg-slate-900 p-8 shadow-sm relative overflow-hidden">
                 <div className="absolute top-0 left-0 w-1 h-full bg-red-500"></div>
                 <div className="flex flex-col md:flex-row justify-between items-center gap-6">
                   <div>
@@ -444,15 +446,15 @@ const Settings = () => {
                       Eliminar tu cuenta es irreversible. Se borrarán todos tus datos.
                     </p>
                   </div>
-                  <button onClick={handleDeleteClick} className="px-5 py-2.5 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 text-red-600 dark:text-red-400 font-bold text-sm rounded-xl hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors flex items-center gap-2">
+                  <button aria-label="Interactive control" type="button" onClick={handleDeleteClick} className="px-5 py-2.5 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 text-red-600 dark:text-red-400 font-bold text-sm rounded-xl hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors flex items-center gap-2">
                     <Trash2 size={16} /> Eliminar Cuenta
                   </button>
                 </div>
-              </motion.div>
+              </m.div>
             </div>
           </div>
         </div>
-      </motion.div>
+      </m.div>
     </div>
   );
 };

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 
@@ -13,13 +13,18 @@ import PricingCard from '../components/upgrade/PricingCard';
 import ComparisonTable from '../components/upgrade/ComparisonTable';
 import TrustBadges from '../components/upgrade/TrustBadges'; // <--- IMPORTAMOS AQUÍ
 
+const itemVariants = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } } };
+
+
+
+
+const containerVariants = { hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.1 } } };
+
+
+
 const Upgrade = () => {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
-
-    // Variantes de animación
-    const containerVariants = { hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.1 } } };
-    const itemVariants = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } } };
 
     // 1. VERIFICAR STATUS ACTUAL
     useEffect(() => {
@@ -40,7 +45,7 @@ const Upgrade = () => {
     useEffect(() => {
         const handleLemonEvent = (event) => {
             if (event.data && event.data.event === 'LemonSqueezy.Payment.Success') {
-                toast.success("¡Pago exitoso! Actualizando tu cuenta...", { duration: 4000, icon: '🚀' });
+                toast.success("¡Pago exitoso! Actualizando tu cuenta…", { duration: 4000, icon: '🚀' });
                 setTimeout(() => {
                     navigate('/dashboard', { replace: true });
                     window.location.reload();
@@ -70,14 +75,14 @@ const Upgrade = () => {
     };
 
     return (
-        <div className="min-h-full w-full bg-slate-50 dark:bg-slate-950 relative overflow-hidden font-sans pb-20">
+        <div className="min-size-full bg-slate-50 dark:bg-slate-950 relative overflow-hidden font-sans pb-20">
             {/* FONDO AMBIENTAL */}
             <div className="absolute inset-0 pointer-events-none">
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-indigo-500/10 dark:bg-indigo-500/20 rounded-full blur-[120px] mix-blend-screen animate-pulse-slow"></div>
-                <div className="absolute bottom-0 right-0 w-[800px] h-[800px] bg-purple-500/10 dark:bg-purple-500/20 rounded-full blur-[100px] mix-blend-screen"></div>
+                <div className="absolute bottom-0 right-0 size-[800px] bg-purple-500/10 dark:bg-purple-500/20 rounded-full blur-[100px] mix-blend-screen"></div>
             </div>
 
-            <motion.div
+            <m.div
                 variants={containerVariants}
                 initial="hidden"
                 animate="visible"
@@ -92,7 +97,7 @@ const Upgrade = () => {
                 {/* Usamos el componente modularizado */}
                 <TrustBadges itemVariants={itemVariants} />
 
-            </motion.div>
+            </m.div>
         </div>
     );
 };

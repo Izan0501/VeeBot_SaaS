@@ -238,6 +238,12 @@ async def send_candidate_email(data: SendTemplateRequest, current_user: dict = D
     if not candidate:
         raise HTTPException(status_code=404, detail="Candidato no encontrado")
 
+    if data.status:
+        db["candidates"].update_one(
+            {"_id": ObjectId(data.candidate_id)},
+            {"$set": {"status": data.status}}
+        )
+
     # 3. Get templates
     templates = await get_email_templates(current_user)
     template = templates.get(data.template_type)
@@ -245,7 +251,7 @@ async def send_candidate_email(data: SendTemplateRequest, current_user: dict = D
         raise HTTPException(status_code=400, detail="Plantilla no encontrada")
 
     # 4. Destiny email logic
-    candidate_email = candidate.get("email")
+    candidate_email = data.email or candidate.get("email")
     recruiter_email = current_user.get("email")
     
     if candidate_email and "@" in candidate_email:

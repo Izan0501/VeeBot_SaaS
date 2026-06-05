@@ -1,9 +1,9 @@
 import React from 'react';
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 import { ArrowUpRight } from 'lucide-react';
 
 const KPICard = ({ title, value, icon, color, delay, trend }) => (
-    <motion.div
+    <m.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay }}
@@ -14,7 +14,7 @@ const KPICard = ({ title, value, icon, color, delay, trend }) => (
         </div>
 
         <div className="flex flex-col h-full justify-between">
-            <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${color} flex items-center justify-center shadow-lg mb-4`}>
+            <div className={`size-12 rounded-2xl bg-gradient-to-br ${color} flex items-center justify-center shadow-lg mb-4`}>
                 {icon}
             </div>
             <div>
@@ -27,7 +27,7 @@ const KPICard = ({ title, value, icon, color, delay, trend }) => (
                 </span>
             </div>
         </div>
-    </motion.div>
+    </m.div>
 );
 
 export default KPICard;

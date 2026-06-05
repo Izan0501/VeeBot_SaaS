@@ -7,7 +7,7 @@ import { useAuth } from '../context/AuthContext';
  *
  * This component is the landing page for cross-origin token handoff.
  * It is rendered at the route /auth/handoff on the TENANT subdomain
- * (e.g. lcsys.localhost:5173/auth/handoff?token=eyJ...).
+ * (e.g. lcsys.localhost:5173/auth/handoff?token=eyJ…).
  *
  * Flow:
  *   1. Root login (localhost) validates credentials → receives JWT + subdomain
@@ -65,9 +65,8 @@ export default function AuthHandoff() {
         //    @security-review: token is scrubbed from history in this step.
         navigate('/dashboard', { replace: true });
 
-        // searchParams and navigate are stable refs — no re-run risk.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+        // searchParams, navigate, and login are stable refs — no re-run risk.
+    }, [login, navigate, searchParams]);
 
     // Render nothing. This component exists only to execute the useEffect.
     // The navigation away happens before the browser even paints.

@@ -7,7 +7,7 @@ const ExportHeader = () => (
             <Database size={12} /> Data Center
         </div>
         <h1 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white tracking-tight mb-4">
-            Exportación de <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-cyan-500">Talento</span>
+            Exportación de <span className=" text-emerald-600 dark:text-emerald-400">Talento</span>
         </h1>
         <p className="text-slate-500 dark:text-slate-400 text-lg max-w-2xl mx-auto">
             Descarga tu base de conocimiento completa. Compatible con Excel, PowerBI y otros ATS.

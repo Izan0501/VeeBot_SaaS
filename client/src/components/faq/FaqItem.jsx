@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { m, AnimatePresence } from 'framer-motion';
 import { ChevronDown, BrainCircuit, Bot, Database, Shield, FileText } from 'lucide-react';
 
 const getIcon = (category) => {
@@ -16,7 +16,7 @@ const FaqItem = ({ faq }) => {
     const [isOpen, setIsOpen] = useState(false);
 
     return (
-        <motion.div
+        <m.div
             layout
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -30,12 +30,12 @@ const FaqItem = ({ faq }) => {
             {/* Glow lateral */}
             {isOpen && <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-indigo-500 to-purple-500"></div>}
 
-            <button
+            <button aria-label="Interactive control" type="button"
                 onClick={() => setIsOpen(!isOpen)}
                 className="w-full flex items-center justify-between p-6 md:p-8 text-left focus:outline-none relative z-10"
             >
                 <div className="flex items-center gap-5 md:gap-6">
-                    <div className={`w-12 h-12 md:w-14 md:h-14 rounded-2xl flex items-center justify-center shrink-0 transition-all duration-500 ${isOpen
+                    <div className={`size-12 md:w-14 md:h-14 rounded-2xl flex items-center justify-center shrink-0 transition-all duration-500 ${isOpen
                         ? 'bg-gradient-to-br from-indigo-600 to-purple-600 text-white shadow-lg rotate-3 scale-110'
                         : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 group-hover:scale-105'
                         }`}>
@@ -49,7 +49,7 @@ const FaqItem = ({ faq }) => {
                     </span>
                 </div>
 
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center border transition-all duration-500 ${isOpen
+                <div className={`size-10 rounded-full flex items-center justify-center border transition-all duration-500 ${isOpen
                     ? 'bg-indigo-100 dark:bg-indigo-900/30 border-indigo-200 dark:border-indigo-800 rotate-180'
                     : 'bg-transparent border-slate-200 dark:border-slate-700 group-hover:border-indigo-300'
                     }`}>
@@ -59,7 +59,7 @@ const FaqItem = ({ faq }) => {
 
             <AnimatePresence initial={false}>
                 {isOpen && (
-                    <motion.div
+                    <m.div
                         initial={{ height: 0, opacity: 0 }}
                         animate={{ height: "auto", opacity: 1 }}
                         exit={{ height: 0, opacity: 0 }}
@@ -70,10 +70,10 @@ const FaqItem = ({ faq }) => {
                                 {faq.a}
                             </p>
                         </div>
-                    </motion.div>
+                    </m.div>
                 )}
             </AnimatePresence>
-        </motion.div>
+        </m.div>
     );
 };
 

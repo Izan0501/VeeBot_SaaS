@@ -1,12 +1,12 @@
 import React, { useRef } from 'react';
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 import { UploadCloud, CheckCircle, Cpu, ShieldCheck } from 'lucide-react';
 
 const DragDropZone = ({ dragActive, onDrag, onDrop, onFileSelect }) => {
     const inputRef = useRef(null);
 
     return (
-        <motion.div
+        <m.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.2 }}
@@ -29,6 +29,7 @@ const DragDropZone = ({ dragActive, onDrag, onDrop, onFileSelect }) => {
                 <input
                     ref={inputRef}
                     type="file"
+                    aria-label="Upload PDF files"
                     multiple
                     accept=".pdf"
                     className="hidden"
@@ -36,20 +37,20 @@ const DragDropZone = ({ dragActive, onDrag, onDrop, onFileSelect }) => {
                 />
 
                 <div className="relative z-10 space-y-6">
-                    <motion.div
+                    <m.div
                         animate={{ y: dragActive ? -10 : 0 }}
-                        className={`w-24 h-24 mx-auto rounded-3xl flex items-center justify-center shadow-2xl transition-colors duration-300 
+                        className={`size-24 mx-auto rounded-3xl flex items-center justify-center shadow-2xl transition-colors duration-300 
                         ${dragActive ? 'bg-indigo-500 text-white' : 'bg-gradient-to-br from-indigo-500 to-violet-600 text-white'}`}
                     >
                         <UploadCloud size={48} />
-                    </motion.div>
+                    </m.div>
 
                     <div>
                         <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
                             Arrastra y suelta tus PDFs
                         </h3>
                         <p className="text-slate-500 dark:text-slate-400">
-                            o <button onClick={() => inputRef.current.click()} className="text-indigo-600 dark:text-indigo-400 font-bold hover:underline">explora tus archivos</button> localmente
+                            o <button aria-label="Interactive control" type="button" onClick={() => inputRef.current.click()} className="text-indigo-600 dark:text-indigo-400 font-bold hover:underline">explora tus archivos</button> localmente
                         </p>
                     </div>
 
@@ -60,7 +61,7 @@ const DragDropZone = ({ dragActive, onDrag, onDrop, onFileSelect }) => {
                     </div>
                 </div>
             </div>
-        </motion.div>
+        </m.div>
     );
 };
 

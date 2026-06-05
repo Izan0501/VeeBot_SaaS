@@ -20,7 +20,7 @@ const DashboardHeader = ({ candidatesCount, onOpenClearModal, isPremium, onNavig
 
             <div className="flex items-center gap-3">
                 {candidatesCount > 0 && (
-                    <button
+                    <button aria-label="Interactive control" type="button"
                         onClick={onOpenClearModal}
                         className="p-2 rounded-xl text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 transition-all border border-transparent hover:border-red-100 dark:hover:border-red-900/30"
                         title="Vaciar tabla"
@@ -29,7 +29,7 @@ const DashboardHeader = ({ candidatesCount, onOpenClearModal, isPremium, onNavig
                     </button>
                 )}
                 {!isPremium && (
-                    <button
+                    <button aria-label="Interactive control" type="button"
                         onClick={() => onNavigate('/upgrade')}
                         className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-brand/10 text-brand border border-brand/20 hover:bg-brand hover:text-white transition-all group"
                     >

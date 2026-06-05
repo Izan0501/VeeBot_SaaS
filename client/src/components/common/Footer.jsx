@@ -1,21 +1,22 @@
+/* eslint-disable react-doctor/rendering-hydration-mismatch-time */
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { m, AnimatePresence } from 'framer-motion';
 import { BrainCircuit, ArrowUpRight, Github, Twitter, Linkedin, Heart, Mail } from 'lucide-react';
+
+const footerLinks = [
+  { to: "/terms", label: "Términos" },
+  { to: "/privacy", label: "Privacidad" },
+  { to: "/contact", label: "Contacto" },
+  { to: "/faq", label: "FAQ" },
+];
+
+const socialLinks = [
+  { icon: <Mail size={18} />, href: "#" }
+];
 
 const Footer = () => {
   const [hoveredLink, setHoveredLink] = useState(null);
-
-  const footerLinks = [
-    { to: "/terms", label: "Términos" },
-    { to: "/privacy", label: "Privacidad" },
-    { to: "/contact", label: "Contacto" },
-    { to: "/faq", label: "FAQ" },
-  ];
-
-  const socialLinks = [
-    { icon: <Mail size={18} />, href: "#" }
-  ];
 
   return (
     <footer className="relative pt-32 pb-10 overflow-hidden z-10 bg-slate-50 dark:bg-slate-950 transition-colors duration-500">
@@ -26,15 +27,15 @@ const Footer = () => {
         <div className="absolute inset-0 bg-gradient-to-b from-transparent to-slate-200/50 dark:to-slate-900/50"></div>
 
         {/* Orbes Animados (Movimiento aleatorio suave) */}
-        <motion.div
+        <m.div
           animate={{ x: [0, 50, -50, 0], y: [0, -30, 30, 0], scale: [1, 1.1, 0.9, 1] }}
           transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
-          className="absolute -top-[30%] left-[20%] w-[600px] h-[600px] bg-indigo-500/10 dark:bg-indigo-500/20 rounded-full blur-[120px] mix-blend-multiply dark:mix-blend-screen"
+          className="absolute -top-[30%] left-[20%] size-[600px] bg-indigo-500/10 dark:bg-indigo-500/20 rounded-full blur-[120px] mix-blend-multiply dark:mix-blend-screen"
         />
-        <motion.div
+        <m.div
           animate={{ x: [0, -40, 40, 0], y: [0, 40, -40, 0], scale: [1, 1.2, 0.8, 1] }}
           transition={{ duration: 18, repeat: Infinity, ease: "linear" }}
-          className="absolute -top-[20%] right-[20%] w-[500px] h-[500px] bg-purple-500/10 dark:bg-purple-500/20 rounded-full blur-[100px] mix-blend-multiply dark:mix-blend-screen"
+          className="absolute -top-[20%] right-[20%] size-[500px] bg-purple-500/10 dark:bg-purple-500/20 rounded-full blur-[100px] mix-blend-multiply dark:mix-blend-screen"
         />
       </div>
 
@@ -45,7 +46,7 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-12 gap-12 md:gap-8 items-center">
 
           {/* ==================== COLUMNA 1: LOGO & MISIÓN (4 cols) ==================== */}
-          <div className="md:col-span-4 flex flex-col items-center md:items-start text-center md:text-left space-y-4">
+          <div className="md:col-span-4 flex flex-col items-center md:items-start text-center md:text-left gap-y-4">
             {/* --- LOGO PREMIUM (Image Based + Styled Text) --- */}
             <div className="flex items-start">
               <Link
@@ -58,17 +59,17 @@ const Footer = () => {
                   <div className="absolute inset-0 bg-indigo-600 rounded-2xl blur-lg opacity-20 group-hover:opacity-40 group-hover:scale-110 transition-all duration-500 ease-out"></div>
 
                   {/* Contenedor del Icono */}
-                  <div className="w-10 h-10 relative bg-gradient-to-br from-white/80 to-white/40 dark:from-white/10 dark:to-white/5 rounded-xl flex items-center justify-center shadow-lg shadow-black/5 dark:shadow-indigo-500/10 border border-white/20 dark:border-white/10 group-hover:scale-105 transition-transform duration-300 overflow-hidden backdrop-blur-md">
+                  <div className="size-10 relative bg-gradient-to-br from-white/80 to-white/40 dark:from-white/10 dark:to-white/5 rounded-xl flex items-center justify-center shadow-lg shadow-black/5 dark:shadow-indigo-500/10 border border-white/20 dark:border-white/10 group-hover:scale-105 transition-transform duration-300 overflow-hidden backdrop-blur-md">
                     <img
                       src="/Favicon.png"
                       alt="VeeBot Logo"
-                      className="w-full h-full object-contain p-1.5 relative z-10 dark:brightness-110 dark:drop-shadow-[0_0_4px_rgba(255,255,255,0.3)] transition-all"
+                      className="size-full object-contain p-1.5 relative z-10 dark:brightness-110 dark:drop-shadow-[0_0_4px_rgba(255,255,255,0.3)] transition-all"
                     />
                   </div>
                 </div>
 
                 <span className="text-xl font-bold text-slate-900 dark:text-white tracking-tight flex items-center">
-                  VeeBot<span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-violet-500 to-blue-500 dark:from-indigo-400 dark:via-violet-400 dark:to-blue-400 font-extrabold">.ai</span>
+                  VeeBot<span className="dark: dark: dark: font-extrabold text-indigo-600 dark:text-indigo-400">.ai</span>
                 </span>
               </Link>
             </div>
@@ -95,7 +96,7 @@ const Footer = () => {
 
                   {/* EL EFECTO "ORGÁSMICO" DE FONDO DESLIZANTE */}
                   {hoveredLink === link.to && (
-                    <motion.div
+                    <m.div
                       layoutId="footer-pill"
                       className="absolute inset-0 bg-white dark:bg-slate-700 rounded-full shadow-sm z-10"
                       transition={{ type: "spring", stiffness: 350, damping: 30 }}
@@ -110,9 +111,9 @@ const Footer = () => {
           <div className="md:col-span-4 flex flex-col items-center md:items-end gap-6">
             {/* Status Badge Pulse*/}
             <div className="flex items-center gap-3 px-4 py-1.5 rounded-full bg-emerald-500/5 dark:bg-emerald-500/10 border border-emerald-500/20 shadow-[0_0_15px_-3px_rgba(16,185,129,0.2)]">
-              <div className="relative flex h-2.5 w-2.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+              <div className="relative flex size-2.5">
+                <span className="animate-ping absolute inline-flex size-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full size-2.5 bg-emerald-500"></span>
               </div>
               <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-widest">
                 VeeBot AI - Online

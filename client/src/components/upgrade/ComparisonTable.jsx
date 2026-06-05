@@ -1,9 +1,9 @@
 import React from 'react';
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 import { Check, X, Flame } from 'lucide-react';
 
-const CheckIcon = () => <div className="w-6 h-6 rounded-full bg-green-100 dark:bg-green-500/20 flex items-center justify-center"><Check size={14} className="text-green-600 dark:text-green-400" strokeWidth={3} /></div>;
-const XIcon = () => <div className="w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center"><X size={14} className="text-slate-400" /></div>;
+const CheckIcon = () => <div className="size-6 rounded-full bg-green-100 dark:bg-green-500/20 flex items-center justify-center"><Check size={14} className="text-green-600 dark:text-green-400" strokeWidth={3} /></div>;
+const XIcon = () => <div className="size-6 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center"><X size={14} className="text-slate-400" /></div>;
 
 const TableRow = ({ feature, free, pro, highlight = false }) => (
     <div className={`grid grid-cols-3 p-5 border-b border-slate-200/50 dark:border-slate-800/50 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors items-center ${highlight ? 'bg-indigo-50/50 dark:bg-indigo-900/10' : ''}`}>
@@ -14,7 +14,7 @@ const TableRow = ({ feature, free, pro, highlight = false }) => (
 );
 
 const ComparisonTable = ({ itemVariants }) => (
-    <motion.div variants={itemVariants} className="max-w-5xl mx-auto mb-20">
+    <m.div variants={itemVariants} className="max-w-5xl mx-auto mb-20">
         <div className="text-center mb-10">
             <h3 className="text-2xl font-black text-slate-900 dark:text-white">¿Por qué actualizar?</h3>
             <p className="text-slate-500 dark:text-slate-400">La diferencia entre un aficionado y un profesional.</p>
@@ -34,7 +34,7 @@ const ComparisonTable = ({ itemVariants }) => (
             <TableRow feature="Análisis Comparativo (Versus)" free={<XIcon />} pro={<CheckIcon />} />
             <TableRow feature="Soporte Técnico" free="Email (48hs)" pro="Prioritario (WhatsApp)" />
         </div>
-    </motion.div>
+    </m.div>
 );
 
 export default ComparisonTable;

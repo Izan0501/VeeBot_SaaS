@@ -16,6 +16,44 @@ import CandidatesTable from '../components/dashboard/CandidatesTable';
 import AIChat from '../components/dashboard/AIChat'; // El componente flotante
 import { Trash2 } from 'lucide-react';
 
+const itemVariants = { hidden: { y: 20, opacity: 0 }, visible: { y: 0, opacity: 1, transition: { type: "spring", stiffness: 100 } } };
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.1 }
+  }
+};
+
+const CustomToast = ({ t, message, icon }) => (
+    <div
+        className={`${
+            t.visible ? 'animate-toast-enter' : 'animate-toast-leave'
+        } max-w-sm w-full bg-neutral-900/95 backdrop-blur-md border border-neutral-800 shadow-2xl rounded-xl pointer-events-auto flex items-center p-4 gap-3 relative`}
+    >
+        {icon && <span className="text-xl">{icon}</span>}
+        <div className="flex-1 text-sm font-medium text-white">
+            {message}
+        </div>
+        <button
+            onClick={() => toast.dismiss(t.id)}
+            className="text-neutral-400 hover:text-white transition-colors p-1.5 rounded-md hover:bg-neutral-800"
+            aria-label="Close"
+        >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+        </button>
+    </div>
+);
+
+const showCustomSuccess = (msg, opts = {}) => toast.custom((t) => <CustomToast t={t} message={msg} icon="✅" />, { duration: 2000, ...opts });
+
+const initialValue = [
+    { id: 'init', role: 'ai', text: 'Hola, soy tu asistente de reclutamiento. **¿Qué perfil estás buscando hoy?**' }
+];
+
 const Dashboard = ({ isModalOpen, setIsModalOpen }) => {
     // 1. Estados Principales
     const [candidates, setCandidates] = useState([]);
@@ -26,60 +64,75 @@ const Dashboard = ({ isModalOpen, setIsModalOpen }) => {
     const [clearing, setClearing] = useState(false);
     
     // --- ESTADOS DEL CHAT & LÍMITES ---
-    const [messages, setMessages] = useState([
-        { id: 'init', role: 'ai', text: 'Hola, soy tu asistente de reclutamiento. **¿Qué perfil estás buscando hoy?**' }
-    ]);
+    const [messages, setMessages] = useState(initialValue);
     const [usageCount, setUsageCount] = useState(0); // <--- Nuevo Estado para el Límite
     const [chatQuery, setChatQuery] = useState("");
     const [isThinking, setIsThinking] = useState(false);
+
+    const [prevModalOpenState, setPrevModalOpenState] = useState(isModalOpen);
+    
+    if (isModalOpen !== prevModalOpenState) {
+        setPrevModalOpenState(isModalOpen);
+        if (prevModalOpenState === true && isModalOpen === false) {
+            fetchCandidates();
+            setTimeout(() => {
+                showCustomSuccess("Lista de candidatos actualizada");
+            }, 0);
+        }
+    }
 
     // Refs
     const messagesEndRef = useRef(null);
     const filterMenuRef = useRef(null);
     const mainScrollRef = useRef(null);
     const tableRef = useRef(null);
-    const prevModalOpen = useRef(isModalOpen);
     const prevCandidatesLength = useRef(0);
 
     const navigate = useNavigate();
     const { user } = useAuth(); 
     const isPremium = user?.isPremium;
 
+    // --- DATA FETCHING (CANDIDATOS) ---
+    const fetchCandidates = async () => {
+        try {
+            const data = await candidatesAPI.getAll();
+            if (Array.isArray(data)) setCandidates(data);
+        } catch (error) {
+            console.error("Error fetching candidates:", error);
+        }
+    };
+
     // --- EFECTOS ---
 
     // 1. Cargar Historial y Uso al montar
+    // eslint-disable-next-line react-doctor/no-initialize-state
     useEffect(() => {
-        const loadDashboardData = async () => {
+        fetchCandidates();
+        
+        const fetchDashboardData = async () => {
             try {
                 // Pasamos el ID especial para el historial del dashboard
                 const data = await featuresAPI.getDashboardHistory("DASHBOARD_ASSISTANT");
-                
-                if (data.history && data.history.length > 0) {
-                    setMessages([
-                        { id: 'init', role: 'ai', text: 'Hola, soy tu asistente de reclutamiento. **¿Qué perfil estás buscando hoy?**' },
-                        ...data.history
-                    ]);
-                }
-                
-                // Sincronizamos el contador real del servidor
-                setUsageCount(data.usage_count || 0);
 
             } catch (error) {
                 console.error("Error cargando datos del dashboard", error);
             }
         };
         
-        loadDashboardData();
+        fetchDashboardData();
         
         // Scroll top inicial
         if (mainScrollRef.current) mainScrollRef.current.scrollTo(0, 0);
         window.scrollTo(0, 0);
+        
+        return () => {
+            // Clean up the timer when the component unmounts
+            const timer = setTimeout(() => {}, 0);
+            for (let i = 0; i < timer; i++) clearTimeout(i);
+        };
     }, []);
 
-    // Chat scroll
-    useEffect(() => {
-        if (messages.length > 1 || isThinking) messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    }, [messages, isThinking]);
+    // Chat scroll removed from useEffect and moved to handleAskAI and fetchDashboardData
 
     // Click outside filter
     useEffect(() => {
@@ -92,31 +145,14 @@ const Dashboard = ({ isModalOpen, setIsModalOpen }) => {
 
     // Auto-scroll on new candidates
     useEffect(() => {
+        let timer;
         if (candidates.length > prevCandidatesLength.current && candidates.length - prevCandidatesLength.current > 0 && prevCandidatesLength.current > 0) {
-            setTimeout(() => tableRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+            timer = setTimeout(() => tableRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
         }
         prevCandidatesLength.current = candidates.length;
+        return () => { if (timer) clearTimeout(timer); };
     }, [candidates]);
 
-    // --- DATA FETCHING (CANDIDATOS) ---
-    const fetchCandidates = async () => {
-        try {
-            const data = await candidatesAPI.getAll();
-            if (Array.isArray(data)) setCandidates(data);
-        } catch (error) {
-            console.error("Error fetching candidates:", error);
-        }
-    };
-
-    useEffect(() => {
-        if (!isModalOpen && !prevModalOpen.current) fetchCandidates();
-        if (prevModalOpen.current === true && isModalOpen === false) {
-            fetchCandidates();
-            toast.success("Lista de candidatos actualizada");
-            setTimeout(() => tableRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 300);
-        }
-        prevModalOpen.current = isModalOpen;
-    }, [isModalOpen]);
 
     // --- LÓGICA DE NEGOCIO ---
 
@@ -131,6 +167,7 @@ const Dashboard = ({ isModalOpen, setIsModalOpen }) => {
         setUsageCount(prev => prev + 1);
         setChatQuery("");
         setIsThinking(true);
+        setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }), 100);
         
         try {
             // Llamada directa a Groq desde el browser — sin pasar por Docker
@@ -141,35 +178,39 @@ const Dashboard = ({ isModalOpen, setIsModalOpen }) => {
             setMessages(prev => [...prev, { id: Date.now() + 1, role: 'ai', text: "Error de conexión con la IA." }]);
         } finally {
             setIsThinking(false);
+            setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }), 100);
         }
     };
 
     const executeDelete = async (id) => {
-        const toastId = toast.loading("Eliminando...");
+        const toastId = toast.loading("Eliminando…");
         try {
             await candidatesAPI.delete(id);
             setCandidates(prev => prev.filter(c => c.id !== id));
-            toast.success("Candidato eliminado", { id: toastId });
+            showCustomSuccess("Candidato eliminado", { id: toastId });
         } catch (error) {
             toast.error("No se pudo eliminar", { id: toastId });
         }
     };
 
     const handleDelete = (id) => {
-        toast((t) => (
-            <div className="flex flex-col gap-3 min-w-[250px] dark:text-slate-200">
-                <div className="font-medium text-slate-800 dark:text-slate-200">¿Borrar definitivamente?</div>
-                <div className="flex gap-3 justify-end">
-                    <button onClick={() => toast.dismiss(t.id)} className="text-sm text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white">Cancelar</button>
-                    <button onClick={() => { toast.dismiss(t.id); executeDelete(id); }} className="text-sm font-bold text-red-500 hover:text-red-700 flex items-center gap-1"><Trash2 size={12} /> Borrar</button>
+        toast.custom((t) => (
+            <div className={`${t.visible ? 'animate-toast-enter' : 'animate-toast-leave'} max-w-sm w-full bg-neutral-900/95 backdrop-blur-md border border-neutral-800 shadow-2xl rounded-xl pointer-events-auto p-5 relative flex flex-col gap-3`}>
+                <div>
+                    <div className="text-base font-semibold text-white">¿Borrar definitivamente?</div>
+                    <div className="text-sm text-neutral-400">Esta acción no se puede deshacer.</div>
+                </div>
+                <div className="flex justify-end gap-2 mt-1">
+                    <button aria-label="Cancelar" type="button" onClick={() => toast.dismiss(t.id)} className="px-3 py-2 text-sm font-medium text-neutral-300 bg-neutral-800 hover:bg-neutral-700 hover:text-white rounded-lg transition-colors">Cancelar</button>
+                    <button aria-label="Confirmar" type="button" onClick={() => { toast.dismiss(t.id); executeDelete(id); }} className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-red-500 bg-red-500/10 border border-red-500/20 hover:bg-red-500 hover:text-white rounded-lg transition-colors"><Trash2 size={14} /> Borrar</button>
                 </div>
             </div>
-        ));
+        ), { duration: 5000 });
     };
 
     const handleClearAll = async () => {
         setClearing(true);
-        const toastId = toast.loading("Vaciando base de datos...");
+        const toastId = toast.loading("Vaciando base de datos…");
         try {
             await candidatesAPI.deleteAll();
             setCandidates([]);
@@ -178,7 +219,7 @@ const Dashboard = ({ isModalOpen, setIsModalOpen }) => {
             setMessages([{ id: 'init', role: 'ai', text: 'Base de datos limpia. ¿Qué buscamos ahora?' }]);
             // Opcional: Llamar a clearDashboardChat si quieres limpiar el historial de IA también
             
-            toast.success("Candidatos Eliminados", { id: toastId });
+            showCustomSuccess("Candidatos Eliminados", { id: toastId });
             setShowClearModal(false);
         } catch (error) {
             toast.error(error.message || "Error al vaciar tabla", { id: toastId });
@@ -187,12 +228,20 @@ const Dashboard = ({ isModalOpen, setIsModalOpen }) => {
         }
     };
 
-    const handleSendEmail = async (candidateId, type) => {
-        if (!isPremium) return toast.error("Función Premium 🔒");
-        const toastId = toast.loading(`Enviando email...`);
+    const handleSendEmail = async (candidateId, candidateEmail, type) => {
+        if (!isPremium) {
+            toast.custom((t) => <CustomToast t={t} message="Función premium — Actualizá a Pro para enviar correos automáticos." icon="✨" />, {
+                duration: 4500,
+            });
+            return;
+        }
+        
+        const toastId = toast.loading(`Enviando email…`);
+        const newStatus = type === 'interview' ? 'Entrevista' : 'Rechazado';
         try {
-            await featuresAPI.sendEmail(candidateId, type);
-            toast.success("Email enviado correctamente", { id: toastId });
+            await featuresAPI.sendEmail(candidateId, candidateEmail, newStatus, type);
+            showCustomSuccess("Email enviado correctamente", { id: toastId });
+            fetchCandidates();
         } catch (error) {
             toast.error("Error al enviar email", { id: toastId });
         }
@@ -215,10 +264,6 @@ const Dashboard = ({ isModalOpen, setIsModalOpen }) => {
 
     const lowMatchCount = useMemo(() => candidates.filter(c => c.score < 50).length, [candidates]);
     const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
-
-    // --- RENDER ---
-    const containerVariants = { hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.1 } } };
-    const itemVariants = { hidden: { y: 20, opacity: 0 }, visible: { y: 0, opacity: 1, transition: { type: "spring", stiffness: 100 } } };
 
     return (
         <div className="flex-1 flex flex-col h-full overflow-hidden bg-slate-50 dark:bg-slate-950 transition-colors duration-300 relative">

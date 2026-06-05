@@ -98,7 +98,7 @@ export async function digitalTwinChatWithGroq(candidateName, cvText, userMessage
         ${cvText}
         ---
         Instrucciones:
-        1. Responde en primera persona ("Yo hice...", "Mi experiencia...").
+        1. Responde en primera persona ("Yo hice…", "Mi experiencia…").
         2. Basa tus respuestas ESTRICTAMENTE en la información del CV.
         3. Si te preguntan algo que no está en el CV, di que no tienes experiencia en eso.
         4. Mantén un tono profesional pero conversacional.

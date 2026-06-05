@@ -1,5 +1,5 @@
 import React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { m, AnimatePresence } from 'framer-motion';
 import { FileText, X, FileUp } from 'lucide-react';
 
 const FileList = ({ files, onRemove, isUploading }) => {
@@ -7,16 +7,16 @@ const FileList = ({ files, onRemove, isUploading }) => {
         <div className="flex-1 overflow-y-auto custom-scrollbar space-y-3 pr-2">
             <AnimatePresence>
                 {files.length === 0 && (
-                    <motion.div
+                    <m.div
                         initial={{ opacity: 0 }} animate={{ opacity: 1 }}
                         className="h-full flex flex-col items-center justify-center text-slate-400 text-center"
                     >
                         <FileUp size={40} className="mb-3 opacity-20" />
                         <p className="text-sm">Lista vacía.<br />Agrega archivos para comenzar.</p>
-                    </motion.div>
+                    </m.div>
                 )}
                 {files.map((file, idx) => (
-                    <motion.div
+                    <m.div
                         key={`${file.name}-${idx}`}
                         initial={{ opacity: 0, x: 20 }}
                         animate={{ opacity: 1, x: 0 }}
@@ -32,14 +32,14 @@ const FileList = ({ files, onRemove, isUploading }) => {
                                 <p className="text-[10px] text-slate-400">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
                             </div>
                         </div>
-                        <button
+                        <button aria-label="Interactive control" type="button"
                             onClick={() => onRemove(idx)}
-                            className="p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500 rounded-lg transition-colors"
+                            className="p-1.5 text-red-900 hover:bg-red-50 hover:text-red-500 rounded-lg transition-colors"
                             disabled={isUploading}
                         >
                             <X size={14} />
                         </button>
-                    </motion.div>
+                    </m.div>
                 ))}
             </AnimatePresence>
         </div>

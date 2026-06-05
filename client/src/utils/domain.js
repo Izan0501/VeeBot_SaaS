@@ -64,7 +64,7 @@ function _rootHostname(parts) {
  *
  * @returns {string}
  */
-export function getRootOrigin() {
+function getRootOrigin() {
   const { protocol, parts, portSuffix } = _parts();
   return `${protocol}//${_rootHostname(parts)}${portSuffix}`;
 }
@@ -122,7 +122,7 @@ export function getTenantOrigin(subdomain) {
  *
  * @param {string} token  — raw JWT string from the backend
  */
-export function saveSessionCookie(token) {
+function saveSessionCookie(token) {
   if (!token) return;
 
   const { protocol, parts } = _parts();
@@ -153,7 +153,7 @@ export function saveSessionCookie(token) {
  * Purges all storage mechanisms used for authentication — call this BEFORE
  * any redirect so the destination page loads with a clean slate.
  */
-export function clearSession() {
+function clearSession() {
   // 1. localStorage + sessionStorage
   const AUTH_KEYS = ['token', 'user', 'tenant', 'refresh_token'];
   AUTH_KEYS.forEach((key) => {

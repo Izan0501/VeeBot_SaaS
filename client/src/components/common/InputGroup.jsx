@@ -1,15 +1,18 @@
 import React from 'react';
 import { Lock } from 'lucide-react';
 
-const InputGroup = ({ label, value, onChange, type = "text", disabled = false, icon, locked = false }) => (
+const InputGroup = ({ label, value, onChange, type = "text", disabled = false, icon, locked = false }) => {
+    const generatedId = React.useId();
+    return (
     <div className="flex flex-col gap-2">
-        <label className="text-xs font-bold text-slate-500 uppercase tracking-wide ml-1">{label}</label>
+        <label htmlFor={generatedId} className="text-xs font-bold text-slate-500 uppercase tracking-wide ml-1">{label}</label>
         <div className="relative">
             <input
                 type={type}
                 value={value}
                 onChange={onChange}
                 disabled={disabled}
+                id={generatedId}
                 className={`w-full px-4 py-3.5 rounded-xl border transition-all text-sm font-medium
                 ${locked
                         ? 'bg-slate-50 dark:bg-slate-950/50 border-slate-200 dark:border-slate-800 text-slate-500 cursor-default'
@@ -25,5 +28,6 @@ const InputGroup = ({ label, value, onChange, type = "text", disabled = false, i
         </div>
     </div>
 );
+};
 
 export default InputGroup;

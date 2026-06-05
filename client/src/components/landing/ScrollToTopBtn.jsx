@@ -1,11 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import ReactDOM from 'react-dom'; // <--- IMPORTANTE
-import { motion, AnimatePresence, useScroll, useSpring } from 'framer-motion';
+import { m, AnimatePresence, useScroll, useSpring, useMotionValueEvent } from 'framer-motion';
 import { ArrowUp } from 'lucide-react';
+
+const scrollToTop = () => {
+    window.scrollTo({
+        top: 0,
+        behavior: 'smooth',
+    });
+};
 
 const ScrollToTopBtn = () => {
     const [isVisible, setIsVisible] = useState(false);
-    const { scrollYProgress } = useScroll();
+    const { scrollYProgress, scrollY } = useScroll();
 
     const scaleX = useSpring(scrollYProgress, {
         stiffness: 100,
@@ -13,33 +20,17 @@ const ScrollToTopBtn = () => {
         restDelta: 0.001
     });
 
-    useEffect(() => {
-        const toggleVisibility = () => {
-            // Mostrar después de 300px de scroll
-            if (window.scrollY > 300) {
-                setIsVisible(true);
-            } else {
-                setIsVisible(false);
-            }
-        };
+    useMotionValueEvent(scrollY, "change", (latest) => {
+        setIsVisible(latest > 300);
+    });
 
-        window.addEventListener('scroll', toggleVisibility, { passive: true });
-        return () => window.removeEventListener('scroll', toggleVisibility);
-    }, []);
-
-    const scrollToTop = () => {
-        window.scrollTo({
-            top: 0,
-            behavior: 'smooth',
-        });
-    };
 
     // --- LÓGICA DEL PORTAL ---
     // Creamos el JSX del botón
     const buttonContent = (
         <AnimatePresence>
             {isVisible && (
-                <motion.div
+                <m.div
                     initial={{ opacity: 0, y: 40, scale: 0.5 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 40, scale: 0.5 }}
@@ -47,14 +38,14 @@ const ScrollToTopBtn = () => {
                     // Usamos z-[9999] para asegurar que esté sobre tooltips, modales y el footer
                     className="fixed bottom-24 right-6 z-[9999] p-1"
                 >
-                    <motion.button
+                    <m.button
                         onClick={scrollToTop}
                         whileHover={{ scale: 1.15 }}
                         whileTap={{ scale: 0.9 }}
-                        className="relative w-14 h-14 flex items-center justify-center rounded-full bg-white/90 dark:bg-[#0A0C14]/90 backdrop-blur-2xl shadow-2xl shadow-indigo-500/30 border border-white/20 dark:border-white/10 group overflow-hidden"
+                        className="relative size-14 flex items-center justify-center rounded-full bg-white/90 dark:bg-[#0A0C14]/90 backdrop-blur-2xl shadow-2xl shadow-indigo-500/30 border border-white/20 dark:border-white/10 group overflow-hidden"
                     >
                         {/* --- ANILLO DE PROGRESO SVG (High Fidelity) --- */}
-                        <svg className="absolute inset-0 w-full h-full -rotate-90 pointer-events-none" viewBox="0 0 100 100">
+                        <svg className="absolute inset-0 size-full -rotate-90 pointer-events-none" viewBox="0 0 100 100">
                             <circle
                                 cx="50"
                                 cy="50"
@@ -64,7 +55,7 @@ const ScrollToTopBtn = () => {
                                 strokeWidth="3"
                                 className="text-slate-100 dark:text-slate-800"
                             />
-                            <motion.circle
+                            <m.circle
                                 cx="50"
                                 cy="50"
                                 r="46"
@@ -90,8 +81,8 @@ const ScrollToTopBtn = () => {
 
                         {/* --- GLOW INTERNO AL HOVER --- */}
                         <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500/20 to-purple-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                    </motion.button>
-                </motion.div>
+                    </m.button>
+                </m.div>
             )}
         </AnimatePresence>
     );

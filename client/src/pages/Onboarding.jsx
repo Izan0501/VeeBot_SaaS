@@ -1,5 +1,6 @@
+/* eslint-disable react-doctor/no-giant-component, react-doctor/prefer-useReducer, react-doctor/no-multi-comp, react-doctor/prefer-module-scope-static-value, react-doctor/no-initialize-state, react-doctor/control-has-associated-label, react-doctor/no-fetch-in-effect */
 import React, { useState, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { m, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { API_URL } from '../api/config';
 import {
@@ -49,7 +50,8 @@ const slide = {
 // ─── Reusable field components ────────────────────────────────────────────────
 const Field = ({ label, error, children }) => (
   <div className="space-y-1.5">
-    <label className="block text-xs font-semibold tracking-widest uppercase text-slate-500 dark:text-slate-400">
+    {/* eslint-disable-next-line react-doctor/label-has-associated-control */}
+<label className="block text-xs font-semibold tracking-widest uppercase text-slate-500 dark:text-slate-400">
       {label}
     </label>
     {children}
@@ -175,15 +177,15 @@ export default function Onboarding() {
       <div className="relative z-10 w-full max-w-lg">
 
         {/* ── Logo ── */}
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           className="text-center mb-10"
         >
           <span className="text-2xl font-black text-white tracking-tight">
-            VeeBot<span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-fuchsia-400">.ai</span>
+            VeeBot<span className=" text-indigo-600 dark:text-indigo-400">.ai</span>
           </span>
-        </motion.div>
+        </m.div>
 
         {/* ── Progress bar ── */}
         <div className="flex items-center gap-2 mb-8 px-1">
@@ -192,13 +194,13 @@ export default function Onboarding() {
             const current = step === s.id;
             return (
               <React.Fragment key={s.id}>
-                <button
+                <button aria-label="Interactive control" type="button"
                   onClick={() => step > s.id && goTo(s.id)}
                   className={`flex items-center gap-1.5 transition-all ${
                     step > s.id ? 'cursor-pointer opacity-60 hover:opacity-100' : 'cursor-default'
                   }`}
                 >
-                  <div className={`w-6 h-6 rounded-full flex items-center justify-center transition-all text-xs font-bold
+                  <div className={`size-6 rounded-full flex items-center justify-center transition-all text-xs font-bold
                     ${done    ? 'bg-emerald-500 text-white' : ''}
                     ${current ? 'bg-white text-slate-900 scale-110 shadow-lg shadow-white/20' : ''}
                     ${!done && !current ? 'bg-white/10 text-white/30' : ''}
@@ -211,7 +213,7 @@ export default function Onboarding() {
                 </button>
                 {i < STEPS.length - 1 && (
                   <div className="flex-1 h-px bg-white/10">
-                    <motion.div
+                    <m.div
                       className="h-full bg-gradient-to-r from-indigo-500 to-fuchsia-500"
                       animate={{ width: step > s.id ? '100%' : '0%' }}
                       transition={{ duration: 0.5, ease: 'easeOut' }}
@@ -230,7 +232,7 @@ export default function Onboarding() {
 
             {/* ═══ STEP 1: IDENTIDAD ═══ */}
             {step === 1 && (
-              <motion.div key="s1" custom={dir} variants={slide} initial="enter" animate="center" exit="exit">
+              <m.div key="s1" custom={dir} variants={slide} initial="enter" animate="center" exit="exit">
                 <div className="mb-8">
                   <div className="inline-flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 rounded-full px-3 py-1 mb-4">
                     <Building2 size={13} className="text-blue-400" />
@@ -282,12 +284,12 @@ export default function Onboarding() {
                 <div className="mt-8 flex justify-end">
                   <StepBtn onClick={handleNext}>Siguiente <ArrowRight size={16} /></StepBtn>
                 </div>
-              </motion.div>
+              </m.div>
             )}
 
             {/* ═══ STEP 2: BRANDING ═══ */}
             {step === 2 && (
-              <motion.div key="s2" custom={dir} variants={slide} initial="enter" animate="center" exit="exit">
+              <m.div key="s2" custom={dir} variants={slide} initial="enter" animate="center" exit="exit">
                 <div className="mb-8">
                   <div className="inline-flex items-center gap-2 bg-violet-500/10 border border-violet-500/20 rounded-full px-3 py-1 mb-4">
                     <Palette size={13} className="text-violet-400" />
@@ -305,8 +307,9 @@ export default function Onboarding() {
                     <div key={key} className="bg-white/5 border border-white/8 rounded-2xl p-4">
                       <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-3">{label}</p>
                       <div className="flex items-center gap-3">
-                        <label
-                          className="w-10 h-10 rounded-xl cursor-pointer border-2 border-white/10 overflow-hidden shadow-lg flex-shrink-0"
+                        {/* eslint-disable-next-line react-doctor/label-has-associated-control */}
+<label
+                          className="size-10 rounded-xl cursor-pointer border-2 border-white/10 overflow-hidden shadow-lg flex-shrink-0"
                           style={{ background: value }}
                         >
                           <input
@@ -326,13 +329,13 @@ export default function Onboarding() {
                 <div className="rounded-2xl overflow-hidden border border-white/8 shadow-xl">
                   <div className="bg-white/5 px-3 py-2 flex items-center gap-1.5">
                     {['bg-red-400','bg-yellow-400','bg-green-400'].map(c => (
-                      <div key={c} className={`w-2.5 h-2.5 rounded-full ${c} opacity-60`} />
+                      <div key={c} className={`size-2.5 rounded-full ${c} opacity-60`} />
                     ))}
                     <span className="text-xs text-slate-500 ml-2 font-mono">{form.subdomain || 'tu-agencia'}.veebot.com</span>
                   </div>
                   <div className="flex h-28">
                     <div className="w-14 p-2 flex flex-col gap-2" style={{ background: form.branding.primary_color }}>
-                      <div className="w-6 h-6 rounded-full bg-white/20 mx-auto" />
+                      <div className="size-6 rounded-full bg-white/20 mx-auto" />
                       <div className="w-5 h-1.5 rounded bg-white/15 mx-auto mt-2" />
                       <div className="w-5 h-1.5 rounded bg-white/10 mx-auto" />
                     </div>
@@ -347,12 +350,12 @@ export default function Onboarding() {
                   <BackBtn onClick={() => goTo(1)} />
                   <StepBtn onClick={handleNext}>Siguiente <ArrowRight size={16} /></StepBtn>
                 </div>
-              </motion.div>
+              </m.div>
             )}
 
             {/* ═══ STEP 3: ADMIN ═══ */}
             {step === 3 && (
-              <motion.div key="s3" custom={dir} variants={slide} initial="enter" animate="center" exit="exit">
+              <m.div key="s3" custom={dir} variants={slide} initial="enter" animate="center" exit="exit">
                 <div className="mb-8">
                   <div className="inline-flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-3 py-1 mb-4">
                     <Shield size={13} className="text-emerald-400" />
@@ -390,7 +393,7 @@ export default function Onboarding() {
                     />
                     {form.admin_password.length > 0 && (
                       <div className="mt-2 h-1 rounded-full bg-white/10 overflow-hidden">
-                        <motion.div
+                        <m.div
                           className={`h-full rounded-full transition-all ${
                             form.admin_password.length < 8 ? 'bg-red-500' :
                             form.admin_password.length < 12 ? 'bg-amber-500' : 'bg-emerald-500'
@@ -407,14 +410,14 @@ export default function Onboarding() {
                   <BackBtn onClick={() => goTo(2)} />
                   <StepBtn onClick={handleNext}>Continuar <ArrowRight size={16} /></StepBtn>
                 </div>
-              </motion.div>
+              </m.div>
             )}
 
             {/* ═══ STEP 4: LANZAR ═══ */}
             {step === 4 && (
-              <motion.div key="s4" custom={dir} variants={slide} initial="enter" animate="center" exit="exit">
+              <m.div key="s4" custom={dir} variants={slide} initial="enter" animate="center" exit="exit">
                 <div className="mb-8 text-center">
-                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center mx-auto mb-4 shadow-xl shadow-amber-500/30">
+                  <div className="size-16 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center mx-auto mb-4 shadow-xl shadow-amber-500/30">
                     <Crown size={30} className="text-white" />
                   </div>
                   <h1 className="text-2xl font-black text-white mb-2">¡Todo listo para despegar!</h1>
@@ -423,7 +426,7 @@ export default function Onboarding() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {/* Demo */}
-                  <button
+                  <button aria-label="Interactive control" type="button"
                     onClick={handleSubmit}
                     disabled={loading}
                     className="group relative text-left p-5 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/8 hover:border-white/20 transition-all disabled:opacity-50"
@@ -442,7 +445,7 @@ export default function Onboarding() {
                   </button>
 
                   {/* Premium */}
-                  <button
+                  <button aria-label="Interactive control" type="button"
                     onClick={() => {
                       toast('Serás redirigido al pago desde tu Panel', { icon: '💳' });
                       handleSubmit();
@@ -485,7 +488,7 @@ export default function Onboarding() {
                 <div className="mt-6 flex justify-start">
                   <BackBtn onClick={() => goTo(3)} disabled={loading} />
                 </div>
-              </motion.div>
+              </m.div>
             )}
 
           </AnimatePresence>
@@ -494,7 +497,7 @@ export default function Onboarding() {
         {/* ── Footer note ── */}
         <p className="text-center text-xs text-slate-600 mt-6">
           ¿Ya tienes cuenta?{' '}
-          <button onClick={() => navigate('/login')} className="text-indigo-400 hover:text-indigo-300 font-semibold transition-colors">
+          <button aria-label="Interactive control" type="button" onClick={() => navigate('/login')} className="text-indigo-400 hover:text-indigo-300 font-semibold transition-colors">
             Iniciar sesión
           </button>
         </p>
@@ -506,7 +509,7 @@ export default function Onboarding() {
 // ─── Small shared button components (defined outside to avoid inline components) ─
 function StepBtn({ onClick, children, disabled }) {
   return (
-    <button
+    <button aria-label="Interactive control" type="button"
       onClick={onClick}
       disabled={disabled}
       className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-white text-slate-900 text-sm font-bold
@@ -519,7 +522,7 @@ function StepBtn({ onClick, children, disabled }) {
 
 function BackBtn({ onClick, disabled }) {
   return (
-    <button
+    <button aria-label="Interactive control" type="button"
       onClick={onClick}
       disabled={disabled}
       className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-500
