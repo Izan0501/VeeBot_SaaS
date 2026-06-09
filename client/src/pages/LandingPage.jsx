@@ -27,11 +27,11 @@ const LandingPage = () => {
       {/* 5. Digital Twin */}
       <DigitalTwinSection />
 
-      {/* 6. FAQ */}
-      <FaqSection />
-
-      {/* 7. Pricing */}
+      {/* 6. Pricing */}
       <Pricing />
+
+      {/* 7. FAQ */}
+      <FaqSection />
 
       {/* 8. Scroll-to-top (Floating) */}
       <ScrollToTopBtn />

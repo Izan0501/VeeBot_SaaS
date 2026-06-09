@@ -33,7 +33,7 @@ const HeroSection = () => {
     // -- Removed handleScroll since we rely on native CSS scroll-smooth via <a aria-label="Interactive control"> tags
 
     return (
-        <section ref={containerRef} className="relative min-h-[100dvh] flex items-center justify-center overflow-hidden bg-neutral-50 dark:bg-neutral-950 perspective-[2000px] transition-colors duration-300 ease-in-out">
+        <section id="hero" ref={containerRef} className="relative min-h-[100dvh] flex items-center justify-center overflow-hidden bg-neutral-50 dark:bg-neutral-950 perspective-[2000px] transition-colors duration-300 ease-in-out">
 
             {/* --- CSS PURO PARA ANIMACIONES CONTINUAS (0% LAG) --- */}
             <style>{`

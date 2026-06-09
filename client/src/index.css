@@ -125,3 +125,21 @@
   animation: idle-breath 4s ease-in-out infinite;
   will-change: transform, filter;
 }
+
+/* ── Ultra-Premium Liquid Glass & Ambient Mesh Animations ───────────────── */
+@keyframes orbit-slow {
+  0% { transform: rotate(0deg) translateX(50px) rotate(0deg); }
+  100% { transform: rotate(360deg) translateX(50px) rotate(-360deg); }
+}
+@keyframes float-glass {
+  0%, 100% { transform: translateY(0) rotate(-2deg); }
+  50% { transform: translateY(-15px) rotate(1deg); }
+}
+@keyframes float-glass-delayed {
+  0%, 100% { transform: translateY(0) rotate(2deg); }
+  50% { transform: translateY(-10px) rotate(-1deg); }
+}
+.animate-orbit-1 { animation: orbit-slow 15s linear infinite; will-change: transform; }
+.animate-orbit-2 { animation: orbit-slow 20s linear infinite reverse; will-change: transform; }
+.animate-float-1 { animation: float-glass 6s ease-in-out infinite; will-change: transform; }
+.animate-float-2 { animation: float-glass-delayed 8s ease-in-out infinite; will-change: transform; }

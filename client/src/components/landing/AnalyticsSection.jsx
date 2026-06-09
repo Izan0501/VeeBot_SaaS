@@ -4,7 +4,7 @@ import ScrollReveal from '../ui/ScrollReveal';
 
 const AnalyticsSection = () => {
     return (
-        <section className="py-24 md:py-32 bg-white dark:bg-zinc-950 relative overflow-hidden transition-colors duration-300 ease-in-out border-y border-neutral-200/50 dark:border-white/5">
+        <section id="analytics" className="py-24 md:py-32 bg-white dark:bg-zinc-950 relative overflow-hidden transition-colors duration-300 ease-in-out border-y border-neutral-200/50 dark:border-white/5">
             <div className="max-w-7xl mx-auto px-6 relative z-10">
                 {/* Header */}
                 <ScrollReveal direction="up">

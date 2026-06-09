@@ -1,5 +1,5 @@
-/* eslint-disable react-doctor/no-giant-component, react-doctor/prefer-useReducer, react-doctor/no-multi-comp, react-doctor/prefer-module-scope-static-value, react-doctor/no-initialize-state, react-doctor/control-has-associated-label, react-doctor/no-fetch-in-effect */
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+/* eslint-disable react-doctor/no-giant-component, react-doctor/prefer-useReducer, react-doctor/no-multi-comp, react-doctor/prefer-module-scope-static-value, react-doctor/no-initialize-state, react-doctor/control-has-associated-label, react-doctor/no-fetch-in-effect, react-doctor/no-chain-state-updates, react-doctor/no-event-handler */
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { m, AnimatePresence } from 'framer-motion';
 import { ChevronRight, Globe } from 'lucide-react';
@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { useActiveSection } from '../../hooks/useActiveSection';
 
 // ─── Constants (module-level — zero allocation cost on re-renders) ──────────
-const SECTION_IDS   = ['DigitalTwin', 'pricing', 'FAQ'];
+const SECTION_IDS   = ['hero', 'data', 'analytics', 'comparator', 'DigitalTwin', 'pricing', 'FAQ'];
 const NAVBAR_HEIGHT = 80;
 
 // Framer Motion variants hoisted out of the component so they are never
@@ -34,9 +34,10 @@ const ITEM_VARIANTS = {
 // ─── NavPill — memoized so it only re-renders when its own props change ──────
 // Prevents the entire link list from re-rendering when only one item's hover
 // or active state changes.
-const NavPill = React.memo(function NavPill({ link, isActive, onMouseEnter, onClick }) {
+const NavPill = React.memo(function NavPill({ link, isActive, onMouseEnter, onClick, setRef }) {
   return (
     <a aria-label="Interactive control"
+      ref={setRef}
       href={link.path}
       onClick={onClick}
       onMouseEnter={onMouseEnter}
@@ -85,6 +86,7 @@ const Navbar = () => {
   const [isOpen, setIsOpen]           = useState(false);
   const [hoveredLink, setHoveredLink] = useState(null);
   const [hoverStyle, setHoverStyle]   = useState({ opacity: 0, left: 0, width: 0 });
+  const linkRefs                      = useRef({});
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -100,9 +102,13 @@ const Navbar = () => {
   // Memoize navLinks — t() is cheap but the array allocation causes
   // handleScrollTo's useCallback deps to invalidate every render without this.
   const navLinks = useMemo(() => [
-    { name: t('navbar.digitalTwin', 'DigitalTwin'), sectionId: 'DigitalTwin', path: '#DigitalTwin' },
+    { name: t('navbar.hero',        'Inicio'),      sectionId: 'hero',         path: '#hero'         },
+    { name: t('navbar.data',        'Data'),        sectionId: 'data',         path: '#data'         },
+    { name: t('navbar.analytics',   'Métricas'),    sectionId: 'analytics',    path: '#analytics'    },
+    { name: t('navbar.comparator',  'Comparador'),  sectionId: 'comparator',   path: '#comparator'   },
+    { name: t('navbar.digitalTwin', 'DigitalTwin'), sectionId: 'DigitalTwin',  path: '#DigitalTwin'  },
     { name: t('navbar.pricing',     'Pricing'),     sectionId: 'pricing',      path: '#pricing'      },
-    { name: t('navbar.faqs',        "FAQ´s"),        sectionId: 'FAQ',          path: '#FAQ'          },
+    { name: t('navbar.faqs',        "FAQ´s"),       sectionId: 'FAQ',          path: '#FAQ'          },
   ], [t]);
 
   // ── Side Effects ────────────────────────────────────────────────────────────
@@ -129,10 +135,29 @@ const Navbar = () => {
     localStorage.setItem('app_language', nextLang);
   }, [i18n]);
 
+  const snapToActive = useCallback(() => {
+    if (activeId && linkRefs.current[activeId]) {
+      const el = linkRefs.current[activeId];
+      setHoverStyle({
+        opacity: 1,
+        left: el.offsetLeft,
+        width: el.offsetWidth,
+      });
+    } else {
+      setHoverStyle((prev) => ({ ...prev, opacity: 0 }));
+    }
+  }, [activeId]);
+
   const handleMouseLeave = useCallback(() => {
     setHoveredLink(null);
-    setHoverStyle((prev) => ({ ...prev, opacity: 0 }));
-  }, []);
+    snapToActive();
+  }, [snapToActive]);
+
+  useEffect(() => {
+    if (hoveredLink === null) {
+      snapToActive();
+    }
+  }, [activeId, hoveredLink, snapToActive]);
 
   /**
    * handleScrollTo — async-decoupled imperative scroll
@@ -205,6 +230,9 @@ const Navbar = () => {
           width: e.currentTarget.offsetWidth,
         });
       },
+      setRef: (el) => {
+        if (el) linkRefs.current[link.sectionId] = el;
+      }
     })),
   [navLinks, handleScrollTo]);
 
@@ -247,7 +275,7 @@ const Navbar = () => {
 
           {/* ── Desktop Nav (Liquid Pill) ── */}
           <div
-            className="hidden md:flex items-center gap-2"
+            className="hidden lg:flex items-center gap-2"
             onMouseLeave={handleMouseLeave}
           >
             <div className="relative flex items-center bg-slate-100/50 dark:bg-slate-900/50 p-1.5 rounded-full border border-slate-200/50 dark:border-slate-800/50 backdrop-blur-sm">
@@ -273,6 +301,7 @@ const Navbar = () => {
                     isActive={isActive}
                     onClick={linkHandlers[i].onClick}
                     onMouseEnter={linkHandlers[i].onMouseEnter}
+                    setRef={linkHandlers[i].setRef}
                   />
                 );
               })}
@@ -313,7 +342,7 @@ const Navbar = () => {
           {/* ── Mobile Toggle ── */}
           <button type="button"
             onClick={() => setIsOpen((prev) => !prev)}
-            className="md:hidden relative z-50 size-10 flex items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors border border-transparent active:border-slate-300 dark:active:border-slate-600"
+            className="lg:hidden relative z-50 size-10 flex items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors border border-transparent active:border-slate-300 dark:active:border-slate-600"
             aria-label="Toggle Menu"
           >
             <m.div
@@ -349,7 +378,7 @@ const Navbar = () => {
             animate="open"
             exit="closed"
             variants={MOBILE_MENU_VARIANTS}
-            className="fixed top-20 left-0 right-0 z-40 bg-white/95 dark:bg-slate-950/95 backdrop-blur-3xl border-b border-slate-200 dark:border-slate-800 shadow-2xl origin-top overflow-hidden md:hidden transform-gpu will-change-transform"
+            className="fixed top-20 left-0 right-0 z-40 bg-white/95 dark:bg-slate-950/95 backdrop-blur-3xl border-b border-slate-200 dark:border-slate-800 shadow-2xl origin-top overflow-hidden lg:hidden transform-gpu will-change-transform"
           >
             <div className="p-6 flex flex-col gap-2">
               {navLinks.map((link, i) => (
@@ -400,7 +429,7 @@ const Navbar = () => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setIsOpen(false)}
-            className="fixed inset-0 top-20 z-30 bg-black/20 dark:bg-black/50 backdrop-blur-[2px] md:hidden"
+            className="fixed inset-0 top-20 z-30 bg-black/20 dark:bg-black/50 backdrop-blur-[2px] lg:hidden"
           />
         )}
       </AnimatePresence>
