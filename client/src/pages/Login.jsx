@@ -171,7 +171,7 @@ const Login = () => {
                                             focus:ring-2 focus:ring-indigo-500/50 lg:focus:ring-indigo-500/20 
                                             focus:border-indigo-400 lg:focus:border-indigo-500 dark:lg:focus:border-indigo-500
                                             focus:bg-slate-800 lg:focus:bg-white dark:lg:focus:bg-slate-900
-                                            transition-all font-medium tracking-wide 
+                                            transition-colors duration-300 ease-in-out font-medium tracking-wide 
                                             placeholder:text-slate-600 dark:placeholder:text-slate-600
                                         "
                                         placeholder="••••••••"
@@ -189,11 +189,10 @@ const Login = () => {
                                     w-full py-4 rounded-xl font-bold shadow-lg flex items-center justify-center gap-2 group transition-all mt-2
                                     disabled:opacity-70 disabled:cursor-not-allowed
                                     
-                                    /* Colores Mobile/Desktop Light */
-                                    bg-indigo-600 lg:bg-slate-900 text-white shadow-indigo-600/30 lg:shadow-none hover:bg-indigo-500 lg:hover:bg-indigo-600
-                                    
-                                    /* Colores Desktop Dark */
-                                    dark:lg:bg-white dark:lg:text-white dark:lg:hover:bg-slate-200
+                                    /* Colores reactivos */
+                                    bg-neutral-900 text-white hover:bg-neutral-800 
+                                    dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200
+                                    transition-colors duration-300 ease-in-out
                                 "
                             >
                                 {loading ? "Verificando…" : <>Ingresar <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" /></>}

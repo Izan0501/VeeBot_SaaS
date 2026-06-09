@@ -31,8 +31,6 @@ const ITEM_VARIANTS = {
   open:   { opacity: 1, x: 0, transition: { type: 'spring', stiffness: 300, damping: 30 } },
 };
 
-const PILL_TRANSITION = { type: 'spring', stiffness: 350, damping: 30 };
-
 // ─── NavPill — memoized so it only re-renders when its own props change ──────
 // Prevents the entire link list from re-rendering when only one item's hover
 // or active state changes.
@@ -42,23 +40,17 @@ const NavPill = React.memo(function NavPill({ link, isActive, onMouseEnter, onCl
       href={link.path}
       onClick={onClick}
       onMouseEnter={onMouseEnter}
-      className="relative px-4 py-1.5 rounded-full text-sm font-semibold transition-colors duration-300 z-10"
+      className="relative z-10 px-4 py-2 font-medium text-neutral-600 dark:text-neutral-300 hover:text-indigo-600 dark:hover:text-indigo-300 transition-colors duration-300 rounded-full"
     >
       <span
-        className={`relative z-20 transition-colors duration-200 ${
-          isActive ? 'text-indigo-700 dark:text-indigo-200' : 'text-slate-600 dark:text-slate-400'
+        className={`relative z-20 transition-all duration-300 ${
+          isActive 
+            ? 'text-indigo-700 dark:text-indigo-200 drop-shadow-[0_0_8px_rgba(99,102,241,0.5)]' 
+            : ''
         }`}
       >
         {link.name}
       </span>
-
-      {isActive && (
-        <m.div
-          layoutId="navbar-pill"
-          className="absolute inset-0 bg-white dark:bg-slate-800 rounded-full shadow-sm z-10"
-          transition={PILL_TRANSITION}
-        />
-      )}
     </a>
   );
 });
@@ -92,6 +84,7 @@ const MobileNavItem = React.memo(function MobileNavItem({ link, isActive, onClic
 const Navbar = () => {
   const [isOpen, setIsOpen]           = useState(false);
   const [hoveredLink, setHoveredLink] = useState(null);
+  const [hoverStyle, setHoverStyle]   = useState({ opacity: 0, left: 0, width: 0 });
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -136,7 +129,10 @@ const Navbar = () => {
     localStorage.setItem('app_language', nextLang);
   }, [i18n]);
 
-  const handleMouseLeave = useCallback(() => setHoveredLink(null), []);
+  const handleMouseLeave = useCallback(() => {
+    setHoveredLink(null);
+    setHoverStyle((prev) => ({ ...prev, opacity: 0 }));
+  }, []);
 
   /**
    * handleScrollTo — async-decoupled imperative scroll
@@ -201,7 +197,14 @@ const Navbar = () => {
   const linkHandlers = useMemo(() =>
     navLinks.map((link) => ({
       onClick:      (e) => handleScrollTo(e, link.sectionId),
-      onMouseEnter: () => setHoveredLink(link.sectionId),
+      onMouseEnter: (e) => {
+        setHoveredLink(link.sectionId);
+        setHoverStyle({
+          opacity: 1,
+          left: e.currentTarget.offsetLeft,
+          width: e.currentTarget.offsetWidth,
+        });
+      },
     })),
   [navLinks, handleScrollTo]);
 
@@ -211,9 +214,9 @@ const Navbar = () => {
         initial={{ y: -100 }}
         animate={{ y: 0 }}
         transition={{ duration: 0.5, type: 'spring', stiffness: 200, damping: 20 }}
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 will-change-transform transform-gpu ${
+        className={`fixed top-0 left-0 right-0 z-50 transition-colors duration-500 will-change-transform transform-gpu ${
           isScrolled || isOpen
-            ? 'bg-white/70 dark:bg-slate-950/70 backdrop-blur-xl supports-[backdrop-filter]:bg-white/60'
+            ? 'bg-white/70 dark:bg-slate-950/70 backdrop-blur-xl transform-gpu will-change-transform supports-[backdrop-filter]:bg-white/60'
             : 'bg-transparent'
         }`}
       >
@@ -228,28 +231,17 @@ const Navbar = () => {
 
           {/* ── Logo ── */}
           <div className="flex items-start">
-            {/*
-              No onClick needed: React Router's <Link to="/"> already handles
-              the navigation. ScrollToTop resets scroll to 0 on pathname change.
-              Removing window.scrollTo eliminates a redundant imperative call.
-            */}
             <Link
               to="/"
-              className="flex items-center gap-3 group relative select-none"
+              aria-label="Axon Crafts Home"
+              className="relative flex items-center justify-center w-12 h-12 shrink-0 group select-none"
             >
-              <div className="relative">
-                <div className="absolute inset-0 bg-indigo-600 rounded-2xl blur-lg opacity-20 group-hover:opacity-40 group-hover:scale-110 transition-all duration-500 ease-out" />
-                <div className="size-10 relative bg-gradient-to-br from-white/80 to-white/40 dark:from-white/10 dark:to-white/5 rounded-xl flex items-center justify-center shadow-lg shadow-black/5 dark:shadow-indigo-500/10 border border-white/20 dark:border-white/10 group-hover:scale-105 transition-transform duration-300 overflow-hidden backdrop-blur-md">
-                  <img
-                    src="/Favicon.png"
-                    alt="VeeBot Logo"
-                    className="size-full object-contain p-1.5 relative z-10 dark:brightness-110 dark:drop-shadow-[0_0_4px_rgba(255,255,255,0.3)] transition-all"
-                  />
-                </div>
-              </div>
-              <span className="text-xl font-bold text-slate-900 dark:text-white tracking-tight flex items-center">
-                VeeBot<span className="dark: dark: dark: font-extrabold text-indigo-600 dark:text-indigo-400">.ai</span>
-              </span>
+              <div className="logo-aura-bg dark:opacity-60"></div>
+              <img
+                src="/Favicon.png"
+                alt="Axon Crafts"
+                className="logo-core-img h-8 w-auto object-contain"
+              />
             </Link>
           </div>
 
@@ -258,7 +250,17 @@ const Navbar = () => {
             className="hidden md:flex items-center gap-2"
             onMouseLeave={handleMouseLeave}
           >
-            <div className="flex items-center bg-slate-100/50 dark:bg-slate-900/50 p-1.5 rounded-full border border-slate-200/50 dark:border-slate-800/50 backdrop-blur-sm">
+            <div className="relative flex items-center bg-slate-100/50 dark:bg-slate-900/50 p-1.5 rounded-full border border-slate-200/50 dark:border-slate-800/50 backdrop-blur-sm">
+              {/* SLIDING PILL BACKGROUND */}
+              <div 
+                className="absolute inset-y-1 h-[calc(100%-8px)] bg-indigo-500/5 dark:bg-indigo-500/20 border border-indigo-500/10 dark:border-indigo-400/40 shadow-[inset_0_1px_4px_rgba(255,255,255,0.3),0_4px_12px_rgba(99,102,241,0.1)] dark:shadow-[inset_0_1px_4px_rgba(255,255,255,0.15),0_4px_12px_rgba(99,102,241,0.3)] backdrop-blur-xl rounded-full transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] pointer-events-none"
+                style={{
+                  opacity: hoverStyle.opacity,
+                  left: `${hoverStyle.left}px`,
+                  width: `${hoverStyle.width}px`,
+                }}
+              />
+
               {navLinks.map((link, i) => {
                 const isActive =
                   hoveredLink === link.sectionId ||

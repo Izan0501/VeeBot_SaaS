@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { m, AnimatePresence } from 'framer-motion';
+import { m } from 'framer-motion';
 import { ChevronDown, BrainCircuit, Bot, Database, Shield, FileText } from 'lucide-react';
 
 const getIcon = (category) => {
@@ -22,10 +22,7 @@ const FaqItem = ({ faq }) => {
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
             transition={{ duration: 0.3 }}
-            className={`group rounded-3xl transition-all duration-300 overflow-hidden relative border
-            ${isOpen
-                    ? 'bg-white dark:bg-slate-900 border-indigo-500/30 shadow-2xl shadow-indigo-500/10 z-10'
-                    : 'bg-white/60 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800 hover:border-indigo-300 dark:hover:border-indigo-700 hover:shadow-lg hover:bg-white dark:hover:bg-slate-900'}`}
+            className="group bg-white dark:bg-neutral-900/40 backdrop-blur-md border border-neutral-200 dark:border-white/5 rounded-xl p-4 hover:border-indigo-500/30 transition-colors relative overflow-hidden"
         >
             {/* Glow lateral */}
             {isOpen && <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-indigo-500 to-purple-500"></div>}
@@ -57,22 +54,15 @@ const FaqItem = ({ faq }) => {
                 </div>
             </button>
 
-            <AnimatePresence initial={false}>
-                {isOpen && (
-                    <m.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: "auto", opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.3, ease: "easeInOut" }}
-                    >
-                        <div className="px-6 md:px-8 pb-8 pl-[5.5rem] md:pl-[6.5rem]">
-                            <p className="text-base md:text-lg leading-relaxed text-slate-600 dark:text-slate-300">
-                                {faq.a}
-                            </p>
-                        </div>
-                    </m.div>
-                )}
-            </AnimatePresence>
+            <div className={`grid transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${isOpen ? 'grid-rows-[1fr] opacity-100 mt-4' : 'grid-rows-[0fr] opacity-0 mt-0'}`}>
+                <div className="overflow-hidden">
+                    <div className="px-6 md:px-8 pb-8 pl-[5.5rem] md:pl-[6.5rem]">
+                        <p className="text-base md:text-lg leading-relaxed text-slate-600 dark:text-slate-300">
+                            {faq.a}
+                        </p>
+                    </div>
+                </div>
+            </div>
         </m.div>
     );
 };

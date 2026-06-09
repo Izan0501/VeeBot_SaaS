@@ -8,7 +8,7 @@ const Pricing = () => {
     const navigate = useNavigate();
 
     return (
-        <section id="pricing" className="py-32 bg-slate-100 dark:bg-slate-900 relative overflow-hidden border-t border-slate-200 dark:border-slate-800">
+        <section id="pricing" className="py-32 bg-white/80 backdrop-blur-md border-t border-neutral-200 dark:bg-neutral-900/40 dark:backdrop-blur-xl dark:border-white/10 relative overflow-hidden transition-colors duration-300 ease-in-out transform-gpu will-change-transform">
             {/* Efectos de fondo ÚNICOS para esta sección */}
             <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-5"></div>
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1200px] h-[800px] bg-indigo-500/5 dark:bg-indigo-500/10 rounded-full blur-[150px] pointer-events-none animate-pulse-slow"></div>

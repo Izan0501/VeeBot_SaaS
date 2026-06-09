@@ -43,7 +43,7 @@ const ContactForm = ({ formData, handleFieldChange, submitContactForm, loading, 
                     whileTap={{ scale: 0.98 }}
                     type="submit"
                     disabled={loading}
-                    className="w-full py-4 bg-slate-900 hover:bg-pink-600 dark:bg-white dark:text-white dark:hover:bg-slate-200 text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2 text-sm md:text-base"
+                    className="w-full py-4 bg-neutral-900 text-white hover:bg-neutral-800 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-neutral-500 font-bold rounded-xl shadow-lg hover:shadow-xl flex items-center justify-center gap-2 text-sm md:text-base"
                 >
                     {loading ? <Loader2 className="animate-spin" size={20} /> : <Send size={20} />}
                     {loading ? "Enviando…" : "Enviar Mensaje"}

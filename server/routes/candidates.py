@@ -9,7 +9,7 @@ from bson import ObjectId
 from datetime import datetime
 
 # Import Local Modules
-from database import candidates_collection, usage_collection, insert_candidate, get_all_candidates_from_db, chats_collection
+from database import candidates_collection, usage_collection, insert_candidate, get_all_candidates_from_db, chats_collection, twins_chat_collection
 from security import get_current_user
 from services import analyze_candidate_with_groq, process_and_store_cv, chat_as_candidate, index
 from utils import robust_extract
@@ -24,6 +24,11 @@ class AnalysisResult(BaseModel):
     skills: List[str]
     summary: str
     email: Optional[str] = None
+
+# ── Schemas para los endpoints de persistencia de chat ────────────────────────
+class SaveMessageBody(BaseModel):
+    user_message: str
+    assistant_message: str
 
 # --- FUNCIÓN AUXILIAR PARA PINECONE (ASCII FIX) ---
 def sanitize_id(text: str) -> str:
@@ -243,40 +248,215 @@ def save_candidate_analysis(
         "score": score,
     }
 
-
-@router.get("/chat/{candidate_id}")
-def get_chat_history(current_user: dict = Depends(get_current_user)):
+# --- DASHBOARD CHAT HISTORY (GET) ---
+@router.get("/chats/history")
+def get_dashboard_chat_history(current_user: dict = Depends(get_current_user)):
+    """
+    Returns the saved dashboard assistant chat history and the current usage count.
+    """
     user_id = str(current_user["_id"])
     SPECIAL_ID = "DASHBOARD_ASSISTANT"
-    
-    # 1. Obtener historial visible (Chats guardados)
+
     cursor = chats_collection.find(
         {"user_id": user_id, "candidate_id": SPECIAL_ID}
     ).sort("timestamp", 1)
-    
+
     messages = []
     for doc in cursor:
         messages.append({
-            "id": str(doc["_id"]), 
-            "role": "ai" if doc["role"] == "assistant" else "user", 
+            "id": str(doc["_id"]),
+            "role": "ai" if doc["role"] == "assistant" else "user",
             "text": doc["content"]
         })
 
-    # --- CORRECCIÓN AQUÍ ---
-    # ANTES (Incorrecto para Hard Delete): Contaba mensajes existentes
-    # usage_count = chats_collection.count_documents({"user_id": user_id, "role": "user"})
-
-    # AHORA (Correcto): Leemos el contador persistente de la colección de uso
     usage_doc = usage_collection.find_one({"user_id": user_id})
     usage_count = usage_doc.get("ai_queries_count", 0) if usage_doc else 0
-    # -----------------------
-    
+
     return {
         "history": messages,
         "usage_count": usage_count
     }
 
-# --- MODIFICADO: CHAT CON LÍMITE GLOBAL Y PERSISTENCIA ---
+
+# --- DASHBOARD CHAT: SAVE (Persiste lo que el browser ya generó con Groq) ---
+@router.post("/chats/save")
+async def save_dashboard_message(
+    body: SaveMessageBody,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Persists user + assistant messages to the chats collection.
+    The frontend calls Groq directly for speed; it then calls this endpoint
+    to durably save both turns. Also enforces the paywall before saving.
+    Body: { "user_message": str, "assistant_message": str }
+    """
+    user_id = str(current_user["_id"])
+    SPECIAL_ID = "DASHBOARD_ASSISTANT"
+    PREMIUM_ROLES = {"Premium", "Admin", "Reclutador", "Agency", "Agency Pro"}
+    is_premium = current_user.get("role") in PREMIUM_ROLES
+    GLOBAL_LIMIT = 3
+
+    user_message = body.user_message.strip()
+    assistant_message = body.assistant_message.strip()
+
+    # Enforce paywall before saving
+    if not is_premium:
+        usage_doc = usage_collection.find_one({"user_id": user_id})
+        current_count = usage_doc.get("ai_queries_count", 0) if usage_doc else 0
+        if current_count >= GLOBAL_LIMIT:
+            raise HTTPException(status_code=403, detail="Premium Feature")
+
+        # Increment usage counter atomically
+        usage_collection.update_one(
+            {"user_id": user_id},
+            {"$inc": {"ai_queries_count": 1}},
+            upsert=True
+        )
+
+    now = datetime.utcnow()
+    chats_collection.insert_many([
+        {
+            "user_id": user_id,
+            "candidate_id": SPECIAL_ID,
+            "role": "user",
+            "content": user_message,
+            "timestamp": now
+        },
+        {
+            "user_id": user_id,
+            "candidate_id": SPECIAL_ID,
+            "role": "assistant",
+            "content": assistant_message,
+            "timestamp": now
+        }
+    ])
+
+    # Return updated usage count
+    usage_doc = usage_collection.find_one({"user_id": user_id})
+    usage_count = usage_doc.get("ai_queries_count", 0) if usage_doc else 0
+
+    print(f"💾 Dashboard chat saved for user {user_id} (usage: {usage_count}/{GLOBAL_LIMIT})")
+    return {"status": "saved", "usage_count": usage_count}
+
+
+# --- DIGITAL TWIN: SAVE MEMORY (Persiste lo que el browser ya generó con Groq) ---
+@router.post("/twins/{candidate_id}/memory/save")
+async def save_twin_message(
+    candidate_id: str,
+    body: SaveMessageBody,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Persists user + assistant messages to the twins_chat collection.
+    The frontend calls Groq directly for speed; it then calls this endpoint
+    to durably save both turns. Also enforces the GLOBAL account-level paywall
+    by reading user_usage.digital_twin_count — NOT per-candidate twins_chat counts.
+    Body: { "user_message": str, "assistant_message": str }
+    """
+    user_id = str(current_user["_id"])
+    PREMIUM_ROLES = {"Premium", "Admin", "Reclutador", "Agency", "Agency Pro"}
+    is_premium = current_user.get("role") in PREMIUM_ROLES
+    TWIN_LIMIT = 3
+
+    user_message = body.user_message.strip()
+    assistant_message = body.assistant_message.strip()
+
+    # Verify candidate belongs to this user
+    try:
+        candidate = candidates_collection.find_one({
+            "_id": ObjectId(candidate_id),
+            "user_id": user_id
+        })
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid candidate_id")
+
+    if not candidate:
+        raise HTTPException(status_code=404, detail="Candidato no encontrado")
+
+    # ── GLOBAL PAYWALL CHECK (decoupled from per-candidate memory) ────────────
+    # Counts queries in user_usage.digital_twin_count, not twins_chat.
+    # This prevents the "Amnesia Loophole" where deleting memory resets the quota.
+    if not is_premium:
+        usage_doc = usage_collection.find_one({"user_id": user_id})
+        global_twin_count = usage_doc.get("digital_twin_count", 0) if usage_doc else 0
+        print(f"🤖 TWIN SAVE: global_twin_count={global_twin_count}/{TWIN_LIMIT} premium={is_premium}")
+        if global_twin_count >= TWIN_LIMIT:
+            raise HTTPException(status_code=403, detail="Premium Feature")
+
+    now = datetime.utcnow()
+    twins_chat_collection.insert_many([
+        {
+            "user_id": user_id,
+            "candidate_id": candidate_id,
+            "role": "user",
+            "content": user_message,
+            "timestamp": now
+        },
+        {
+            "user_id": user_id,
+            "candidate_id": candidate_id,
+            "role": "assistant",
+            "content": assistant_message,
+            "timestamp": now
+        }
+    ])
+
+    # ── GLOBAL BILLING INCREMENT ───────────────────────────────────────────────
+    # Fired after successful memory write. Deleting twins_chat never touches this.
+    if not is_premium:
+        usage_collection.update_one(
+            {"user_id": user_id},
+            {"$inc": {"digital_twin_count": 1}},
+            upsert=True
+        )
+
+    # Return the updated GLOBAL count so the frontend paywall state stays in sync
+    usage_doc = usage_collection.find_one({"user_id": user_id})
+    new_global_count = usage_doc.get("digital_twin_count", 0) if usage_doc else 0
+
+    print(f"💾 Twin memory saved for candidate {candidate_id} (global turns: {new_global_count}/{TWIN_LIMIT})")
+    return {"status": "saved", "user_turn_count": new_global_count}
+
+
+# --- DIGITAL TWIN: GET MEMORY (History Hydration) ---
+@router.get("/twins/{candidate_id}/memory")
+def get_twin_memory(
+    candidate_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Returns the stored chat history for a specific Digital Twin (candidate).
+    Used on component mount to restore conversation state.
+    Reports the GLOBAL digital_twin_count from user_usage (not per-candidate twins_chat),
+    so that the frontend paywall reflects the true account-level usage.
+    """
+    user_id = str(current_user["_id"])
+
+    cursor = twins_chat_collection.find(
+        {"user_id": user_id, "candidate_id": candidate_id}
+    ).sort("timestamp", 1)
+
+    messages = []
+    for doc in cursor:
+        messages.append({
+            "id": str(doc["_id"]),
+            "role": doc["role"],       # 'user' or 'assistant' — ChatInterface expects these values
+            "content": doc["content"]
+        })
+
+    # ── GLOBAL billing counter (decoupled from per-candidate memory) ──────────
+    # This is the single source of truth for the paywall — deleting a candidate's
+    # memory does NOT affect this number.
+    usage_doc = usage_collection.find_one({"user_id": user_id})
+    global_twin_count = usage_doc.get("digital_twin_count", 0) if usage_doc else 0
+
+    return {
+        "history": messages,
+        "user_turn_count": global_twin_count  # frontend key unchanged — value now global
+    }
+
+
+# --- DIGITAL TWIN: CHAT CON LÍMITE GLOBAL DE 3 USOS (ACCOUNT-LEVEL) ---
 @router.post("/chat/{candidate_id}")
 async def digital_twin_chat(
     candidate_id: str,
@@ -285,49 +465,39 @@ async def digital_twin_chat(
 ):
     try:
         user_id = str(current_user["_id"])
-        # Verificación correcta: usa el campo 'role' igual que el resto del sistema
         PREMIUM_ROLES = {"Premium", "Admin", "Reclutador", "Agency", "Agency Pro"}
         is_premium = current_user.get("role") in PREMIUM_ROLES
-        GLOBAL_LIMIT = 2
+        TWIN_LIMIT = 3  # Global account-level limit for free users
 
-        # 1. VERIFICACIÓN DE LÍMITE GLOBAL (Solo para NO Premium)
+        # ── 1. GLOBAL PAYWALL CHECK (decoupled from twins_chat memory) ────────
+        # Counting messages in twins_chat is the OLD approach — it allowed users
+        # to reset their quota by deleting memory or switching candidates.
+        # We now read from user_usage.digital_twin_count exclusively.
         if not is_premium:
-            # Contamos SOLO los mensajes enviados por el usuario ('role': 'user')
-            # Esto cuenta TODAS las preguntas hechas a CUALQUIER candidato
-            current_count = chats_collection.count_documents({
-                "user_id": user_id, 
-                "role": "user"
-            })
-            
-            # --- DEBUG LOGS (MIRA ESTO EN TU CONSOLA) ---
-            print(f"🕵️‍♂️ DEBUG LÍMITE: Usuario Premium? {is_premium}")
-            print(f"🔢 DEBUG LÍMITE: Consultas realizadas: {current_count} / {GLOBAL_LIMIT}")
-            # ---------------------------------------------
-
-            if current_count >= GLOBAL_LIMIT:
-                print("⛔ BLOQUEO: Límite excedido.")
-                # Lanzamos 403 Forbidden
+            usage_doc = usage_collection.find_one({"user_id": user_id})
+            global_twin_count = usage_doc.get("digital_twin_count", 0) if usage_doc else 0
+            print(f"🤖 DEBUG TWIN: Premium={is_premium} — Global queries={global_twin_count}/{TWIN_LIMIT}")
+            if global_twin_count >= TWIN_LIMIT:
+                print("⛔ TWIN BLOCKED: Global account limit reached.")
                 raise HTTPException(
-                    status_code=403, 
-                    detail=f"Límite Gratuito Alcanzado ({GLOBAL_LIMIT} consultas). Actualiza a Premium."
+                    status_code=403,
+                    detail="Premium Feature"
                 )
 
-        # 2. Buscar al candidato y validar texto
+        # ── 2. Verify candidate ownership ─────────────────────────────────────
         candidate = candidates_collection.find_one({
-            "_id": ObjectId(candidate_id), 
+            "_id": ObjectId(candidate_id),
             "user_id": user_id
         })
-        
         if not candidate:
             raise HTTPException(status_code=404, detail="Candidato no encontrado")
 
         candidate_name = candidate.get("name", "Candidato")
         full_text = candidate.get("text") or candidate.get("summary", "Sin información.")
+        print(f"💬 Digital Twin [{candidate_name}]: {query}")
 
-        print(f"💬 Chat con {candidate_name}: {query}")
-
-        # 3. Guardar mensaje del USUARIO en DB
-        chats_collection.insert_one({
+        # ── 3. Persist user message to twins_chat (memory) ────────────────────
+        twins_chat_collection.insert_one({
             "user_id": user_id,
             "candidate_id": candidate_id,
             "role": "user",
@@ -335,23 +505,34 @@ async def digital_twin_chat(
             "timestamp": datetime.utcnow()
         })
 
-        # 4. Llamar a la IA
+        # ── 4. Call the AI ────────────────────────────────────────────────────
         response_text = await asyncio.to_thread(
-            chat_as_candidate, 
-            candidate_name, 
-            full_text, 
+            chat_as_candidate,
+            candidate_name,
+            full_text,
             query
         )
-        
-        # 5. Guardar respuesta de la IA en DB
-        chats_collection.insert_one({
+
+        # ── 5. Persist AI response to twins_chat (memory) ─────────────────────
+        twins_chat_collection.insert_one({
             "user_id": user_id,
             "candidate_id": candidate_id,
             "role": "assistant",
             "content": response_text,
             "timestamp": datetime.utcnow()
         })
-        
+
+        # ── 6. GLOBAL BILLING INCREMENT (only for free users, after success) ──
+        # This is the ONLY place digital_twin_count is incremented.
+        # Deleting twins_chat memory never touches this counter.
+        if not is_premium:
+            usage_collection.update_one(
+                {"user_id": user_id},
+                {"$inc": {"digital_twin_count": 1}},
+                upsert=True
+            )
+            print(f"📊 TWIN METER: digital_twin_count incremented for user {user_id}")
+
         return {"response": response_text, "candidate": candidate_name}
 
     except HTTPException as he:
@@ -359,6 +540,34 @@ async def digital_twin_chat(
     except Exception as e:
         print(f"❌ Error en Digital Twin: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# --- DIGITAL TWIN: BORRAR MEMORIA DE UN PERFIL ESPECÍFICO ---
+@router.delete("/twins/{candidate_id}/memory")
+def delete_twin_memory(
+    candidate_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Elimina todo el historial de conversación del Digital Twin
+    para un candidato específico del usuario autenticado.
+    """
+    user_id = str(current_user["_id"])
+
+    # Verificar que el candidato pertenece al usuario antes de borrar
+    candidate = candidates_collection.find_one({
+        "_id": ObjectId(candidate_id),
+        "user_id": user_id
+    })
+    if not candidate:
+        raise HTTPException(status_code=404, detail="Candidato no encontrado")
+
+    result = twins_chat_collection.delete_many({
+        "user_id": user_id,
+        "candidate_id": candidate_id
+    })
+    print(f"🗑️ Memoria Digital Twin borrada: {result.deleted_count} mensajes para candidato {candidate_id}")
+    return {"status": "success", "deleted": result.deleted_count}
 
 # --- AGREGAR AL FINAL DE server/routes/candidates.py ---
 @router.post("/analyze")
@@ -371,9 +580,9 @@ async def chat_with_recruiter(
         # Verificación correcta: usa el campo 'role' igual que el resto del sistema
         PREMIUM_ROLES = {"Premium", "Admin", "Reclutador", "Agency", "Agency Pro"}
         is_premium = current_user.get("role") in PREMIUM_ROLES
-        GLOBAL_LIMIT = 5 
+        GLOBAL_LIMIT = 3
 
-        # --- 1. LÓGICA DE LÍMITE PROFESIONAL ---
+        # --- 1. LÓGICA DE LÍMITE PROFESIONAL (3 consultas gratis) ---
         if not is_premium:
             # Buscamos el registro de uso de este usuario
             usage_doc = usage_collection.find_one({"user_id": user_id})
@@ -382,9 +591,9 @@ async def chat_with_recruiter(
             current_count = usage_doc.get("ai_queries_count", 0) if usage_doc else 0
             
             if current_count >= GLOBAL_LIMIT:
-                 raise HTTPException(
+                raise HTTPException(
                     status_code=403, 
-                    detail=f"Límite Gratuito Alcanzado ({GLOBAL_LIMIT} consultas). Pásate a Premium."
+                    detail="Premium Feature"
                 )
 
             # INCREMENTAMOS EL CONTADOR (Atomic Update)
@@ -458,7 +667,7 @@ def clear_dashboard_chat(current_user: dict = Depends(get_current_user)):
     print(f"🧹 Chat Dashboard eliminado: {result.deleted_count} mensajes.")
     return {"status": "success", "message": "Historial eliminado"}
 
-# --- MODIFICADO: DELETE CANDIDATE (Limpia historial) ---
+# --- DELETE CANDIDATE (con cascada completa de historial) ---
 @router.delete("/candidates/{candidate_id}")
 def delete_candidate(candidate_id: str, current_user: dict = Depends(get_current_user)):
     user_id = str(current_user["_id"])
@@ -468,7 +677,7 @@ def delete_candidate(candidate_id: str, current_user: dict = Depends(get_current
     if not candidate:
         raise HTTPException(status_code=404, detail="Candidato no encontrado")
 
-    # B. Borrar de Pinecone (Tu lógica actual)
+    # B. Borrar de Pinecone
     try:
         target_vector_id = candidate.get("vector_id") or sanitize_id(candidate.get("name", ""))
         if target_vector_id:
@@ -479,19 +688,27 @@ def delete_candidate(candidate_id: str, current_user: dict = Depends(get_current
     # C. Borrar de MongoDB (Candidato)
     candidates_collection.delete_one({"_id": ObjectId(candidate_id)})
 
-    # D. --- NUEVO: BORRAR HISTORIAL DE CHAT DE ESTE CANDIDATO ---
-    delete_result = chats_collection.delete_many({
-        "user_id": user_id, 
+    # D. CASCADE: Borrar historial del Dashboard Chat de este candidato (chats_collection)
+    dash_result = chats_collection.delete_many({
+        "user_id": user_id,
         "candidate_id": candidate_id
     })
-    print(f"🧹 Historial de chat eliminado: {delete_result.deleted_count} mensajes.")
 
+    # E. CASCADE: Borrar memoria del Digital Twin de este candidato (twins_chat)
+    #    NOTE: user_usage.digital_twin_count is intentionally NOT touched here.
+    #    Deleting a candidate does NOT reset the global billing counter.
+    twin_result = twins_chat_collection.delete_many({
+        "user_id": user_id,
+        "candidate_id": candidate_id
+    })
+
+    print(f"🧹 Cascade delete: {dash_result.deleted_count} dashboard msgs + {twin_result.deleted_count} twin msgs for candidate {candidate_id}")
     return {"status": "success", "message": "Candidato y su historial eliminados"}
 
 @router.delete("/candidates")
 def delete_all_user_candidates(current_user: dict = Depends(get_current_user)):
     user_id = str(current_user["_id"])
-    
+
     # 1. Delete ALL from Pinecone for this user
     try:
         index.delete(delete_all=True, namespace=user_id)
@@ -506,10 +723,17 @@ def delete_all_user_candidates(current_user: dict = Depends(get_current_user)):
     # 2. Delete from MongoDB (Candidatos)
     candidates_result = candidates_collection.delete_many({"user_id": user_id})
 
-    # 3. Delete from MongoDB (Historial de Chats) --- ¡NUEVO! ---
+    # 3. CASCADE: Delete Dashboard chat history (chats_collection)
     chats_result = chats_collection.delete_many({"user_id": user_id})
-    
+
+    # 4. CASCADE: Delete ALL Digital Twin memory for this user (twins_chat)
+    #    Since all candidates are being wiped, we can safely purge by user_id.
+    #    NOTE: user_usage.digital_twin_count is intentionally NOT touched here.
+    #    Wiping candidates does NOT reset the global billing counter.
+    twins_result = twins_chat_collection.delete_many({"user_id": user_id})
+
+    print(f"🧹 Bulk cascade: {candidates_result.deleted_count} candidates, {chats_result.deleted_count} dashboard msgs, {twins_result.deleted_count} twin msgs for user {user_id}")
     return {
-        "status": "success", 
-        "message": f"Se eliminaron {candidates_result.deleted_count} candidatos y {chats_result.deleted_count} mensajes de historial."
+        "status": "success",
+        "message": f"Se eliminaron {candidates_result.deleted_count} candidatos, {chats_result.deleted_count} mensajes de dashboard y {twins_result.deleted_count} mensajes de Digital Twin."
     }

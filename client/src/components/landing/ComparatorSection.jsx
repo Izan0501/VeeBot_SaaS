@@ -52,14 +52,14 @@ const ScoreRing = ({ score, color, isWinner }) => {
       </svg>
       <div className="relative z-10 text-center">
         <m.span
-          className="text-2xl font-black text-white block leading-none"
+          className="text-2xl font-black text-neutral-900 dark:text-white block leading-none transition-colors duration-300 ease-in-out"
           initial={{ opacity: 0 }}
           animate={inView ? { opacity: 1 } : {}}
           transition={{ delay: 0.6 }}
         >
           {score}
         </m.span>
-        <span className="text-[9px] font-bold tracking-widest uppercase text-white/40">Score</span>
+        <span className="text-[9px] font-bold tracking-widest uppercase text-neutral-500 dark:text-neutral-400 transition-colors duration-300 ease-in-out">Score</span>
       </div>
       {isWinner && (
         <m.div
@@ -95,7 +95,16 @@ const CandidateCard = ({ candidate, delay = 0, align = 'left' }) => {
         style={{ background: `radial-gradient(ellipse at ${isLeft ? '80%' : '20%'} 40%, ${candidate.glow}, transparent 70%)` }}
       />
 
-      <div className="relative bg-white/[0.04] border border-white/10 rounded-3xl p-6 md:p-8 h-full backdrop-blur-sm hover:border-white/20 transition-all duration-500 group">
+      <div className={`relative rounded-3xl p-6 md:p-8 h-full backdrop-blur-sm transform-gpu group transition-all duration-300 ease-in-out ${
+        candidate.score > 85
+          ? 'bg-white shadow-xl shadow-indigo-500/10 border-2 border-indigo-500 z-10 dark:bg-neutral-900/80 dark:border-indigo-500/50 dark:shadow-indigo-500/20'
+          : 'bg-neutral-200/50 border border-neutral-300 text-neutral-500 dark:bg-neutral-900/30 dark:border-neutral-800 dark:text-neutral-500'
+      }`}>
+        {candidate.score > 85 && (
+            <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-indigo-500 text-white text-[10px] font-bold tracking-widest uppercase rounded-full shadow-lg z-20">
+                Recomendado
+            </div>
+        )}
         {/* Hover inner glow */}
         <div
           className="absolute inset-0 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"
@@ -110,8 +119,8 @@ const CandidateCard = ({ candidate, delay = 0, align = 'left' }) => {
               <Target size={9} />
               Candidato {candidate.side}
             </div>
-            <h3 className="text-white font-bold text-xl leading-tight truncate">{candidate.name}</h3>
-            <p className="text-white/40 text-sm mt-0.5">{candidate.role}</p>
+            <h3 className="text-neutral-900 dark:text-white font-bold text-xl leading-tight truncate transition-colors duration-300 ease-in-out">{candidate.name}</h3>
+            <p className="text-neutral-600 dark:text-neutral-400 text-sm mt-0.5 transition-colors duration-300 ease-in-out">{candidate.role}</p>
           </div>
         </div>
 
@@ -136,7 +145,7 @@ const CandidateCard = ({ candidate, delay = 0, align = 'left' }) => {
           {candidate.advantages.map((adv, i) => (
             <m.li
               key={adv}
-              className={`flex items-center gap-2 text-sm text-white/60 ${isLeft ? '' : 'flex-row-reverse'}`}
+              className={`flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-400 transition-colors duration-300 ease-in-out ${isLeft ? '' : 'flex-row-reverse'}`}
               initial={{ opacity: 0 }}
               animate={inView ? { opacity: 1 } : {}}
               transition={{ delay: delay + 0.5 + i * 0.1 }}
@@ -235,7 +244,7 @@ const ComparatorSection = () => {
     <section
       id="comparator"
       ref={sectionRef}
-      className="relative py-28 md:py-40 overflow-hidden bg-[#07070d]"
+      className="relative py-28 md:py-40 overflow-hidden bg-slate-50 dark:bg-neutral-950 transition-colors duration-300 ease-in-out"
     >
       {/* ── BACKGROUND ── */}
       <div className="absolute inset-0 pointer-events-none">
@@ -261,7 +270,7 @@ const ComparatorSection = () => {
           transition={{ duration: 0.7 }}
         >
           <m.div
-            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-white/10 bg-white/5 text-white/50 text-xs font-bold tracking-widest uppercase mb-6 backdrop-blur-sm"
+            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-neutral-200 dark:border-white/10 bg-white dark:bg-white/5 text-neutral-600 dark:text-white/50 text-xs font-bold tracking-widest uppercase mb-6 backdrop-blur-sm transform-gpu transition-colors duration-300 ease-in-out shadow-sm"
             initial={{ opacity: 0, scale: 0.9 }}
             animate={inView ? { opacity: 1, scale: 1 } : {}}
             transition={{ delay: 0.1 }}
@@ -271,21 +280,21 @@ const ComparatorSection = () => {
           </m.div>
 
           <m.h2
-            className="leading-[0.95] font-black tracking-tight text-white mb-5"
+            className="leading-[0.95] font-black tracking-tight text-neutral-900 dark:text-white mb-5 transition-colors duration-300 ease-in-out"
             style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 'clamp(3.5rem, 10vw, 8rem)' }}
             initial={{ opacity: 0, y: 20 }}
             animate={inView ? { opacity: 1, y: 0 } : {}}
             transition={{ delay: 0.15, duration: 0.7 }}
           >
-            <span className="text-white">
+            <span>
               Compara.
             </span>
             <br />
-            <span className="text-white/20">Decide.</span>
+            <span className="text-neutral-400 dark:text-white/20 transition-colors duration-300 ease-in-out">Decide.</span>
           </m.h2>
 
           <m.p
-            className="text-white/40 text-lg max-w-xl mx-auto leading-relaxed"
+            className="text-neutral-600 dark:text-neutral-400 text-lg max-w-xl mx-auto leading-relaxed transition-colors duration-300 ease-in-out"
             initial={{ opacity: 0 }}
             animate={inView ? { opacity: 1 } : {}}
             transition={{ delay: 0.3 }}
@@ -303,7 +312,7 @@ const ComparatorSection = () => {
 
         {/* ── AI ANALYSIS BAR ── */}
         <m.div
-          className="mt-10 rounded-2xl border border-white/8 bg-white/[0.03] backdrop-blur-sm p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4"
+          className="mt-10 rounded-2xl border border-neutral-200 dark:border-white/10 bg-white dark:bg-white/[0.03] backdrop-blur-sm transform-gpu p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4 transition-colors duration-300 ease-in-out shadow-sm dark:shadow-none"
           initial={{ opacity: 0, y: 20 }}
           animate={inView ? { opacity: 1, y: 0 } : {}}
           transition={{ delay: 0.6, duration: 0.6 }}
@@ -311,11 +320,11 @@ const ComparatorSection = () => {
           {/* Live indicator */}
           <div className="flex items-center gap-2 flex-shrink-0">
             <m.div
-              className="size-2 rounded-full bg-violet-400"
+              className="size-2 rounded-full bg-violet-500 dark:bg-violet-400"
               animate={{ opacity: [1, 0.3, 1] }}
               transition={{ duration: 1.2, repeat: Infinity }}
             />
-            <span className="text-[11px] font-bold tracking-widest uppercase text-white/30">IA Analizando</span>
+            <span className="text-[11px] font-bold tracking-widest uppercase text-neutral-500 dark:text-white/30 transition-colors duration-300 ease-in-out">IA Analizando</span>
           </div>
 
           {/* Steps */}
@@ -329,8 +338,8 @@ const ComparatorSection = () => {
                   <m.div
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
                     style={{
-                      background: isActive ? 'rgba(139,92,246,0.15)' : isDone ? 'rgba(255,255,255,0.04)' : 'transparent',
-                      color: isActive ? '#a78bfa' : isDone ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.15)',
+                      background: isActive ? 'rgba(139,92,246,0.15)' : isDone ? 'rgba(139,92,246,0.04)' : 'transparent',
+                      color: isActive ? '#a78bfa' : isDone ? '#8b5cf6' : '#9ca3af',
                       border: `1px solid ${isActive ? 'rgba(139,92,246,0.3)' : 'transparent'}`,
                     }}
                     animate={{ opacity: isActive || isDone ? 1 : 0.4 }}
@@ -366,7 +375,7 @@ const ComparatorSection = () => {
           animate={inView ? { opacity: 1 } : {}}
           transition={{ delay: 0.8 }}
         >
-          <p className="text-white/20 text-sm mb-4">Disponible en el plan Premium</p>
+          <p className="text-neutral-500 dark:text-white/20 text-sm mb-4 transition-colors duration-300 ease-in-out">Disponible en el plan Premium</p>
           <m.a
             href="/register"
             className="inline-flex items-center gap-2 px-8 py-3.5 rounded-full text-sm font-bold text-white"

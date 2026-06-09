@@ -20,12 +20,30 @@ export const featuresAPI = {
         return data;
     },
 
-    getDashboardHistory: async (candidate_id) => {
-        const res = await fetch(`${API_URL}/chat/${candidate_id}`, {
+    getDashboardHistory: async () => {
+        const res = await fetch(`${API_URL}/chats/history`, {
             method: 'GET',
             headers: getHeaders()
         });
-        return await res.json();
+        if (!res.ok) return { history: [], usage_count: 0 };
+        return await res.json(); // { history: [...], usage_count: N }
+    },
+
+    // Persists a user+assistant turn to MongoDB after the browser Groq call
+    saveDashboardMessage: async (userMessage, assistantMessage) => {
+        const res = await fetch(`${API_URL}/chats/save`, {
+            method: 'POST',
+            headers: { ...getHeaders(), 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_message: userMessage, assistant_message: assistantMessage })
+        });
+        const text = await res.text();
+        const data = text ? JSON.parse(text) : {};
+        if (!res.ok) {
+            const err = new Error(data.detail || 'Error saving chat');
+            err.status = res.status;
+            throw err;
+        }
+        return data; // { status: 'saved', usage_count: N }
     },
 
     clearDashboardChat: async () => {

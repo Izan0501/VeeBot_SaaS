@@ -9,20 +9,14 @@ const FaqCategories = ({ categories, activeCategory, setActiveCategory }) => (
     >
         {categories.map((cat) => (
             <button aria-label="Interactive control" type="button"
-                key={cat.id}
-                onClick={() => setActiveCategory(cat.id)}
-                className={`px-6 py-2.5 rounded-full text-sm font-bold transition-all relative overflow-hidden group ${activeCategory === cat.id
-                    ? 'text-white shadow-lg shadow-indigo-500/30 scale-105'
-                    : 'bg-white/50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700'
+                key={cat}
+                onClick={() => setActiveCategory(cat)}
+                className={`px-6 py-2.5 rounded-full text-sm font-bold transition-all duration-300 ${activeCategory === cat
+                    ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/20 transform scale-105'
+                    : 'bg-neutral-100 dark:bg-neutral-800/50 text-neutral-500 hover:bg-neutral-200 dark:hover:bg-neutral-700'
                     }`}
             >
-                {activeCategory === cat.id && (
-                    <m.div
-                        layoutId="activeTab"
-                        className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-violet-600"
-                    />
-                )}
-                <span className="relative z-10">{cat.label}</span>
+                <span className="relative z-10">{cat}</span>
             </button>
         ))}
     </m.div>

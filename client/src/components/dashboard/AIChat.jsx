@@ -1,10 +1,50 @@
-/* eslint-disable react-doctor/no-giant-component, react-doctor/prefer-useReducer, react-doctor/no-multi-comp, react-doctor/prefer-module-scope-static-value, react-doctor/no-initialize-state, react-doctor/control-has-associated-label, react-doctor/no-fetch-in-effect */
+/* eslint-disable react-doctor/no-giant-component, react-doctor/prefer-useReducer, react-doctor/prefer-module-scope-static-value, react-doctor/no-initialize-state, react-doctor/control-has-associated-label, react-doctor/no-fetch-in-effect */
 import React, { useState } from 'react';
 import { m, AnimatePresence } from 'framer-motion';
 import { Lock, Crown, Bot, Send, Sparkles, ChevronDown, MessageSquare, Trash2, Loader2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { featuresAPI } from '../../api/features';
 import toast from 'react-hot-toast';
+
+/**
+ * ThinkingIndicator — explicit variant component for the AI "thinking" state.
+ * Extracted from AIChat to give each render path a single, clear responsibility.
+ */
+const ThinkingIndicator = () => (
+    <div className="flex items-center gap-3 text-slate-400 text-xs pl-2">
+        <div className="size-8 rounded-full bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center">
+            <Loader2 size={14} className="animate-spin text-indigo-500" />
+        </div>
+        <span className="animate-pulse">Analizando candidatos…</span>
+    </div>
+);
+
+/**
+ * PremiumStatusBadge — explicit variant component for the chat header status line.
+ * Renders either the Pro badge or the free-tier usage counter, each as one clear path.
+ */
+const PremiumStatusBadge = ({ isPremium, isLimitReached, remainingQueries }) => {
+    if (isPremium) {
+        return (
+            <>
+                <Sparkles size={10} className="text-yellow-400" />
+                <span className="text-[11px] font-bold text-indigo-500 dark:text-indigo-400">
+                    Recruiter Assistant Pro
+                </span>
+            </>
+        );
+    }
+    return (
+        <>
+            <Sparkles size={10} className="text-amber-400" />
+            <span className={`text-[11px] font-medium ${isLimitReached ? 'text-red-400' : 'text-slate-500 dark:text-slate-400'}`}>
+                {isLimitReached
+                    ? '⛔ Límite alcanzado'
+                    : `Recruiter Assistant: ${remainingQueries} intentos restantes`}
+            </span>
+        </>
+    );
+};
 
 const AIChat = ({
     isPremium,
@@ -22,11 +62,10 @@ const AIChat = ({
 
     const toggleChat = () => setIsOpen(!isOpen);
 
-    // --- LÓGICA DE LÍMITE (PROFESIONAL) ---
-    const FREE_LIMIT = 5;
+    // --- LÓGICA DE LÍMITE (alineado con backend: 3 consultas gratis) ---
+    const FREE_LIMIT = 3;
 
     // Usamos 'usageCount' (la verdad del backend) en lugar de contar mensajes locales
-    // Si usageCount es undefined (carga inicial), asumimos 0 para no bloquear
     const currentUsage = usageCount || 0;
 
     const isLimitReached = !isPremium && currentUsage >= FREE_LIMIT;
@@ -121,10 +160,11 @@ const AIChat = ({
                                     <div>
                                         <h3 className="font-bold text-slate-900 dark:text-white text-sm">VeeBot AI</h3>
                                         <div className="flex items-center gap-1.5">
-                                            <Sparkles size={10} className="text-amber-400" />
-                                            <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                                                {isPremium ? "Recruiter Assistant Pro" : `Free Plan (${remainingQueries} restantes)`}
-                                            </span>
+                                            <PremiumStatusBadge
+                                                isPremium={isPremium}
+                                                isLimitReached={isLimitReached}
+                                                remainingQueries={remainingQueries}
+                                            />
                                         </div>
                                     </div>
                                 </div>
@@ -174,14 +214,7 @@ const AIChat = ({
                                     </m.div>
                                 ))}
 
-                                {isThinking && (
-                                    <div className="flex items-center gap-3 text-slate-400 text-xs pl-2">
-                                        <div className="size-8 rounded-full bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center">
-                                            <Loader2 size={14} className="animate-spin text-indigo-500" />
-                                        </div>
-                                        <span className="animate-pulse">Analizando candidatos…</span>
-                                    </div>
-                                )}
+                                {isThinking && <ThinkingIndicator />}
                                 <div ref={messagesEndRef} />
                             </div>
 

@@ -33,7 +33,7 @@ const HeroSection = () => {
     // -- Removed handleScroll since we rely on native CSS scroll-smooth via <a aria-label="Interactive control"> tags
 
     return (
-        <section ref={containerRef} className="relative min-h-[100dvh] flex items-center justify-center overflow-hidden bg-white dark:bg-slate-950 perspective-[2000px] transition-colors duration-500">
+        <section ref={containerRef} className="relative min-h-[100dvh] flex items-center justify-center overflow-hidden bg-neutral-50 dark:bg-neutral-950 perspective-[2000px] transition-colors duration-300 ease-in-out">
 
             {/* --- CSS PURO PARA ANIMACIONES CONTINUAS (0% LAG) --- */}
             <style>{`
@@ -80,7 +80,7 @@ const HeroSection = () => {
                     {/* Badge */}
                     <m.div variants={itemVariants} className="inline-flex items-center justify-center lg:justify-start mb-6 lg:mb-8 relative group">
                         <div className="absolute -inset-0.5 bg-gradient-to-r from-indigo-500 to-fuchsia-500 rounded-full blur opacity-20 group-hover:opacity-60 transition duration-500"></div>
-                        <div className="relative flex items-center gap-2 px-4 py-2 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md rounded-full border border-slate-200 dark:border-slate-800/50 ring-1 ring-slate-200/50 dark:ring-white/10 shadow-sm">
+                        <div className="relative flex items-center gap-2 px-4 py-2 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md transform-gpu rounded-full border border-slate-200 dark:border-slate-800/50 ring-1 ring-slate-200/50 dark:ring-white/10 shadow-sm">
                             <Sparkles size={14} className="text-indigo-600 dark:text-indigo-400" />
                             <span className="text-xs font-bold text-slate-700 dark:text-indigo-100/90 uppercase tracking-wider">
                                 La Nueva Era del Recruiting
@@ -132,7 +132,7 @@ const HeroSection = () => {
                                     window.scrollTo({ top: offset, behavior: 'smooth' });
                                 }
                             }}
-                            className="px-8 py-4 rounded-xl font-bold text-lg text-slate-700 dark:text-white bg-white/50 dark:bg-slate-800/50 backdrop-blur-md border border-slate-200 dark:border-slate-700/50 hover:bg-white dark:hover:bg-slate-800 transition-all w-full sm:w-auto flex items-center justify-center gap-3 group hover:border-indigo-500/50 shadow-sm"
+                            className="px-8 py-4 rounded-xl font-bold text-lg text-slate-700 dark:text-white bg-white/50 dark:bg-slate-800/50 backdrop-blur-md transform-gpu border border-slate-200 dark:border-slate-700/50 hover:bg-white dark:hover:bg-slate-800 transition-all w-full sm:w-auto flex items-center justify-center gap-3 group hover:border-indigo-500/50 shadow-sm"
                         >
                             <div className="p-1.5 bg-indigo-50 dark:bg-indigo-500/20 rounded-lg text-indigo-600 dark:text-indigo-400 group-hover:text-indigo-700 dark:group-hover:text-indigo-300 transition-colors">
                                 <Zap size={18} fill="currentColor" />
@@ -179,7 +179,7 @@ const HeroSection = () => {
                     >
                         {/* --- FONDO: CAOS --- */}
                         <div
-                            className="absolute top-1/4 left-0 w-72 h-96 bg-white/60 dark:bg-slate-800/50 backdrop-blur-sm border border-slate-200 dark:border-slate-700/50 rounded-2xl p-6 opacity-80 dark:opacity-60 origin-bottom-left shadow-xl dark:shadow-none"
+                            className="absolute top-1/4 left-0 w-72 h-96 bg-white/60 dark:bg-slate-800/50 backdrop-blur-sm transform-gpu border border-slate-200 dark:border-slate-700/50 rounded-2xl p-6 opacity-80 dark:opacity-60 origin-bottom-left shadow-xl dark:shadow-none"
                             style={{ transform: "translateZ(-80px) rotateZ(-10deg) rotateY(10deg)" }}
                         >
                             <div className="flex items-center gap-3 mb-6 opacity-70">
@@ -232,7 +232,7 @@ const HeroSection = () => {
                         >
                             <div className="relative w-full h-full transition-transform duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] [transform-style:preserve-3d] group-hover:[transform:rotateY(180deg)]">
                                 {/* FRONT FACE */}
-                                <div className="absolute inset-0 w-full h-full [backface-visibility:hidden] bg-white/90 dark:bg-slate-900/80 backdrop-blur-xl border border-indigo-100 dark:border-indigo-500/30 rounded-3xl p-6 shadow-2xl shadow-indigo-500/20 dark:shadow-[0_0_50px_-12px_rgba(99,102,241,0.5)]">
+                                <div className="absolute inset-0 w-full h-full [backface-visibility:hidden] bg-white/90 dark:bg-slate-900/80 backdrop-blur-xl transform-gpu border border-indigo-100 dark:border-indigo-500/30 rounded-3xl p-6 shadow-2xl shadow-indigo-500/20 dark:shadow-[0_0_50px_-12px_rgba(99,102,241,0.5)]">
                                     <div className="flex items-start justify-between mb-6">
                                         <div className="flex items-center gap-4">
                                             <div className="size-14 rounded-2xl bg-gradient-to-tr from-indigo-500 to-pink-500 flex items-center justify-center text-white font-bold text-2xl shadow-lg">
@@ -275,7 +275,7 @@ const HeroSection = () => {
                                 </div>
                                 
                                 {/* BACK FACE */}
-                                <div className="absolute inset-0 w-full h-full [backface-visibility:hidden] [transform:rotateY(180deg)] bg-white/90 dark:bg-slate-900/80 backdrop-blur-xl border border-indigo-100 dark:border-indigo-500/30 rounded-3xl p-6 shadow-2xl flex flex-col items-center justify-center text-center">
+                                <div className="absolute inset-0 w-full h-full [backface-visibility:hidden] [transform:rotateY(180deg)] bg-white/90 dark:bg-slate-900/80 backdrop-blur-xl transform-gpu border border-indigo-100 dark:border-indigo-500/30 rounded-3xl p-6 shadow-2xl flex flex-col items-center justify-center text-center">
                                     <div className="size-16 rounded-2xl bg-gradient-to-tr from-indigo-500 to-fuchsia-500 flex items-center justify-center text-white mb-6 shadow-lg">
                                         <Sparkles size={28} />
                                     </div>

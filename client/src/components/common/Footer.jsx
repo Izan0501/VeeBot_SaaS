@@ -1,8 +1,7 @@
-/* eslint-disable react-doctor/rendering-hydration-mismatch-time */
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { m, AnimatePresence } from 'framer-motion';
-import { BrainCircuit, ArrowUpRight, Github, Twitter, Linkedin, Heart, Mail } from 'lucide-react';
+import { m } from 'framer-motion';
+import { Mail } from 'lucide-react';
 
 const footerLinks = [
   { to: "/terms", label: "Términos" },
@@ -16,10 +15,10 @@ const socialLinks = [
 ];
 
 const Footer = () => {
-  const [hoveredLink, setHoveredLink] = useState(null);
+  const [hoverStyle, setHoverStyle] = useState({ opacity: 0, left: 0, top: 0, width: 0, height: 0 });
 
   return (
-    <footer className="relative pt-32 pb-10 overflow-hidden z-10 bg-slate-50 dark:bg-slate-950 transition-colors duration-500">
+    <footer className="relative pt-32 pb-10 overflow-hidden z-10 bg-neutral-50 dark:bg-zinc-950 border-t border-neutral-200 dark:border-white/5 transition-colors duration-500">
 
       {/* ==================== 1. FONDO ATMOSFÉRICO (VIVO) ==================== */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -47,30 +46,15 @@ const Footer = () => {
 
           {/* ==================== COLUMNA 1: LOGO & MISIÓN (4 cols) ==================== */}
           <div className="md:col-span-4 flex flex-col items-center md:items-start text-center md:text-left gap-y-4">
-            {/* --- LOGO PREMIUM (Image Based + Styled Text) --- */}
             <div className="flex items-start">
               <Link
                 to="/"
-                className="flex items-center gap-3 group relative select-none"
+                className="relative flex items-center justify-center w-12 h-12 shrink-0 group select-none"
                 onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                aria-label="Axon Crafts Home"
               >
-                <div className="relative">
-                  {/* Glow Trasero sutil */}
-                  <div className="absolute inset-0 bg-indigo-600 rounded-2xl blur-lg opacity-20 group-hover:opacity-40 group-hover:scale-110 transition-all duration-500 ease-out"></div>
-
-                  {/* Contenedor del Icono */}
-                  <div className="size-10 relative bg-gradient-to-br from-white/80 to-white/40 dark:from-white/10 dark:to-white/5 rounded-xl flex items-center justify-center shadow-lg shadow-black/5 dark:shadow-indigo-500/10 border border-white/20 dark:border-white/10 group-hover:scale-105 transition-transform duration-300 overflow-hidden backdrop-blur-md">
-                    <img
-                      src="/Favicon.png"
-                      alt="VeeBot Logo"
-                      className="size-full object-contain p-1.5 relative z-10 dark:brightness-110 dark:drop-shadow-[0_0_4px_rgba(255,255,255,0.3)] transition-all"
-                    />
-                  </div>
-                </div>
-
-                <span className="text-xl font-bold text-slate-900 dark:text-white tracking-tight flex items-center">
-                  VeeBot<span className="dark: dark: dark: font-extrabold text-indigo-600 dark:text-indigo-400">.ai</span>
-                </span>
+                <div className="logo-aura-bg dark:opacity-60"></div>
+                <img src="/Favicon.png" alt="Axon Crafts" className="logo-core-img h-8 w-auto object-contain" />
               </Link>
             </div>
             <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed max-w-xs">
@@ -78,30 +62,40 @@ const Footer = () => {
             </p>
           </div>
 
-          {/* ==================== COLUMNA 2: NAVEGACIÓN MAGNÉTICA (4 cols) ==================== */}
+          {/* ==================== COLUMNA 2: NAVEGACIÓN LÍQUIDA (4 cols) ==================== */}
           <div className="md:col-span-4 flex justify-center">
-            <div className="flex flex-wrap justify-center gap-1 p-1.5 rounded-full bg-slate-200/50 dark:bg-slate-800/50 backdrop-blur-md border border-slate-300/50 dark:border-slate-700/50 shadow-inner"
-              onMouseLeave={() => setHoveredLink(null)}>
+            <div 
+              className="relative flex flex-wrap justify-center gap-2"
+              onMouseLeave={() => setHoverStyle((prev) => ({ ...prev, opacity: 0 }))}
+            >
+              {/* OMNIDIRECTIONAL LIQUID GLASS PILL */}
+              <div 
+                className="absolute bg-indigo-500/5 dark:bg-indigo-500/20 border border-indigo-500/10 dark:border-indigo-400/40 shadow-[inset_0_1px_4px_rgba(255,255,255,0.3),0_4px_12px_rgba(99,102,241,0.1)] dark:shadow-[inset_0_1px_4px_rgba(255,255,255,0.15),0_4px_12px_rgba(99,102,241,0.3)] backdrop-blur-xl rounded-full transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] pointer-events-none z-0"
+                style={{
+                  opacity: hoverStyle.opacity,
+                  left: `${hoverStyle.left}px`,
+                  top: `${hoverStyle.top}px`,
+                  width: `${hoverStyle.width}px`,
+                  height: `${hoverStyle.height}px`,
+                }}
+              />
 
               {footerLinks.map((link) => (
                 <Link
                   key={link.to}
                   to={link.to}
-                  onMouseEnter={() => setHoveredLink(link.to)}
-                  className="relative px-4 py-2 rounded-full text-sm font-semibold transition-colors duration-200 z-10"
+                  onMouseEnter={(e) => {
+                    setHoverStyle({
+                      opacity: 1,
+                      left: e.currentTarget.offsetLeft,
+                      top: e.currentTarget.offsetTop,
+                      width: e.currentTarget.offsetWidth,
+                      height: e.currentTarget.offsetHeight,
+                    });
+                  }}
+                  className="relative z-10 block px-4 py-2 transition-colors duration-300 text-neutral-600 dark:text-neutral-400 hover:text-indigo-600 dark:hover:text-indigo-300 rounded-full"
                 >
-                  <span className={`relative z-20 ${hoveredLink === link.to ? 'text-indigo-700 dark:text-indigo-200' : 'text-slate-600 dark:text-slate-400'}`}>
-                    {link.label}
-                  </span>
-
-                  {/* EL EFECTO "ORGÁSMICO" DE FONDO DESLIZANTE */}
-                  {hoveredLink === link.to && (
-                    <m.div
-                      layoutId="footer-pill"
-                      className="absolute inset-0 bg-white dark:bg-slate-700 rounded-full shadow-sm z-10"
-                      transition={{ type: "spring", stiffness: 350, damping: 30 }}
-                    />
-                  )}
+                  <span className="relative z-20">{link.label}</span>
                 </Link>
               ))}
             </div>
@@ -122,9 +116,8 @@ const Footer = () => {
           </div>
         </div>
 
-        {/* ==================== FOOTER BOTTOM ==================== */}
         <div className="mt-16 pt-8 border-t border-slate-200 dark:border-slate-800 flex flex-col md:flex-row justify-center items-center gap-4 text-center md:text-left">
-          <p className="text-sm font-medium text-slate-500 dark:text-slate-500">
+          <p suppressHydrationWarning className="text-sm font-medium text-slate-500 dark:text-slate-500">
             © {new Date().getFullYear()} VeeBot Inc. Todos los derechos reservados.
           </p>
         </div>

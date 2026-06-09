@@ -6,7 +6,7 @@ const FAQ = () => {
     const [openFaq, setOpenFaq] = useState(null);
 
     return (
-        <section id='FAQ' className="py-32 bg-white dark:bg-slate-950 relative overflow-hidden transition-colors">
+        <section id='FAQ' className="py-32 bg-slate-50 dark:bg-slate-950 relative overflow-hidden transition-colors duration-300 ease-in-out">
             {/* PATRÓN DE PUNTOS */}
             <div className="absolute inset-0 bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] dark:bg-[radial-gradient(#334155_1px,transparent_1px)] [background-size:16px_16px] opacity-50"></div>
             <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-slate-100 dark:from-slate-900 to-transparent"></div>
@@ -30,7 +30,7 @@ const FAQ = () => {
                     >
                         Preguntas <span className="dark: dark: text-indigo-600 dark:text-indigo-400">Frecuentes</span>
                     </m.h2>
-                    <p className="text-slate-500 dark:text-slate-400 text-lg bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm inline-block rounded-lg px-2">Todo lo que necesitas saber sobre tu nuevo asistente de reclutamiento.</p>
+                    <p className="text-slate-500 dark:text-slate-400 text-lg bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm transform-gpu inline-block rounded-lg px-2">Todo lo que necesitas saber sobre tu nuevo asistente de reclutamiento.</p>
                 </div>
 
                 <div className="space-y-4">

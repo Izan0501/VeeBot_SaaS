@@ -12,7 +12,9 @@ tenants_collection = db["tenants"]
 candidates_collection = db["candidates"]
 users_collection = db["users"]
 chats_collection = db["chats"]
+twins_chat_collection = db["twins_chat"]
 usage_collection = db["user_usage"]
+
 
 # DB Functions for Candidates
 def insert_candidate(filename, name, text_preview, ai_data, user_id):

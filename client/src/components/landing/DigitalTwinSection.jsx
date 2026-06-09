@@ -39,7 +39,7 @@ const DigitalTwinSection = () => {
 
 
   return (
-    <section id='DigitalTwin' className="relative py-32 overflow-hidden bg-white dark:bg-[#050505] transition-colors duration-500">
+    <section id='DigitalTwin' className="relative py-32 overflow-hidden bg-slate-50 dark:bg-slate-950 transition-colors duration-300 ease-in-out">
 
       {/* --- FONDO ANIMADO (Grid Matrix) --- */}
       <div className="absolute inset-0 z-0">
@@ -203,7 +203,7 @@ const DigitalTwinSection = () => {
                 transition={{ duration: 3, repeat: Infinity }}
                 className="size-32 bg-indigo-500/5 rounded-full border border-indigo-500/20 flex items-center justify-center"
               >
-                <div className="size-20 bg-indigo-500/10 rounded-full flex items-center justify-center backdrop-blur-sm">
+                <div className="size-20 bg-indigo-500/10 rounded-full flex items-center justify-center backdrop-blur-sm transform-gpu">
                   <ShieldCheck size={40} className="text-indigo-500/50" />
                 </div>
               </m.div>

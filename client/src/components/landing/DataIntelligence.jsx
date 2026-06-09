@@ -21,7 +21,7 @@ const DataIntelligence = () => {
 
 
   return (
-    <section className="py-20 md:py-32 bg-slate-50 dark:bg-slate-900 relative overflow-hidden transition-colors border-y border-slate-200 dark:border-slate-800">
+    <section className="py-20 md:py-32 bg-white dark:bg-zinc-900/80 relative overflow-hidden transition-colors duration-300 ease-in-out border-y border-neutral-200/50 dark:border-white/5">
 
       {/* PATRÓN DE FONDO DE GRILLA (Con máscara radial para suavidad) */}
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)]"></div>
@@ -43,7 +43,7 @@ const DataIntelligence = () => {
 
             <m.div
               whileHover={{ scale: 1.05 }}
-              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-100/80 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-xs font-bold uppercase tracking-wide mb-6 shadow-sm backdrop-blur-sm border border-emerald-200/50 dark:border-emerald-800/50"
+              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-100/80 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-xs font-bold uppercase tracking-wide mb-6 shadow-sm backdrop-blur-sm transform-gpu border border-emerald-200/50 dark:border-emerald-800/50"
             >
               <Table size={14} /> <span>Data Intelligence</span>
             </m.div>
@@ -140,7 +140,7 @@ const DataIntelligence = () => {
                           zIndex: 10
                         }
                       }}
-                      className="relative flex items-center gap-4 p-3 rounded-xl border border-slate-200/60 dark:border-slate-700/50 bg-white/60 dark:bg-slate-800/40 backdrop-blur-md cursor-pointer transition-all duration-300 hover:bg-white dark:hover:bg-slate-800 hover:border-emerald-400/50 dark:hover:border-emerald-500/50"
+                      className="relative flex items-center gap-4 p-3 rounded-xl border border-slate-200/60 dark:border-slate-700/50 bg-white/60 dark:bg-slate-800/40 backdrop-blur-md transform-gpu cursor-pointer transition-colors duration-300 hover:bg-white dark:hover:bg-slate-800 hover:border-emerald-400/50 dark:hover:border-emerald-500/50"
                     >
                       <m.div
                         variants={{
@@ -196,7 +196,7 @@ const DataIntelligence = () => {
                 transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.95 }}
-                className="absolute -bottom-5 -right-2 md:-right-6 bg-gradient-to-br from-emerald-500 to-teal-600 text-white px-5 py-3 rounded-2xl shadow-xl shadow-emerald-500/40 flex items-center gap-3 cursor-pointer z-30 border border-white/20 backdrop-blur-md"
+                className="absolute -bottom-5 -right-2 md:-right-6 bg-gradient-to-br from-emerald-500 to-teal-600 text-white px-5 py-3 rounded-2xl shadow-xl shadow-emerald-500/40 flex items-center gap-3 cursor-pointer z-30 border border-white/20 backdrop-blur-md transform-gpu"
               >
                 <div className="p-1.5 bg-white/20 rounded-lg">
                   <FileSpreadsheet size={20} className="text-white" />

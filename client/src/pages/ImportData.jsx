@@ -142,6 +142,7 @@ const ImportData = () => {
                             {`✅ ${analyzed} CVs procesados correctamente.`}
                         </div>
                         <button
+                            type="button"
                             onClick={() => toast.dismiss(t.id)}
                             className="text-neutral-400 hover:text-white transition-colors p-1.5 rounded-md hover:bg-neutral-800"
                             aria-label="Close"
