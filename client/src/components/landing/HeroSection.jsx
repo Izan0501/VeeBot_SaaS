@@ -77,17 +77,6 @@ const HeroSection = () => {
                     initial="hidden"
                     animate="visible"
                 >
-                    {/* Badge */}
-                    <m.div variants={itemVariants} className="inline-flex items-center justify-center lg:justify-start mb-6 lg:mb-8 relative group">
-                        <div className="absolute -inset-0.5 bg-gradient-to-r from-indigo-500 to-fuchsia-500 rounded-full blur opacity-20 group-hover:opacity-60 transition duration-500"></div>
-                        <div className="relative flex items-center gap-2 px-4 py-2 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md transform-gpu rounded-full border border-slate-200 dark:border-slate-800/50 ring-1 ring-slate-200/50 dark:ring-white/10 shadow-sm">
-                            <Sparkles size={14} className="text-indigo-600 dark:text-indigo-400" />
-                            <span className="text-xs font-bold text-slate-700 dark:text-indigo-100/90 uppercase tracking-wider">
-                                La Nueva Era del Recruiting
-                            </span>
-                        </div>
-                    </m.div>
-
                     {/* Headline 
                        CAMBIO RESPONSIVE: text-4xl en móvil para evitar desbordes, sube a 5xl, 7xl y 8xl
                     */}
