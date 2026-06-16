@@ -49,12 +49,11 @@ const Footer = () => {
             <div className="flex items-start">
               <Link
                 to="/"
-                className="relative flex items-center justify-center w-12 h-12 shrink-0 group select-none"
+                className="relative flex items-center justify-center w-14 h-14 shrink-0 ml-2"
                 onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
                 aria-label="Axon Crafts Home"
               >
-                <div className="logo-aura-bg dark:opacity-60"></div>
-                <img src="/Favicon.png" alt="Axon Crafts" className="logo-core-img h-8 w-auto object-contain" />
+                <img src="/Favicon.png" alt="Axon Crafts" className="animate-logo-core h-11 w-auto object-contain" />
               </Link>
             </div>
             <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed max-w-xs">

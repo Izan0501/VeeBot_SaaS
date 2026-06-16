@@ -264,7 +264,7 @@ const HeroSection = () => {
                                 </div>
                                 
                                 {/* BACK FACE */}
-                                <div className="absolute inset-0 w-full h-full [backface-visibility:hidden] [transform:rotateY(180deg)] bg-white/90 dark:bg-slate-900/80 backdrop-blur-xl transform-gpu border border-indigo-100 dark:border-indigo-500/30 rounded-3xl p-6 shadow-2xl flex flex-col items-center justify-center text-center">
+                                <div className="absolute inset-0 w-full h-full [backface-visibility:hidden] [transform:rotateY(180deg)] bg-white/90 dark:bg-slate-900/80 backdrop-blur-xl border border-indigo-100 dark:border-indigo-500/30 rounded-3xl p-6 shadow-2xl flex flex-col items-center justify-center text-center">
                                     <div className="size-16 rounded-2xl bg-gradient-to-tr from-indigo-500 to-fuchsia-500 flex items-center justify-center text-white mb-6 shadow-lg">
                                         <Sparkles size={28} />
                                     </div>

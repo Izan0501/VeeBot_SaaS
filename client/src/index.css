@@ -100,29 +100,19 @@
 .animate-float-3 { animation: float-subtle 4.5s ease-in-out infinite 1s; }
 
 /* ── Premium Logo Ambient Aura ───────────────────────────── */
-@keyframes spin-aura {
-  0% { transform: rotate(0deg) scale(1); opacity: 0.4; }
-  50% { transform: rotate(180deg) scale(1.1); opacity: 0.7; }
-  100% { transform: rotate(360deg) scale(1); opacity: 0.4; }
+@keyframes core-glow-pulse {
+  0%, 100% { 
+    transform: translateY(0); 
+    filter: drop-shadow(0 0 5px rgba(99,102,241,0.7)) drop-shadow(0 4px 6px rgba(0,0,0,0.4)); 
+  }
+  50% { 
+    transform: translateY(-4px); 
+    /* Massive increase in blur radius and opacity for maximum visibility */
+    filter: drop-shadow(0 0 16px rgba(99,102,241,1)) drop-shadow(0 0 28px rgba(168,85,247,0.9)); 
+  }
 }
-@keyframes idle-breath {
-  0%, 100% { transform: translateY(0); filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1)); }
-  50% { transform: translateY(-2px); filter: drop-shadow(0 8px 16px rgba(99,102,241,0.4)); }
-}
-.logo-aura-bg {
-  position: absolute;
-  inset: -6px; /* slightly larger than the logo */
-  background: conic-gradient(from 0deg, transparent 0%, rgba(99, 102, 241, 0.5) 50%, transparent 100%);
-  border-radius: 50%;
-  filter: blur(10px);
-  animation: spin-aura 6s linear infinite;
-  z-index: 0;
-  pointer-events: none;
-}
-.logo-core-img {
-  position: relative;
-  z-index: 10;
-  animation: idle-breath 4s ease-in-out infinite;
+.animate-logo-core {
+  animation: core-glow-pulse 4s ease-in-out infinite;
   will-change: transform, filter;
 }
 

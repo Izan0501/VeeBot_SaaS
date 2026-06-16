@@ -262,13 +262,12 @@ const Navbar = () => {
             <Link
               to="/"
               aria-label="Axon Crafts Home"
-              className="relative flex items-center justify-center w-12 h-12 shrink-0 group select-none"
+              className="relative flex items-center justify-center w-14 h-14 shrink-0 ml-2"
             >
-              <div className="logo-aura-bg dark:opacity-60"></div>
               <img
                 src="/Favicon.png"
                 alt="Axon Crafts"
-                className="logo-core-img h-8 w-auto object-contain"
+                className="animate-logo-core h-11 w-auto object-contain"
               />
             </Link>
           </div>
