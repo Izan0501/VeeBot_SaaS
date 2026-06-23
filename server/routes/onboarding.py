@@ -10,10 +10,12 @@ router = APIRouter(prefix="/onboarding", tags=["onboarding"])
 
 # ── Public Branding Schema (safe — no sensitive fields) ───────────────────────
 class PublicBrandingResponse(BaseModel):
-    company_name: str
-    primary_color: str
-    secondary_color: str
-    logo_url: Optional[str] = None
+    company_name:     str
+    primary_color:    str
+    accent_color:     str
+    secondary_color:  str
+    theme_mode:       str
+    company_logo_url: Optional[str] = None
 
 @router.post("", response_model=TenantResponse, status_code=status.HTTP_201_CREATED)
 async def create_tenant(request: TenantOnboardingRequest):
@@ -96,7 +98,9 @@ async def get_tenant_branding(subdomain: str):
     branding = tenant.get("branding", {})
     return PublicBrandingResponse(
         company_name=tenant.get("name", ""),
-        primary_color=branding.get("primary_color", "#0F172A"),
+        primary_color=branding.get("primary_color",    "#6366F1"),
+        accent_color=branding.get("accent_color",      "#A855F7"),
         secondary_color=branding.get("secondary_color", "#3B82F6"),
-        logo_url=branding.get("logo_url"),
+        theme_mode=branding.get("theme_mode",           "system"),
+        company_logo_url=branding.get("company_logo_url"),
     )

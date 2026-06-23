@@ -12,10 +12,12 @@ import { API_URL } from '../api/config';
 // ─── Constants ────────────────────────────────────────────────────────────────
 const PLATFORM_SUBDOMAINS = new Set(['www', 'app', 'admin', 'api', 'mail', 'veebot']);
 const DEFAULT_BRANDING = {
-  company_name: 'VeeBot.ai',
-  primary_color: '#0F172A',
-  secondary_color: '#3B82F6',
-  logo_url: null,
+  company_name:     'VeeBot.ai',
+  primary_color:    '#6366F1',
+  accent_color:     '#A855F7',
+  secondary_color:  '#3B82F6',
+  theme_mode:       'system',
+  company_logo_url: null,
 };
 
 /**
@@ -61,11 +63,16 @@ export const useTenant = () => use(TenantContext);
  * without an inline <script>. We write the tenant CSS variables here.
  */
 function useTenantCSSInjection(branding) {
+  // Resolve to concrete primitives before the hook runs so the dep array
+  // always holds a stable string, never undefined (which triggers stale-dep warning).
+  const primary = branding?.primary_color || '#6366F1';
+  const accent  = branding?.accent_color  || '#A855F7';
+
   useInsertionEffect(() => {
     const root = document.documentElement;
-    root.style.setProperty('--color-primary', branding.primary_color);
-    root.style.setProperty('--color-secondary', branding.secondary_color);
-  }, [branding.primary_color, branding.secondary_color]);
+    root.style.setProperty('--color-primary', primary);
+    root.style.setProperty('--color-accent',  accent);
+  }, [primary, accent]);
 }
 
 // ─── Provider ─────────────────────────────────────────────────────────────────
@@ -99,7 +106,7 @@ export function TenantProvider({ children }) {
         setTenant({
           company_name:    data.company_name    || DEFAULT_BRANDING.company_name,
           primary_color:   data.primary_color   || DEFAULT_BRANDING.primary_color,
-          secondary_color: data.secondary_color || DEFAULT_BRANDING.secondary_color,
+          accent_color:    data.accent_color    || DEFAULT_BRANDING.accent_color,
           logo_url:        data.logo_url        || null,
         });
 

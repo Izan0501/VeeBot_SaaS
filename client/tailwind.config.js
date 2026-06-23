@@ -12,8 +12,8 @@ export default {
         // These map to CSS vars injected by TenantProvider (useInsertionEffect).
         // Safe fallbacks prevent any flash of wrong color on first paint.
         brand: {
-          DEFAULT:   'var(--color-primary, #0F172A)',
-          secondary: 'var(--color-secondary, #3B82F6)',
+          primary: 'var(--color-primary, #0F172A)',
+          accent: 'var(--color-accent, #3B82F6)',
           // Sidebar background: deep dark with a 12% brand tint.
           // color-mix blends the primary into near-black so the sidebar feels
           // branded without being garish. Fallback: pure near-black.

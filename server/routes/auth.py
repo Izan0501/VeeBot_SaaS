@@ -5,7 +5,7 @@ from datetime import datetime
 from database import users_collection, get_all_candidates_from_db, delete_full_user_data, tenants_collection
 from bson import ObjectId
 from security import get_password_hash, verify_password, create_access_token, get_current_user
-from schemas import UserAuth, Token, UserProfileUpdate, PasswordChange, EmailRequest, DirectResetRequest
+from schemas import UserAuth, Token, UserProfileUpdate, PasswordChange, EmailRequest, DirectResetRequest, BrandingUpdate
 from services import index  # Necesario para borrar vectores en Pinecone al eliminar cuenta
 
 router = APIRouter()
@@ -72,19 +72,89 @@ def get_current_user_profile(current_user: dict = Depends(get_current_user)):
         if tenant:
             tenant_config = {
                 "company_name": tenant.get("name"),
-                "subdomain": tenant.get("subdomain"),
-                "branding": tenant.get("branding"),
-                "ai_niche": tenant.get("ai_niche")
+                "subdomain":    tenant.get("subdomain"),
+                "branding":     tenant.get("branding"),
+                "ai_niche":     tenant.get("ai_niche")
             }
-            
+    else:
+        # Solo / Free user: branding is stored directly on the user document
+        user_branding = current_user.get("branding")
+        if user_branding:
+            tenant_config = {"branding": user_branding}
+
     return {
-        "email": current_user.get("email"),
-        "name": current_user.get("name", "Usuario"),
-        "role": current_user.get("role", "Free"),
-        "min_score": settings.get("min_score", 70),
+        "email":       current_user.get("email"),
+        "name":        current_user.get("name", "Usuario"),
+        "role":        current_user.get("role", "Free"),
+        "min_score":   settings.get("min_score", 70),
         "auto_reject": settings.get("auto_reject", False),
         "tenant_config": tenant_config
     }
+
+
+
+@router.patch("/auth/branding", status_code=200)
+def update_branding(
+    data: BrandingUpdate,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Atomically update branding colours for the current user / tenant.
+
+    Two execution paths:
+    ① Tenant user (has tenant_id + role tenant_admin/Agency):
+       → Writes to `tenants` collection using dot-notation $set so no other
+         tenant fields (subscription, ai_niche, etc.) are touched.
+    ② Solo / Free user (no tenant_id):
+       → Writes to their own `users` document under `branding.*`
+         so colours persist and are returned by GET /auth/me.
+    """
+    tenant_id = current_user.get("tenant_id")
+    user_role  = current_user.get("role", "Free")
+
+    # Build a sparse $set payload — only send fields the client explicitly provided
+    set_payload: dict = {}
+    for field, value in data.model_dump(exclude_none=True).items():
+        set_payload[f"branding.{field}"] = value
+
+    if not set_payload:
+        raise HTTPException(status_code=422, detail="No se enviaron campos para actualizar.")
+
+    # ── Path ①: Tenant user updating the shared tenant branding ─────────────
+    if tenant_id:
+        # Allowed if the role is any privileged label OR if this user is simply
+        # the account that owns the tenant (tenant_id match is sufficient for admin).
+        # This covers: tenant_admin, Agency, Agency Pro, Admin, Premium, Reclutador.
+        TENANT_BRANDING_ROLES = {
+            "tenant_admin", "Agency Pro", "Agency",
+            "Admin", "admin", "Premium", "Reclutador",
+        }
+        is_elevated_role = user_role in TENANT_BRANDING_ROLES
+
+        if not is_elevated_role:
+            raise HTTPException(
+                status_code=403,
+                detail=(
+                    f"El rol '{user_role}' no tiene permisos para modificar el branding del tenant. "
+                    "Se requiere rol tenant_admin, Admin, Agency o superior."
+                )
+            )
+        result = tenants_collection.update_one(
+            {"_id": ObjectId(tenant_id)},
+            {"$set": set_payload}
+        )
+        if result.matched_count == 0:
+            raise HTTPException(status_code=404, detail="Tenant no encontrado.")
+        return {"message": "Branding del tenant actualizado.", "updated_fields": list(set_payload.keys())}
+
+
+    # ── Path ②: Solo / Free user — store branding on their own user doc ──────
+    users_collection.update_one(
+        {"_id": current_user["_id"]},
+        {"$set": set_payload}
+    )
+    return {"message": "Branding personal actualizado.", "updated_fields": list(set_payload.keys())}
+
 
 @router.put("/auth/me")
 def update_user_profile(data: UserProfileUpdate, current_user: dict = Depends(get_current_user)):

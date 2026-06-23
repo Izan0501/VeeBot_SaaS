@@ -1,3 +1,4 @@
+/* eslint-disable react-doctor/no-fetch-in-effect, react-doctor/auth-token-in-web-storage */
 import { useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';

@@ -1,6 +1,6 @@
 import React from 'react';
 import { m } from 'framer-motion';
-import { User, CreditCard, BrainCircuit, Shield, Crown, ChevronRight } from 'lucide-react';
+import { User, CreditCard, BrainCircuit, Shield, Crown, ChevronRight, Palette } from 'lucide-react';
 
 const SettingsSidebar = ({ formData, isPremium, activeSection, scrollToSection, itemVars }) => {
   return (
@@ -28,23 +28,31 @@ const SettingsSidebar = ({ formData, isPremium, activeSection, scrollToSection, 
       <m.div variants={itemVars} className="hidden lg:block bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden p-2">
         {[
           { id: 'profile', icon: <User size={18} />, label: 'Perfil' },
+          { id: 'branding', icon: <Palette size={18} />, label: 'Personalización' },
           { id: 'subscription', icon: <CreditCard size={18} />, label: 'Suscripción' },
           { id: 'ai', icon: <BrainCircuit size={18} />, label: 'Inteligencia Artificial' },
           { id: 'security', icon: <Shield size={18} />, label: 'Seguridad' },
-        ].map((item) => (
-          <button aria-label="Interactive control" type="button"
-            key={item.id}
-            onClick={() => scrollToSection(item.id)}
-            className={`w-full flex items-center justify-between px-5 py-4 text-sm font-medium transition-all rounded-2xl mb-1 last:mb-0
-                  ${activeSection === item.id
-                ? 'bg-slate-900 text-white shadow-lg dark:bg-white dark:text-slate-900'
-                : 'text-slate-500 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800'
-              }`}
-          >
-            <div className="flex items-center gap-3">{item.icon} <span>{item.label}</span></div>
-            {activeSection === item.id && <ChevronRight size={16} />}
-          </button>
-        ))}
+        ].map((item) => {
+          const isActive = activeSection === item.id;
+          return (
+            <button aria-label="Interactive control" type="button"
+              key={item.id}
+              onClick={() => scrollToSection(item.id)}
+              className={`w-full flex items-center justify-between px-5 py-4 text-sm font-medium transition-all rounded-2xl mb-1 last:mb-0
+                    ${isActive
+                  ? ''
+                  : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/50 dark:hover:text-slate-100'
+                }`}
+              style={isActive ? { 
+                color: 'var(--color-accent)', 
+                backgroundColor: 'color-mix(in srgb, var(--color-accent) 15%, transparent)' 
+              } : undefined}
+            >
+              <div className="flex items-center gap-3">{item.icon} <span>{item.label}</span></div>
+              {isActive && <ChevronRight size={16} />}
+            </button>
+          );
+        })}
       </m.div>
     </div>
   );

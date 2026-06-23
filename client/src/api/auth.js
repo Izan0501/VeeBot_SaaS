@@ -96,6 +96,20 @@ export const authAPI = {
         return res.json();
     },
 
+    updateBranding: async (primary_color, accent_color) => {
+        const res = await fetch(`${API_URL}/auth/branding`, {
+            method: 'PATCH',
+            headers: getHeaders(),
+            body: JSON.stringify({ primary_color, accent_color })
+        });
+        if (!res.ok) {
+            // Surface FastAPI's Pydantic / HTTPException detail for debugging
+            const errData = await res.json().catch(() => ({}));
+            throw new Error(errData.detail || `Error actualizando branding (HTTP ${res.status})`);
+        }
+        return res.json();
+    },
+
     changePassword: async (currentPassword, newPassword) => {
         const res = await fetch(`${API_URL}/auth/change-password`, {
             method: 'PUT',

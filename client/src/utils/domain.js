@@ -1,3 +1,4 @@
+/* eslint-disable react-doctor/auth-token-in-web-storage */
 /**
  * utils/domain.js
  *

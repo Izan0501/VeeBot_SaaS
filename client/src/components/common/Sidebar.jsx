@@ -135,12 +135,13 @@ const Sidebar = ({ onOpenModal, toggleTheme, currentTheme, userRole }) => {
 
             <aside aria-label="Interactive control" className={`group/sidebar
                 fixed md:sticky top-0 left-0 h-screen flex flex-col z-50
-                transition-all duration-300 ease-in-out shadow-2xl md:shadow-none
                 ${isMobileMenuOpen ? 'translate-x-0 w-72' : '-translate-x-full w-72'} md:translate-x-0 md:flex
                 ${isCollapsed ? 'md:w-[88px] is-collapsed' : 'md:w-72'}
-                bg-brand-surface text-white border-r border-brand-border
-                dark:bg-white dark:text-slate-800 dark:border-slate-200
-            `}>
+                text-zinc-100 relative z-0 border-r border-white/5 transition-colors duration-500
+            `} style={{
+                background: `linear-gradient(180deg, color-mix(in srgb, var(--color-primary) 20%, #09090E) 0%, color-mix(in srgb, var(--color-primary) 8%, #030305) 100%)`,
+                boxShadow: `inset 1px 1px 0px color-mix(in srgb, var(--color-primary) 15%, transparent), 4px 0 24px rgba(0,0,0,0.5)`
+            }}>
                 <SidebarHeader 
                     tenant={tenant}
                     isCollapsed={isCollapsed}

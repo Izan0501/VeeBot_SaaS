@@ -1,7 +1,7 @@
 /* eslint-disable react-doctor/no-giant-component, react-doctor/prefer-useReducer, react-doctor/no-multi-comp, react-doctor/prefer-module-scope-static-value, react-doctor/no-initialize-state, react-doctor/control-has-associated-label, react-doctor/no-fetch-in-effect */
 import React, { useState, useEffect } from 'react';
 import {
-  User, BrainCircuit, Save, Shield, Sparkles, Database, Zap, ExternalLink, Star, Crown, Lock, Info, Clock, Activity, AlertTriangle, Trash2, AlertOctagon, Loader2, ChevronRight
+  User, BrainCircuit, Save, Shield, Sparkles, Database, Zap, ExternalLink, Star, Crown, Lock, Info, Clock, Activity, AlertTriangle, Trash2, AlertOctagon, Loader2, ChevronRight, Palette
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
@@ -39,6 +39,10 @@ const Settings = () => {
   const [formData, setFormData] = useState({
     name: '', email: '', role: '', minScore: 70, autoReject: false, joinDate: ''
   });
+  const [brandingData, setBrandingData] = useState({
+    primary_color: '#0F172A',
+    accent_color: '#3B82F6'
+  });
   const [passwords, setPasswords] = useState({ current: '', new: '' });
   const [changingPass, setChangingPass] = useState(false);
 
@@ -67,6 +71,12 @@ const Settings = () => {
             autoReject: data.auto_reject || false,
             joinDate: data.created_at ? new Date(data.created_at).toLocaleDateString() : new Date().toLocaleDateString()
           });
+          if (data.tenant_config && data.tenant_config.branding) {
+            setBrandingData({
+              primary_color: data.tenant_config.branding.primary_color || '#0F172A',
+              accent_color: data.tenant_config.branding.accent_color || '#3B82F6'
+            });
+          }
         }
       } catch (error) {
         console.error(error);
@@ -96,6 +106,22 @@ const Settings = () => {
       toast.error("Error al guardar"); 
     } finally { 
       setLoading(false); 
+    }
+  };
+
+  const handleSaveBranding = async () => {
+    setLoading(true);
+    try {
+      await authAPI.updateBranding(brandingData.primary_color, brandingData.accent_color);
+      document.documentElement.style.setProperty('--color-primary', brandingData.primary_color);
+      document.documentElement.style.setProperty('--color-accent', brandingData.accent_color);
+      toast.success("Personalización actualizada");
+    } catch (err) {
+      // Log the real FastAPI rejection reason (403, 422, etc.) for debugging
+      console.error("[Branding] FastAPI Error:", err.message);
+      toast.error(err.message || "Error al guardar personalización");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -258,6 +284,68 @@ const Settings = () => {
                   <div className="md:col-span-2 grid grid-cols-2 gap-6">
                     <ReadOnlyField label="ID de Usuario" value="USER-8823-XJ9" icon={<Info size={14} />} />
                     <ReadOnlyField label="Miembro Desde" value={formData.joinDate} icon={<Clock size={14} />} />
+                  </div>
+                </div>
+              </SectionCard>
+            </div>
+
+            {/* 1.5 PERSONALIZACIÓN */}
+            <div id="branding" className="scroll-mt-28">
+              <SectionCard title="Personalización y Marca" icon={<Palette className="text-white" size={20} />} headerColor="bg-pink-500">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="space-y-6">
+                    <div>
+                      {/* eslint-disable-next-line react-doctor/label-has-associated-control */}
+                      <label className="text-sm font-bold text-slate-700 dark:text-slate-300 block mb-2">Color Principal</label>
+                      <div className="flex items-center gap-3">
+                        <input type="color" value={brandingData.primary_color} onChange={(e) => {
+                          setBrandingData({...brandingData, primary_color: e.target.value});
+                          document.documentElement.style.setProperty('--color-primary', e.target.value);
+                        }} className="size-10 rounded-xl cursor-pointer border-0 p-0" />
+                        <InputGroup value={brandingData.primary_color} onChange={(e) => {
+                          setBrandingData({...brandingData, primary_color: e.target.value});
+                          document.documentElement.style.setProperty('--color-primary', e.target.value);
+                        }} />
+                      </div>
+                    </div>
+                    <div>
+                      {/* eslint-disable-next-line react-doctor/label-has-associated-control */}
+                      <label className="text-sm font-bold text-slate-700 dark:text-slate-300 block mb-2">Color de Acento</label>
+                      <div className="flex items-center gap-3">
+                        <input type="color" value={brandingData.accent_color} onChange={(e) => {
+                          setBrandingData({...brandingData, accent_color: e.target.value});
+                          document.documentElement.style.setProperty('--color-accent', e.target.value);
+                        }} className="size-10 rounded-xl cursor-pointer border-0 p-0" />
+                        <InputGroup value={brandingData.accent_color} onChange={(e) => {
+                          setBrandingData({...brandingData, accent_color: e.target.value});
+                          document.documentElement.style.setProperty('--color-accent', e.target.value);
+                        }} />
+                      </div>
+                    </div>
+                    <button type="button" onClick={handleSaveBranding} className="w-full py-3 bg-brand-primary text-white rounded-xl font-bold shadow-lg shadow-brand-primary/20 hover:opacity-90 transition-all flex justify-center items-center gap-2">
+                      <Save size={16} /> Guardar Marca
+                    </button>
+                  </div>
+                  {/* LIVE PREVIEW MINI-CARD */}
+                  <div className="p-6 rounded-3xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 shadow-inner flex flex-col justify-center items-center gap-4 relative overflow-hidden">
+                    <div className="absolute inset-0 bg-gradient-to-tr from-transparent to-white/5 pointer-events-none"></div>
+                    <p className="text-xs font-bold text-slate-400 mb-2 uppercase tracking-widest relative z-10">Vista Previa en Vivo</p>
+                    <div className="w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl bg-brand-primary relative z-10 transition-colors duration-300 border border-white/10">
+                      <div className="p-4 border-b border-white/5 flex justify-between items-center bg-black/10">
+                        <div className="h-5 w-20 rounded bg-white/20"></div>
+                        <div className="flex gap-2">
+                          <div className="size-2 rounded-full bg-white/20"></div>
+                          <div className="size-2 rounded-full bg-white/20"></div>
+                        </div>
+                      </div>
+                      <div className="p-6">
+                        <div className="h-5 w-1/2 bg-white/10 rounded mb-4"></div>
+                        <div className="h-3 w-3/4 bg-white/5 rounded mb-8"></div>
+                        <button type="button" aria-label="Interactive control" className="w-full py-3 rounded-xl bg-brand-accent text-white font-bold shadow-brand-glow transition-all duration-300 hover:scale-[1.02] active:scale-95 flex justify-center items-center gap-2">
+                           Comenzar
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </SectionCard>

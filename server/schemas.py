@@ -7,9 +7,46 @@ import re
 # ----------------------------------------------------
 
 class BrandingConfig(BaseModel):
-    logo_url: Optional[HttpUrl] = Field(None, description="URL del logo corporativo")
-    primary_color: str = Field(default="#0F172A", pattern=r"^#(?:[0-9a-fA-F]{3}){1,2}$")
-    secondary_color: str = Field(default="#3B82F6", pattern=r"^#(?:[0-9a-fA-F]{3}){1,2}$")
+    """
+    Full branding sub-document stored in the `tenants` collection.
+    Defaults are a professional Indigo/Violet palette so every new account
+    looks great immediately, without requiring setup.
+    """
+    company_logo_url: Optional[str] = Field(None, description="URL pública del logo corporativo")
+    primary_color:   str = Field(default="#6366F1", pattern=r"^#(?:[0-9a-fA-F]{3}){1,2}$", description="Color primario (hex)")
+    accent_color:    str = Field(default="#A855F7", pattern=r"^#(?:[0-9a-fA-F]{3}){1,2}$", description="Color acento (hex)")
+    secondary_color: str = Field(default="#3B82F6", pattern=r"^#(?:[0-9a-fA-F]{3}){1,2}$", description="Color secundario / legado (hex)")
+    theme_mode:      str = Field(default="system",  description="'light' | 'dark' | 'system'")
+
+    @field_validator("theme_mode")
+    @classmethod
+    def validate_theme(cls, v: str) -> str:
+        allowed = {"light", "dark", "system"}
+        if v not in allowed:
+            raise ValueError(f"theme_mode debe ser uno de: {', '.join(allowed)}")
+        return v
+
+
+class BrandingUpdate(BaseModel):
+    """
+    PATCH body for /auth/branding — every field is optional so the frontend
+    can update a single property without touching the rest.
+    Uses atomic $set on branding.* so no other tenant data is overwritten.
+    """
+    company_logo_url: Optional[str] = None
+    primary_color:    Optional[str] = Field(None, pattern=r"^#(?:[0-9a-fA-F]{3}){1,2}$")
+    accent_color:     Optional[str] = Field(None, pattern=r"^#(?:[0-9a-fA-F]{3}){1,2}$")
+    secondary_color:  Optional[str] = Field(None, pattern=r"^#(?:[0-9a-fA-F]{3}){1,2}$")
+    theme_mode:       Optional[str] = None
+
+    @field_validator("theme_mode")
+    @classmethod
+    def validate_theme(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        if v not in {"light", "dark", "system"}:
+            raise ValueError("theme_mode debe ser 'light', 'dark' o 'system'")
+        return v
 
 class TenantOnboardingRequest(BaseModel):
     company_name: str = Field(..., min_length=2, max_length=100)

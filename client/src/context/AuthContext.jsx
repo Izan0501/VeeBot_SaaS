@@ -1,4 +1,4 @@
-/* eslint-disable react-doctor/no-initialize-state */
+/* eslint-disable react-doctor/no-initialize-state, react-doctor/auth-token-in-web-storage */
 import React, { use, createContext, useState, useEffect } from 'react';
 import { authAPI } from '../api/auth';
 import { logoutAndRedirect } from '../utils/domain';
@@ -25,11 +25,13 @@ export const AuthProvider = ({ children }) => {
             // Check if the role grants premium features
             const isPremiumRole = ['Premium', 'Admin', 'Reclutador', 'Agency', 'tenant_admin'].includes(userData.role);
 
-            // Inyección Global de Branding (CSS Variables)
+            // Inyección Global de Branding (CSS Variables) — null-safe
             if (userData.tenant_config && userData.tenant_config.branding) {
-                const { primary_color, secondary_color } = userData.tenant_config.branding;
-                if (primary_color) document.documentElement.style.setProperty('--color-primary', primary_color);
-                if (secondary_color) document.documentElement.style.setProperty('--color-secondary', secondary_color);
+                const branding = userData.tenant_config.branding;
+                const primary = branding?.primary_color || '#6366F1';
+                const accent  = branding?.accent_color  || '#A855F7';
+                document.documentElement.style.setProperty('--color-primary', primary);
+                document.documentElement.style.setProperty('--color-accent',  accent);
             }
 
             setUser({

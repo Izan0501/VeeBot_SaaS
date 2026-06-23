@@ -242,49 +242,52 @@ const Navbar = () => {
         initial={{ y: -100 }}
         animate={{ y: 0 }}
         transition={{ duration: 0.5, type: 'spring', stiffness: 200, damping: 20 }}
-        className={`fixed top-0 left-0 right-0 z-50 transition-colors duration-500 will-change-transform transform-gpu ${
-          isScrolled || isOpen
-            ? 'bg-white/70 dark:bg-slate-950/70 backdrop-blur-xl transform-gpu will-change-transform supports-[backdrop-filter]:bg-white/60'
-            : 'bg-transparent'
-        }`}
+        className="fixed top-0 left-0 right-0 w-full z-50 flex justify-center pointer-events-none"
       >
-        {/* Laser border — opacity-only (no layout/paint cost) */}
+        {/* The Liquid Glass Shell */}
+        <div className={`absolute transition-all duration-[700ms] ease-[cubic-bezier(0.4,0,0.2,1)] transform-gpu ${
+          isScrolled && !isOpen
+            ? 'w-[75px] lg:w-[740px] h-[60px] top-6 rounded-full bg-white/5 dark:bg-[#0A0A0C]/40 backdrop-blur-2xl border border-white/20 dark:border-white/10 shadow-[0_16px_40px_-12px_rgba(0,0,0,0.5)] pointer-events-auto'
+            : isOpen
+            ? 'w-full h-[80px] top-0 bg-white/70 dark:bg-slate-950/70 backdrop-blur-xl supports-[backdrop-filter]:bg-white/60 border-b border-transparent pointer-events-auto'
+            : 'w-full max-w-7xl h-[80px] top-0 bg-transparent border-transparent pointer-events-none'
+        }`} />
+
+        {/* Laser border */}
         <div
-          className={`absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-slate-200 dark:via-slate-800 to-transparent transition-opacity duration-500 ${
-            isScrolled ? 'opacity-100' : 'opacity-0'
+          className={`absolute left-0 right-0 h-px bg-gradient-to-r from-transparent via-slate-200 dark:via-slate-800 to-transparent transition-opacity duration-[700ms] ease-[cubic-bezier(0.4,0,0.2,1)] ${
+            isScrolled && !isOpen ? 'opacity-0 top-[84px]' : isScrolled ? 'opacity-100 top-[80px]' : 'opacity-0 top-[80px]'
           }`}
         />
 
-        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between relative z-10">
-
-          {/* ── Logo ── */}
-          <div className="flex items-start">
-            <Link
-              to="/"
-              aria-label="Axon Crafts Home"
-              className="relative flex items-center justify-center w-14 h-14 shrink-0 ml-2"
-            >
-              <img
-                src="/Favicon.png"
-                alt="Axon Crafts"
-                className="animate-logo-core h-11 w-auto object-contain"
-              />
-            </Link>
+        {/* The Static Flex Grid (Content Layer) */}
+        <div className={`relative w-full max-w-7xl px-6 flex justify-between items-center z-10 transition-all duration-[700ms] ease-[cubic-bezier(0.4,0,0.2,1)] pointer-events-auto ${
+          isScrolled && !isOpen ? 'h-[60px] top-6' : 'h-[80px] top-0'
+        }`}>
+          
+          {/* ── Logo & Wordmark ── */}
+          <div className="flex-1 flex justify-start">
+            <div className={`transition-all duration-[700ms] ease-[cubic-bezier(0.4,0,0.2,1)] transform-gpu whitespace-nowrap flex items-center gap-4 ml-2 ${isScrolled && !isOpen ? 'opacity-0 translate-y-8 scale-95 pointer-events-none' : 'opacity-100 translate-y-0 scale-100'}`}>
+              <Link to="/" aria-label="Axon Crafts Home" className="relative flex items-center justify-center w-14 h-14 shrink-0">
+                <img src="/Favicon.png" alt="Axon Crafts" className="animate-logo-core h-11 w-auto object-contain" />
+              </Link>
+            </div>
           </div>
 
           {/* ── Desktop Nav (Liquid Pill) ── */}
           <div
-            className="hidden lg:flex items-center gap-2"
+            className="hidden lg:flex flex-shrink-0 items-center gap-2"
             onMouseLeave={handleMouseLeave}
           >
-            <div className="relative flex items-center bg-slate-100/50 dark:bg-slate-900/50 p-1.5 rounded-full border border-slate-200/50 dark:border-slate-800/50 backdrop-blur-sm">
+            <div className={`relative flex items-center p-1.5 rounded-full transition-colors duration-[700ms] ease-[cubic-bezier(0.4,0,0.2,1)] ${isScrolled && !isOpen ? 'bg-transparent border-transparent' : 'bg-slate-100/50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-800/50 backdrop-blur-sm'}`}>
               {/* SLIDING PILL BACKGROUND */}
               <div 
-                className="absolute inset-y-1 h-[calc(100%-8px)] bg-indigo-500/5 dark:bg-indigo-500/20 border border-indigo-500/10 dark:border-indigo-400/40 shadow-[inset_0_1px_4px_rgba(255,255,255,0.3),0_4px_12px_rgba(99,102,241,0.1)] dark:shadow-[inset_0_1px_4px_rgba(255,255,255,0.15),0_4px_12px_rgba(99,102,241,0.3)] backdrop-blur-xl rounded-full transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] pointer-events-none"
+                className="absolute inset-y-1 h-[calc(100%-8px)] z-0 rounded-full bg-white/5 dark:bg-white/5 backdrop-blur-md border border-white/20 dark:border-white/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.4),0_4px_12px_rgba(0,0,0,0.1)] transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] pointer-events-none"
                 style={{
                   opacity: hoverStyle.opacity,
                   left: `${hoverStyle.left}px`,
                   width: `${hoverStyle.width}px`,
+                  background: `linear-gradient(135deg, color-mix(in srgb, var(--color-primary) 8%, transparent) 0%, transparent 100%)`
                 }}
               />
 
@@ -307,13 +310,15 @@ const Navbar = () => {
             </div>
 
             <div className="h-6 w-px bg-slate-200 dark:bg-slate-800 mx-4" />
+          </div>
 
-            {/* Actions */}
-            <div className="flex items-center gap-3">
+          {/* Actions */}
+          <div className="flex-1 flex justify-end">
+            <div className={`transition-all duration-[700ms] ease-[cubic-bezier(0.4,0,0.2,1)] transform-gpu whitespace-nowrap flex items-center justify-end gap-3 ${isScrolled && !isOpen ? 'opacity-0 translate-y-8 scale-95 pointer-events-none' : 'opacity-100 translate-y-0 scale-100'}`}>
               <button aria-label="Interactive control" type="button"
                 onClick={toggleLanguage}
                 title="Change Language"
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors border border-transparent hover:border-slate-200 dark:hover:border-slate-700 uppercase"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors border border-transparent hover:border-slate-200 dark:hover:border-slate-700 uppercase shrink-0"
               >
                 <Globe size={16} />
                 <span>{i18n.language?.substring(0, 2)}</span>
@@ -321,17 +326,17 @@ const Navbar = () => {
 
               <Link
                 to="/login"
-                className="text-sm font-bold text-slate-700 dark:text-white hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors px-3 py-2"
+                className="text-sm font-bold text-slate-700 dark:text-white hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors px-3 py-2 shrink-0"
               >
                 {t('navbar.login', 'Login')}
               </Link>
 
               <Link
                 to="/onboarding"
-                className="group relative px-5 py-2.5 bg-slate-900 dark:bg-white text-white dark:text-slate-950 text-sm font-bold rounded-xl overflow-hidden shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40 transition-all hover:scale-105 active:scale-95"
+                className="group relative px-5 py-2.5 bg-slate-900 dark:bg-white text-white dark:text-slate-950 text-sm font-bold rounded-xl overflow-hidden shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40 transition-all hover:scale-105 active:scale-95 shrink-0"
               >
                 <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-[length:200%_auto] animate-gradient-x" />
-                <span className="relative z-10 flex items-center gap-2">
+                <span className="relative z-10 flex items-center gap-2 whitespace-nowrap">
                   {t('navbar.getStarted', 'Get Started')} <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
                 </span>
               </Link>
@@ -341,7 +346,7 @@ const Navbar = () => {
           {/* ── Mobile Toggle ── */}
           <button type="button"
             onClick={() => setIsOpen((prev) => !prev)}
-            className="lg:hidden relative z-50 size-10 flex items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors border border-transparent active:border-slate-300 dark:active:border-slate-600"
+            className={`lg:hidden absolute transition-all duration-[700ms] ease-[cubic-bezier(0.4,0,0.2,1)] z-50 size-10 flex items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white hover:bg-slate-200 dark:hover:bg-slate-700 border border-transparent active:border-slate-300 dark:active:border-slate-600 ${isScrolled && !isOpen ? 'right-1/2 translate-x-1/2' : 'right-6 translate-x-0'}`}
             aria-label="Toggle Menu"
           >
             <m.div
