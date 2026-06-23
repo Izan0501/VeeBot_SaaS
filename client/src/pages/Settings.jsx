@@ -208,7 +208,7 @@ const Settings = () => {
   if (fetching) return <div className="min-h-screen flex justify-center items-center bg-slate-50 dark:bg-slate-950"><div className="animate-pulse text-indigo-600 font-medium">Cargando perfil…</div></div>;
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pt-24 pb-20 px-4 md:px-8 md:pt-10 transition-colors duration-300 relative overflow-x-hidden">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pt-24 pb-20 px-4 md:px-8 md:pt-10 transition-colors duration-300 relative">
 
       <div className="absolute top-0 left-0 w-full h-[500px] bg-gradient-to-b from-indigo-50/50 to-transparent dark:from-indigo-950/20 pointer-events-none"></div>
 
@@ -261,7 +261,7 @@ const Settings = () => {
           </m.button>
         </m.div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <div className="flex flex-col lg:flex-row items-start gap-8 w-full">
 
           {/* SIDEBAR (Ahora importado) */}
           <SettingsSidebar
@@ -272,8 +272,8 @@ const Settings = () => {
             itemVars={itemVars}
           />
 
-          {/* MAIN CONTENT (Columna Derecha - 8 cols) */}
-          <div className="lg:col-span-8 space-y-8">
+          {/* MAIN CONTENT */}
+          <div className="flex-1 w-full min-w-0 space-y-8">
 
             {/* 1. PERFIL */}
             <div id="profile" className="scroll-mt-28">

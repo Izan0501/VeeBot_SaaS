@@ -4,7 +4,7 @@ import { User, CreditCard, BrainCircuit, Shield, Crown, ChevronRight, Palette } 
 
 const SettingsSidebar = ({ formData, isPremium, activeSection, scrollToSection, itemVars }) => {
   return (
-    <div className="lg:col-span-4 lg:sticky lg:top-28 h-fit z-10 space-y-6">
+    <div className="w-full lg:w-[340px] shrink-0 sticky top-[120px] self-start h-fit z-10 space-y-6">
       {/* User Card */}
       <m.div variants={itemVars} className="bg-white dark:bg-slate-900 p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xl shadow-slate-200/50 dark:shadow-none flex flex-col items-center text-center relative overflow-hidden">
         <div className="absolute top-0 left-0 w-full h-24 bg-gradient-to-b from-slate-50 to-transparent dark:from-slate-800/50"></div>

@@ -38,7 +38,7 @@ const CandidatesTable = ({
         <div className="space-y-8 pt-2 pb-12">
 
             {/* --- BARRA DE CONTROL FLOTANTE (GLASS) --- */}
-            <div className="sticky top-4 z-30 mx-auto max-w-full">
+            <div className="relative z-20 mx-auto max-w-full">
                 <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl p-2 rounded-[24px] border border-white/20 dark:border-slate-700/50 shadow-2xl shadow-indigo-500/5 flex flex-col md:flex-row gap-3 items-center justify-between transition-all">
 
                     {/* Input de Búsqueda */}
