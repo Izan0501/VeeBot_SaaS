@@ -111,7 +111,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     return (
-        <AuthContext.Provider /* eslint-disable-next-line react-doctor/jsx-no-constructed-context-values */ value={{ user, login, logout, loading }}>
+        <AuthContext.Provider /* eslint-disable-next-line react-doctor/jsx-no-constructed-context-values */ value={{ user, setUser, login, logout, loading }}>
             {!loading && children}
         </AuthContext.Provider>
     );

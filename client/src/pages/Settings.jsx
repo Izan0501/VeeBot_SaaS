@@ -20,6 +20,7 @@ import ReadOnlyField from '../components/common/ReadOnlyField';
 import Toggle from '../components/common/Toggle';
 import FeatureItem from '../components/settings/FeatureItem';
 import SettingsSidebar from '../components/settings/SettingsSidebar';
+import { useAuth } from '../context/AuthContext';
 
 const Settings = () => {
   const [loading, setLoading] = useState(false);
@@ -27,6 +28,8 @@ const Settings = () => {
   const [portalLoading, setPortalLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
   const [activeSection, setActiveSection] = useState('profile');
+
+  const { setUser } = useAuth();
 
   // Modales
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -101,6 +104,15 @@ const Settings = () => {
       };
       
       await authAPI.updateProfile(payload);
+      
+      setUser(prev => ({
+        ...prev,
+        name: payload.name,
+        role: payload.role,
+        min_score: payload.min_score,
+        auto_reject: payload.auto_reject
+      }));
+
       toast.success("Perfil actualizado");
     } catch { 
       toast.error("Error al guardar"); 
