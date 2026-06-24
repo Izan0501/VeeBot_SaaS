@@ -64,19 +64,16 @@ export function useActiveSection(sectionIds, navbarHeight = 80) {
   // ─── 2. Section IO for active link tracking ──────────────────────────────
   // Stable callback — never re-created, never triggers dependency loops
   const handleIntersect = useCallback((entries) => {
-    // Collect all currently intersecting entries
-    const intersecting = entries.filter((e) => e.isIntersecting);
-
-    if (intersecting.length === 0) return;
-
-    // Pick the topmost intersecting section
-    const topEntry = intersecting.reduce((prev, cur) =>
-      cur.boundingClientRect.top < prev.boundingClientRect.top ? cur : prev,
-    );
-
     if (isProgrammaticScroll.current) return;
 
-    const newId = topEntry.target.id;
+    // With a "-50% 0px -50% 0px" rootMargin, the observer fires precisely
+    // when a section's edge crosses the exact center of the viewport.
+    // Only one section can occupy the center line at any moment, so we
+    // take the first intersecting entry directly — no reduce needed.
+    const intersecting = entries.filter((e) => e.isIntersecting);
+    if (intersecting.length === 0) return;
+
+    const newId = intersecting[0].target.id;
     if (newId !== activeIdRef.current) {
       activeIdRef.current = newId;
       setActiveId(newId);
@@ -87,11 +84,11 @@ export function useActiveSection(sectionIds, navbarHeight = 80) {
     if (sectionObsRef.current) sectionObsRef.current.disconnect();
 
     sectionObsRef.current = new IntersectionObserver(handleIntersect, {
-      // Fire when a section reaches the upper 35% of the viewport.
-      // -65% bottom margin (was -55%) delays the fire until the scroll is
-      // nearly complete, preventing the NavPill layoutId spring animation
-      // from competing with the scroll compositor mid-flight.
-      rootMargin: `-${navbarHeight}px 0px -65% 0px`,
+      // "Center Screen Laser": creates a 0-height horizontal band at the
+      // exact vertical center of the viewport. A section activates the moment
+      // its body crosses this line — symmetrical in both scroll directions,
+      // preventing the activeId from ever getting "stuck" mid-scroll.
+      rootMargin: '-50% 0px -50% 0px',
       threshold: 0,
     });
 
