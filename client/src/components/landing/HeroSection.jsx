@@ -111,36 +111,20 @@ const HeroSection = () => {
                                 </span>
                             </div>
                         </button>
-
-                        <button aria-label="Interactive control" type="button"
-                            onClick={(e) => {
-                                e.preventDefault();
-                                const el = document.getElementById('DigitalTwin');
-                                if (el) {
-                                    const offset = el.getBoundingClientRect().top + window.scrollY - 80;
-                                    window.scrollTo({ top: offset, behavior: 'smooth' });
-                                }
-                            }}
-                            className="px-8 py-4 rounded-xl font-bold text-lg text-slate-700 dark:text-white bg-white/50 dark:bg-slate-800/50 backdrop-blur-md transform-gpu border border-slate-200 dark:border-slate-700/50 hover:bg-white dark:hover:bg-slate-800 transition-all w-full sm:w-auto flex items-center justify-center gap-3 group hover:border-indigo-500/50 shadow-sm"
-                        >
-                            <div className="p-1.5 bg-indigo-50 dark:bg-indigo-500/20 rounded-lg text-indigo-600 dark:text-indigo-400 group-hover:text-indigo-700 dark:group-hover:text-indigo-300 transition-colors">
-                                <Zap size={18} fill="currentColor" />
-                            </div>
-                            Ver Demo Interactiva
-                        </button>
                     </m.div>
 
                     {/* Trust Badges 
                        CAMBIO RESPONSIVE: flex-wrap para que no se rompan en pantallas muy pequeñas
                     */}
                     <m.div variants={itemVariants} className="mt-10 flex flex-wrap items-center justify-center lg:justify-start gap-4 sm:gap-6 text-sm font-medium text-slate-500 dark:text-slate-400">
-                        <div className="flex items-center gap-2">
-                            <div className="p-1 rounded-full bg-emerald-100 dark:bg-emerald-500/20"><CheckCircle size={14} className="text-emerald-600 dark:text-emerald-400" /></div>
-                            <span>Sin tarjeta requerida</span>
-                        </div>
+                        
                         <div className="flex items-center gap-2">
                             <div className="p-1 rounded-full bg-emerald-100 dark:bg-emerald-500/20"><CheckCircle size={14} className="text-emerald-600 dark:text-emerald-400" /></div>
                             <span>Setup en 2 minutos</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <div className="p-1 rounded-full bg-emerald-100 dark:bg-emerald-500/20"><CheckCircle size={14} className="text-emerald-600 dark:text-emerald-400" /></div>
+                            <span>Powered by AI (Llama 3.3)</span>
                         </div>
                     </m.div>
                 </m.div>

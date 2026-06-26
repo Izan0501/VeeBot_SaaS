@@ -1,124 +1,204 @@
-import React, { useState } from 'react';
+/* eslint-disable react-doctor/anchor-is-valid, react-doctor/control-has-associated-label */
+import React, { useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { m } from 'framer-motion';
-import { Mail } from 'lucide-react';
+import { ArrowRight, Twitter, Linkedin, Github, Mail } from 'lucide-react';
 
-const footerLinks = [
-  { to: "/terms", label: "Términos" },
-  { to: "/privacy", label: "Privacidad" },
-  { to: "/contact", label: "Contacto" },
-  { to: "/faq", label: "FAQ" },
-];
-
-const socialLinks = [
-  { icon: <Mail size={18} />, href: "#" }
-];
+const footerLinks = {
+  product: [
+    { label: "Inicio", href: "#hero" },
+    { label: "Digital Twin", href: "#DigitalTwin" },
+    { label: "Comparator", href: "#comparator" },
+    { label: "Pricing", href: "#pricing" }
+  ],
+  resources: [
+    { label: "Help Center", href: "/faq" },
+    { label: "FAQ", href: "/faq" },
+  ],
+  company: [
+    { label: "Contact", href: "/contact" },
+  ],
+  legal: [
+    { label: "Privacy Policy", to: "/privacy" },
+    { label: "Terms of Service", to: "/terms" },
+    { label: "Cookie Policy", href: "#" }
+  ]
+};
 
 const Footer = () => {
-  const [hoverStyle, setHoverStyle] = useState({ opacity: 0, left: 0, top: 0, width: 0, height: 0 });
+  const footerRef = useRef(null);
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [isHovered, setIsHovered] = useState(false);
+
+  const handleMouseMove = (e) => {
+    if (!footerRef.current) return;
+    const rect = footerRef.current.getBoundingClientRect();
+    setMousePosition({
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+    });
+  };
 
   return (
-    <footer className="relative pt-32 pb-10 overflow-hidden z-10 bg-neutral-50 dark:bg-zinc-950 border-t border-neutral-200 dark:border-white/5 transition-colors duration-500">
-
-      {/* ==================== 1. FONDO ATMOSFÉRICO (VIVO) ==================== */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {/* Gradiente Base */}
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-slate-200/50 dark:to-slate-900/50"></div>
-
-        {/* Orbes Animados (Movimiento aleatorio suave) */}
-        <m.div
-          animate={{ x: [0, 50, -50, 0], y: [0, -30, 30, 0], scale: [1, 1.1, 0.9, 1] }}
-          transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
-          className="absolute -top-[30%] left-[20%] size-[600px] bg-indigo-500/10 dark:bg-indigo-500/20 rounded-full blur-[120px] mix-blend-multiply dark:mix-blend-screen"
-        />
-        <m.div
-          animate={{ x: [0, -40, 40, 0], y: [0, 40, -40, 0], scale: [1, 1.2, 0.8, 1] }}
-          transition={{ duration: 18, repeat: Infinity, ease: "linear" }}
-          className="absolute -top-[20%] right-[20%] size-[500px] bg-purple-500/10 dark:bg-purple-500/20 rounded-full blur-[100px] mix-blend-multiply dark:mix-blend-screen"
+    <footer 
+      ref={footerRef}
+      onMouseMove={handleMouseMove}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      className="relative overflow-hidden pt-24 pb-12 bg-gradient-to-b from-[#16082b] via-[#0b0316] to-[#030108] border-t border-purple-500/20 shadow-[inset_0_1px_0_rgba(168,85,247,0.1)] group"
+    >
+      {/* Dynamic Cursor Spotlight */}
+      <div 
+        className="absolute inset-0 z-[1] pointer-events-none transition-opacity duration-1000 ease-in-out"
+        style={{ opacity: isHovered ? 1 : 0 }}
+      >
+        <div 
+          className="absolute w-[1000px] h-[1000px] -translate-x-1/2 -translate-y-1/2 bg-[radial-gradient(circle_at_center,_rgba(168,85,247,0.15)_0%,_rgba(147,51,234,0.05)_40%,_transparent_70%)] blur-3xl"
+          style={{
+            left: `${mousePosition.x}px`,
+            top: `${mousePosition.y}px`
+          }}
         />
       </div>
-
-      {/* Línea de Borde Brillante Superior */}
-      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-indigo-500/30 dark:via-indigo-400/30 to-transparent"></div>
+      <style>{`
+        @keyframes fluid-chrome {
+          0%, 100% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+        }
+        .text-liquid-chrome {
+          background: linear-gradient(
+            to right, 
+            #2e0c59 0%, 
+            #9333ea 20%, 
+            #f3e8ff 40%, 
+            #ffffff 50%, 
+            #f3e8ff 60%, 
+            #9333ea 80%, 
+            #2e0c59 100%
+          );
+          background-size: 200% auto;
+          color: transparent;
+          -webkit-background-clip: text;
+          background-clip: text;
+          animation: fluid-chrome 6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+        }
+      `}</style>
+      {/* Galactic Nebula Glow */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] opacity-40 pointer-events-none bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-purple-600/30 via-transparent to-transparent blur-3xl" />
+      
+      {/* Cinematic Underglow */}
+      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[800px] h-[300px] bg-[var(--color-primary)]/10 blur-[120px] rounded-full pointer-events-none" />
 
       <div className="relative z-20 max-w-7xl mx-auto px-6">
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-12 md:gap-8 items-center">
+        
+        {/* Cinematic CTA */}
+        <div className="flex flex-col md:flex-row justify-between items-center gap-12">
+          <div className="text-center md:text-left flex flex-col items-center md:items-start">
 
-          {/* ==================== COLUMNA 1: LOGO & MISIÓN (4 cols) ==================== */}
-          <div className="md:col-span-4 flex flex-col items-center md:items-start text-center md:text-left gap-y-4">
-            <div className="flex items-start">
-              <Link
-                to="/"
-                className="relative flex items-center justify-center w-14 h-14 shrink-0 ml-2"
-                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-                aria-label="Axon Crafts Home"
-              >
-                <img src="/Favicon.png" alt="Axon Crafts" className="animate-logo-core h-11 w-auto object-contain" />
-              </Link>
+            <div className="relative mb-4">
+              {/* Ghost Aura Layer */}
+              <h2 className="absolute top-0 left-0 w-full text-5xl md:text-7xl font-bold tracking-tight text-liquid-chrome blur-xl opacity-60 pointer-events-none select-none">
+                Join the Future
+              </h2>
+              {/* Main Text */}
+              <h2 className="relative text-5xl md:text-7xl font-bold tracking-tight text-liquid-chrome drop-shadow-[0_0_15px_rgba(192,132,252,0.2)]">
+                Join the Future
+              </h2>
             </div>
-            <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed max-w-xs">
-              Infraestructura de inteligencia artificial para equipos de recursos humanos modernos.
+            <p className="text-white/50 text-lg md:text-xl max-w-md">
+              Start building with VeeBot today and experience next-generation infrastructure.
             </p>
           </div>
+          
+        </div>
 
-          {/* ==================== COLUMNA 2: NAVEGACIÓN LÍQUIDA (4 cols) ==================== */}
-          <div className="md:col-span-4 flex justify-center">
-            <div 
-              className="relative flex flex-wrap justify-center gap-2"
-              onMouseLeave={() => setHoverStyle((prev) => ({ ...prev, opacity: 0 }))}
-            >
-              {/* OMNIDIRECTIONAL LIQUID GLASS PILL */}
-              <div 
-                className="absolute bg-indigo-500/5 dark:bg-indigo-500/20 border border-indigo-500/10 dark:border-indigo-400/40 shadow-[inset_0_1px_4px_rgba(255,255,255,0.3),0_4px_12px_rgba(99,102,241,0.1)] dark:shadow-[inset_0_1px_4px_rgba(255,255,255,0.15),0_4px_12px_rgba(99,102,241,0.3)] backdrop-blur-xl rounded-full transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] pointer-events-none z-0"
-                style={{
-                  opacity: hoverStyle.opacity,
-                  left: `${hoverStyle.left}px`,
-                  top: `${hoverStyle.top}px`,
-                  width: `${hoverStyle.width}px`,
-                  height: `${hoverStyle.height}px`,
-                }}
-              />
-
-              {footerLinks.map((link) => (
-                <Link
-                  key={link.to}
-                  to={link.to}
-                  onMouseEnter={(e) => {
-                    setHoverStyle({
-                      opacity: 1,
-                      left: e.currentTarget.offsetLeft,
-                      top: e.currentTarget.offsetTop,
-                      width: e.currentTarget.offsetWidth,
-                      height: e.currentTarget.offsetHeight,
-                    });
-                  }}
-                  className="relative z-10 block px-4 py-2 transition-colors duration-300 text-neutral-600 dark:text-neutral-400 hover:text-indigo-600 dark:hover:text-indigo-300 rounded-full"
-                >
-                  <span className="relative z-20">{link.label}</span>
-                </Link>
+        {/* Elite SaaS Link Grid */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-12 mt-24">
+          <div>
+            <h3 className="text-purple-300/50 text-xs font-bold tracking-[0.2em] uppercase mb-6">Product</h3>
+            <ul className="space-y-4">
+              {footerLinks.product.map((link) => (
+                <li key={link.label}>
+                  <a aria-label="Interactive control" href={link.href} className="text-white/60 hover:text-purple-300 hover:translate-x-1 transition-all duration-300 text-sm flex items-center gap-2 group">
+                    <span>{link.label}</span>
+                  </a>
+                </li>
               ))}
-            </div>
+            </ul>
           </div>
-
-          {/* ==================== COLUMNA 3:STATUS (4 cols) ==================== */}
-          <div className="md:col-span-4 flex flex-col items-center md:items-end gap-6">
-            {/* Status Badge Pulse*/}
-            <div className="flex items-center gap-3 px-4 py-1.5 rounded-full bg-emerald-500/5 dark:bg-emerald-500/10 border border-emerald-500/20 shadow-[0_0_15px_-3px_rgba(16,185,129,0.2)]">
-              <div className="relative flex size-2.5">
-                <span className="animate-ping absolute inline-flex size-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full size-2.5 bg-emerald-500"></span>
-              </div>
-              <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-widest">
-                VeeBot AI - Online
-              </span>
-            </div>
+          <div>
+            <h3 className="text-purple-300/50 text-xs font-bold tracking-[0.2em] uppercase mb-6">Resources</h3>
+            <ul className="space-y-4">
+              {footerLinks.resources.map((link) => (
+                <li key={link.label}>
+                  <Link to={link.href} className="text-white/60 hover:text-purple-300 hover:translate-x-1 transition-all duration-300 text-sm flex items-center gap-2 group">
+                    <span>{link.label}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <h3 className="text-purple-300/50 text-xs font-bold tracking-[0.2em] uppercase mb-6">Company</h3>
+            <ul className="space-y-4">
+              {footerLinks.company.map((link) => (
+                <li key={link.label}>
+                  <Link to={link.href} className="text-white/60 hover:text-purple-300 hover:translate-x-1 transition-all duration-300 text-sm flex items-center gap-2 group">
+                    <span>{link.label}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <h3 className="text-purple-300/50 text-xs font-bold tracking-[0.2em] uppercase mb-6">Legal</h3>
+            <ul className="space-y-4">
+              {footerLinks.legal.map((link) => (
+                <li key={link.label}>
+                  {link.to ? (
+                    <Link to={link.to} className="text-white/60 hover:text-purple-300 hover:translate-x-1 transition-all duration-300 text-sm flex items-center gap-2 group">
+                      <span>{link.label}</span>
+                    </Link>
+                  ) : (
+                    <a aria-label="Interactive control" href={link.href} className="text-white/60 hover:text-purple-300 hover:translate-x-1 transition-all duration-300 text-sm flex items-center gap-2 group">
+                      <span>{link.label}</span>
+                    </a>
+                  )}
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
 
-        <div className="mt-16 pt-8 border-t border-slate-200 dark:border-slate-800 flex flex-col md:flex-row justify-center items-center gap-4 text-center md:text-left">
-          <p suppressHydrationWarning className="text-sm font-medium text-slate-500 dark:text-slate-500">
+        {/* Brand Anchor */}
+        <div className="border-t border-purple-900/20 mt-24 pt-8 flex flex-col md:flex-row justify-between items-center gap-6">
+          <Link
+            to="/"
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            aria-label="VeeBot Home"
+            className="flex items-center gap-3 group"
+          >
+            <img src="/Favicon.png" alt="VeeBot" className="h-8 w-auto object-contain group-hover:drop-shadow-[0_0_8px_var(--color-primary)] transition-all duration-500" />
+            <span className="text-white font-bold tracking-tight">VeeBot</span>
+          </Link>
+
+          <p suppressHydrationWarning className="text-white/40 text-sm">
             © {new Date().getFullYear()} VeeBot Inc. Todos los derechos reservados.
           </p>
+
+          <div className="flex items-center gap-4">
+            <a aria-label="Interactive control" href="#" className="text-white/40 hover:text-[var(--color-primary)] transition-colors duration-300">
+              <Twitter size={20} />
+            </a>
+            <a aria-label="Interactive control" href="#" className="text-white/40 hover:text-[var(--color-primary)] transition-colors duration-300">
+              <Linkedin size={20} />
+            </a>
+            <a aria-label="Interactive control" href="#" className="text-white/40 hover:text-[var(--color-primary)] transition-colors duration-300">
+              <Github size={20} />
+            </a>
+            <a aria-label="Interactive control" href="#" className="text-white/40 hover:text-[var(--color-primary)] transition-colors duration-300">
+              <Mail size={20} />
+            </a>
+          </div>
         </div>
       </div>
     </footer>
