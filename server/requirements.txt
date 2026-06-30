@@ -11,7 +11,7 @@ python-jose
 cryptography
 passlib
 bcrypt==4.0.1
-groq
+google-genai
 pinecone
 pdfplumber
 requests

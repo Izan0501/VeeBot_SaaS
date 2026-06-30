@@ -7,7 +7,9 @@ from fastapi.responses import StreamingResponse
 from bson import ObjectId
 
 # Import Local Modules
-from config import groq_client  # Importamos el cliente Groq centralizado
+from config import gemini_client  # Gemini client centralizado
+from google import genai as google_genai
+from google.genai import types as genai_types
 from database import candidates_collection, get_all_candidates_from_db, db
 from security import get_current_user
 from schemas import CompareRequest, ChatRequest
@@ -195,16 +197,17 @@ async def compare_candidates(data: CompareRequest, current_user: dict = Depends(
         }}
         """
 
-        # 3. Groq API Call
-        chat_completion = groq_client.chat.completions.create(
-            messages=[{"role": "user", "content": prompt}],
-            model="llama-3.3-70b-versatile",
+        # 3. Gemini API Call (JSON mode)
+        config = genai_types.GenerateContentConfig(
             temperature=0.5,
-            response_format={"type": "json_object"} # Forzar JSON
+            response_mime_type="application/json",
         )
-
-        response_content = chat_completion.choices[0].message.content
-        return json.loads(response_content)
+        response = gemini_client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=prompt,
+            config=config,
+        )
+        return json.loads(response.text)
 
     except Exception as e:
         print(f"Error comparando: {e}")
@@ -242,15 +245,24 @@ async def chat_with_candidate(data: ChatRequest, current_user: dict = Depends(ge
         messages.extend(data.history[-6:]) 
         messages.append({"role": "user", "content": data.message})
 
-        # 4. Groq Chat Call
-        chat_completion = groq_client.chat.completions.create(
-            messages=messages,
-            model="llama-3.3-70b-versatile",
+        # 4. Gemini Chat Call
+        contents = []
+        for msg in messages[1:]:  # Skip system message (handled via system_instruction)
+            role = "model" if msg.get("role") == "assistant" else "user"
+            contents.append(genai_types.Content(role=role, parts=[genai_types.Part(text=msg.get("content", ""))]))
+
+        config = genai_types.GenerateContentConfig(
             temperature=0.7,
-            max_tokens=1024 
+            max_output_tokens=1024,
+            system_instruction=system_prompt,
+        )
+        response = gemini_client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=contents,
+            config=config,
         )
 
-        return {"response": chat_completion.choices[0].message.content}
+        return {"response": response.text}
 
     except Exception as e:
         print(f"Error chat simulation: {e}")

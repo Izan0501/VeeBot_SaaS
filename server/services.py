@@ -1,14 +1,14 @@
 import os
 import json
-import requests
 import time
 from datetime import datetime, timedelta
 from pinecone import Pinecone
 from sentence_transformers import SentenceTransformer
-from groq import Groq
+from google import genai as google_genai
+from google.genai import types as genai_types
 
 # Import Locals
-from config import GROQ_API_KEY, PINECONE_API_KEY, PINECONE_INDEX_NAME, groq_client
+from config import GEMINI_API_KEY, PINECONE_API_KEY, PINECONE_INDEX_NAME, gemini_client
 from database import candidates_collection
 
 # Services for Vector DB (Pinecone) and AI (GROQ)
@@ -69,48 +69,41 @@ def delete_user_vectors(user_id):
         print(f"Error borrando vectores Pinecone: {e}")
         return False
 
-# AI Integration (GROQ)
-def raw_groq_request(messages, model="llama-3.3-70b-versatile", json_mode=False):
-  
-    api_key = GROQ_API_KEY or os.getenv("GROQ_API_KEY", "").strip()
-    url = "https://api.groq.com/openai/v1/chat/completions"
-    
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json",
-    }
-
-    payload = {
-        "model": model,
-        "messages": messages,
-        "temperature": 0.1
-    }
-    if json_mode: payload["response_format"] = {"type": "json_object"}
+# AI Integration (Gemini)
+def raw_gemini_request(system_prompt: str, user_prompt: str, json_mode: bool = False) -> str:
+    """
+    Core Gemini API wrapper using the google-genai SDK.
+    Maps the legacy system+user message pattern to Gemini's config paradigm.
+    Retries up to 3 times on transient failures.
+    """
+    config = genai_types.GenerateContentConfig(
+        temperature=0.1,
+        system_instruction=system_prompt,
+        response_mime_type="application/json" if json_mode else "text/plain",
+    )
 
     max_retries = 3
     for attempt in range(max_retries):
         try:
-            response = requests.post(url, headers=headers, json=payload, timeout=30)
-            
-            if response.status_code == 200:
-                return response.json()["choices"][0]["message"]["content"]
-            
-            elif response.status_code == 429:
-                wait_time = 2 * (attempt + 1)
-                print(f"⚠️ Rate Limit de Groq. Reintentando en {wait_time}s...")
-                time.sleep(wait_time)
-                continue 
-            
-            else:
-                raise Exception(f"Error Groq {response.status_code}: {response.text}")
-                
+            response = gemini_client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=user_prompt,
+                config=config,
+            )
+            return response.text
         except Exception as e:
-            if attempt == max_retries - 1: 
-                print(f"Error final en request: {e}")
+            err = str(e)
+            if "429" in err or "quota" in err.lower() or "rate" in err.lower():
+                wait_time = 2 * (attempt + 1)
+                print(f"⚠️ Rate Limit de Gemini. Reintentando en {wait_time}s...")
+                time.sleep(wait_time)
+                continue
+            if attempt == max_retries - 1:
+                print(f"Error final en request Gemini: {e}")
                 raise e
             time.sleep(1)
 
-def get_ai_score(text, model_name="llama-3.3-70b-versatile"): 
+def get_ai_score(text, model_name="gemini-2.5-flash"): 
     # Prompt 
     prompt = f"""
     Actúa como un Engineering Manager escéptico y cínico que odia contratar a la persona equivocada.
@@ -160,12 +153,9 @@ def get_ai_score(text, model_name="llama-3.3-70b-versatile"):
     """
 
     try:
-        content = raw_groq_request(
-            messages=[
-                {"role": "system", "content": "Eres un auditor de CVs estricto. No tienes piedad. Respondes solo JSON."},
-                {"role": "user", "content": prompt}
-            ],
-            model=model_name,
+        content = raw_gemini_request(
+            system_prompt="Eres un auditor de CVs estricto. No tienes piedad. Respondes solo JSON.",
+            user_prompt=prompt,
             json_mode=True
         )
         return json.loads(content)
@@ -180,7 +170,7 @@ def get_ai_score(text, model_name="llama-3.3-70b-versatile"):
         }
 
 def analyze_candidate_with_groq(query, candidates_context):
-    if not GROQ_API_KEY:
+    if not GEMINI_API_KEY:
         print("❌ ERROR: La API Key está vacía o es None")
         return "Error: No hay API Key configurada."
     
@@ -197,11 +187,9 @@ def analyze_candidate_with_groq(query, candidates_context):
     4. Mantén un tono profesional pero conversacional.
     """
     try:
-        return raw_groq_request(
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": query}
-            ]
+        return raw_gemini_request(
+            system_prompt=system_prompt,
+            user_prompt=query
         )
     except Exception as e:
         return f"Error consultando a la IA: {str(e)}"
@@ -229,17 +217,26 @@ def chat_as_candidate(candidate_name, full_cv_text, user_query):
     """
 
     try:
-        chat_completion = groq_client.chat.completions.create(
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_query}
-            ],
-            model="llama-3.3-70b-versatile",
+        # Build Gemini multi-turn content list (role: assistant -> model)
+        contents = []
+        for msg in data.history[-6:] if hasattr(data, 'history') else []:
+            role = "model" if msg.get("role") == "assistant" else "user"
+            contents.append(genai_types.Content(role=role, parts=[genai_types.Part(text=msg.get("content", ""))]))
+        contents.append(genai_types.Content(role="user", parts=[genai_types.Part(text=user_query)]))
+
+        config = genai_types.GenerateContentConfig(
             temperature=0.7,
+            max_output_tokens=1024,
+            system_instruction=system_prompt,
         )
-        return chat_completion.choices[0].message.content
+        response = gemini_client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=contents,
+            config=config,
+        )
+        return response.text
     except Exception as e:
-        print(f"Error en Groq Chat: {e}")
+        print(f"Error en Gemini Chat: {e}")
         return "Disculpa, tuve un problema procesando tu pregunta."
     
 # Secondary Maintenance Service

@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 from dotenv import load_dotenv
-from groq import Groq
+from google import genai as google_genai
 
 # Load .env file
 # Route config: server/config.py -> parent = server/ -> parent.parent = root/
@@ -27,13 +27,13 @@ PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
 SMTP_EMAIL = os.getenv("SMTP_EMAIL")
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
 
-# GROQ Config
-GROQ_API_KEY = os.getenv("GROQ_API_KEY", "").strip()
+# Gemini Config
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
 
-if not GROQ_API_KEY:
-    print("⚠️ ADVERTENCIA: No se encontró GROQ_API_KEY en el archivo .env")
+if not GEMINI_API_KEY:
+    print("⚠️ ADVERTENCIA: No se encontró GEMINI_API_KEY en el archivo .env")
 else:
-    print(f"✅ GROQ_API_KEY cargada correctamente (últimos 4 chars: ...{GROQ_API_KEY[-4:]})")
+    print(f"✅ GEMINI_API_KEY cargada correctamente (últimos 4 chars: ...{GEMINI_API_KEY[-4:]})")
 
-# Initialize GROQ client (usa la key limpia sin espacios ni saltos de línea)
-groq_client = Groq(api_key=GROQ_API_KEY)
+# Initialize Gemini client (google-genai SDK)
+gemini_client = google_genai.Client(api_key=GEMINI_API_KEY)
