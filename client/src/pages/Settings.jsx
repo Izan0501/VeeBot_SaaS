@@ -455,8 +455,8 @@ const Settings = () => {
                 <div className="mb-8 p-5 bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-slate-800 dark:to-slate-800/50 border border-purple-100 dark:border-slate-700 rounded-2xl flex gap-4 items-center">
                   <div className="p-3 bg-white dark:bg-slate-700 rounded-xl shadow-sm text-purple-600 dark:text-purple-400"><Activity size={24} /></div>
                   <div>
-                    <h4 className="font-bold text-slate-800 dark:text-white text-sm">Modelo Llama 3.3 (70B)</h4>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Motor semántico optimizado para perfiles IT. Latencia &lt; 800ms.</p>
+                    <h4 className="font-bold text-slate-800 dark:text-white text-sm">Modelo Gemini 2.5 Flash</h4>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Motor multimodal de contexto masivo. Latencia ultrabaja &lt; 500ms.</p>
                   </div>
                 </div>
 
