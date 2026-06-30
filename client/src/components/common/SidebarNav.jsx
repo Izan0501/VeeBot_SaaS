@@ -98,40 +98,6 @@ export const SidebarNav = ({ isActive, userRole }) => {
                 </div>
             </div>
 
-            {userRole !== 'Premium' && userRole !== 'Agency' && (
-                <div>
-                    <p className="px-3 text-[10px] font-extrabold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest mb-3 group-[.is-collapsed]/sidebar:hidden">Premium</p>
-                    <div className="space-y-1">
-                        <Link to="/upgrade">
-                            <m.div
-                                whileHover={{ scale: 1.02 }}
-                                whileTap={{ scale: 0.98 }}
-                                className="group relative w-full rounded-xl p-[1px] overflow-hidden cursor-pointer"
-                            >
-                                <div className="absolute inset-0 bg-gradient-to-r from-brand via-brand-secondary to-pink-500 opacity-70 group-hover:opacity-100 transition-opacity duration-500 animate-gradient-xy" />
-                                <div className="absolute inset-0 bg-gradient-to-r from-brand via-brand-secondary to-pink-500 opacity-0 blur-md group-hover:opacity-30 transition-opacity duration-500" />
-                                <div className="relative h-full bg-white dark:bg-slate-950 rounded-[11px] px-3 py-2.5 flex items-center gap-2.5 transition-colors group-hover:bg-slate-50 dark:group-hover:bg-slate-900">
-                                    <div className="shrink-0 size-8 rounded-lg bg-brand/10 flex items-center justify-center border border-brand/20 group-hover:border-brand/40 transition-colors">
-                                        <Sparkles size={16} className="text-brand group-hover:text-brand-secondary transition-colors duration-300 animate-pulse" />
-                                    </div>
-                                    <div className="flex flex-col flex-1 min-w-0 justify-center group-[.is-collapsed]/sidebar:hidden">
-                                        <span className="text-[9px] font-extrabold uppercase tracking-widest from-brand to-brand-secondary leading-tight text-indigo-600 dark:text-indigo-400">
-                                            Upgrade
-                                        </span>
-                                        <span className="text-xs font-bold text-slate-700 dark:text-slate-200 truncate group-hover:text-brand dark:group-hover:text-brand-secondary transition-colors leading-tight">
-                                            Ser Premium
-                                        </span>
-                                    </div>
-                                    <div className="text-slate-300 group-hover:text-brand group-hover:translate-x-0.5 transition-all duration-300 group-[.is-collapsed]/sidebar:hidden">
-                                        <ChevronRight size={14} />
-                                    </div>
-                                </div>
-                            </m.div>
-                        </Link>
-                    </div>
-                </div>
-            )}
-
             <div>
                 <p className="px-3 text-[10px] font-extrabold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest mb-3 group-[.is-collapsed]/sidebar:hidden">Soporte</p>
                 <div className="space-y-1">
