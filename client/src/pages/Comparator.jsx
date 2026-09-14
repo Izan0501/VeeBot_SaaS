@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 
 // --- IMPORTS API ---
 import { candidatesAPI } from '../api/candidates'; 
-import { compareWithGroq } from '../api/groqClient';
+import { compareWithGemini } from '../api/geminiClient';
 
 // --- IMPORTS COMPONENTES ---
 import ComparatorHeader from '../components/comparator/ComparatorHeader';
@@ -51,7 +51,7 @@ const Comparator = () => {
             if (!candA || !candB) throw new Error("Candidatos no encontrados");
 
             // Llamamos a Groq directamente desde el browser
-            const data = await compareWithGroq(candA, candB);
+            const data = await compareWithGemini(candA, candB);
             setResult(data);
             toast.success("¡Análisis completado!");
         } catch (error) {

@@ -5,7 +5,7 @@ import { Trash2, Send, Sparkles } from 'lucide-react';
 
 // --- IMPORTS API Y CONTEXTO ---
 import { candidatesAPI } from '../api/candidates';
-import { digitalTwinChatWithGroq } from '../api/groqClient';
+import { digitalTwinChatWithGemini } from '../api/geminiClient';
 import { useAuth } from '../context/AuthContext';
 
 // --- IMPORTS COMPONENTES ---
@@ -256,7 +256,7 @@ const DigitalTwin = () => {
             }));
 
             // 2. Call Groq browser-side for speed
-            const responseText = await digitalTwinChatWithGroq(
+            const responseText = await digitalTwinChatWithGemini(
                 selectedCandidate.name,
                 cvText,
                 text,

@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 
 import { candidatesAPI } from '../api/candidates';
 import { featuresAPI } from '../api/features';
-import { dashboardChatWithGroq } from '../api/groqClient';
+import { dashboardChatWithGemini } from '../api/geminiClient';
 import { useAuth } from '../context/AuthContext';
 
 // ─── Constants (module-scope, never re-created) ───────────────────────────────
@@ -194,7 +194,7 @@ export const useDashboard = (isModalOpen) => {
 
         try {
             // 1. Call Groq browser-side for speed
-            const responseText = await dashboardChatWithGroq(currentQuery, candidates);
+            const responseText = await dashboardChatWithGemini(currentQuery, candidates);
             const aiText = responseText || 'No pude generar una respuesta.';
 
             // 2. Persist BOTH turns to MongoDB — backend enforces paywall and returns real count

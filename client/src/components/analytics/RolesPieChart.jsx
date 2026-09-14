@@ -7,7 +7,7 @@ const RechartsRolesPieChart = React.lazy(() => import('recharts').then(mod => {
     const { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } = mod;
     return {
         default: ({ roleData, CustomTooltip, COLORS }) => (
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minHeight={1} minWidth={1}>
                 <PieChart>
                     <Pie
                         data={roleData}

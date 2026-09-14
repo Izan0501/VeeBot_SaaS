@@ -7,7 +7,7 @@ const RechartsTrendChart = React.lazy(() => import('recharts').then(mod => {
     const { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Brush, ReferenceLine } = mod;
     return {
         default: ({ trendData, averageScore, CustomTooltip, CustomActiveDot }) => (
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minHeight={1} minWidth={1}>
                 <AreaChart data={trendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                     <defs>
                         <linearGradient id="colorScore" x1="0" y1="0" x2="0" y2="1">

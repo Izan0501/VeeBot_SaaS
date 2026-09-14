@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 
 // --- IMPORTS API Y COMPONENTES ---
 import { candidatesAPI } from '../api/candidates';
-import { analyzeCVWithGroq } from '../api/groqClient';
+import { analyzeCVWithGemini } from '../api/geminiClient';
 import ImportHeader from '../components/import/ImportHeader';
 import DragDropZone from '../components/import/DragDropZone';
 import FileList from '../components/import/FileList';
@@ -93,7 +93,7 @@ const ImportData = () => {
                         const rawCvText = candidate.text || '';
                         const text = rawCvText || `Candidato: ${candidate.name}. Sin texto disponible.`;
 
-                        const analysis = await analyzeCVWithGroq(text);
+                        const analysis = await analyzeCVWithGemini(text);
 
                         // Extract email from raw CV text — must use rawCvText, NOT the Groq fallback string.
                         // Permissive regex: tolerates whitespace/newlines injected by the PDF parser around @ and dots.
